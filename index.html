@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+    
+    
     <!-- Modal de Cálculo de Joias -->
     <div class="modal-overlay" id="joiasModal">
         <div class="modal-content modal-joias">
@@ -41,13 +43,48 @@
         </div>
     </div>
 
-    <div class="container">
+   <!-- ===== TELA DE LOGIN ===== -->
+    <div id="loginScreen" class="login-screen">
+        <div class="login-container">
+            <div class="login-header">
+                <h1>🏰 ANBU FARM TOWER</h1>
+                <h2>MEGAMU - Área Restrita</h2>
+            </div>
+            
+            <div class="login-card">
+                <div class="lock-icon">🔒</div>
+                <h3>Acesso Protegido</h3>
+                <p>Digite a senha para acessar o sistema</p>
+                
+                <div class="login-form">
+                    <input 
+                        type="password" 
+                        id="passwordInput" 
+                        placeholder="Digite a senha" 
+                        autocomplete="off"
+                    >
+                    <button onclick="checkPassword()" class="btn-login">
+                        <span>🔓</span> Entrar
+                    </button>
+                </div>
+                
+                <div id="errorMessage" class="error-message-login"></div>
+            </div>
+            
+            <div class="login-footer">
+                <p>Criado por <strong>fujikoftw</strong> - O MELHOR DL DO MEGAMU</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== CONTEÚDO PRINCIPAL (será mostrado após login) ===== -->
+    <div class="container" style="display: none;">
         <header class="header">
             <h1>🏰 ANBU FARM TOWER</h1>
-            <h2>MEGAMU</h2>
+            <h2>MEGAMU - Cadastro de Torres</h2>
             <div class="header-buttons">
-                <button class="btn-joias" onclick="openJoiasModal()">
-                    💎 Calcular Joias
+                <button class="btn-logout" onclick="logout()">
+                    🚪 Sair
                 </button>
                 <div class="connection-status" id="connectionStatus">
                     <span class="status-dot"></span>
@@ -132,6 +169,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     
+    <script src="js/auth.js"></script>
     <script src="js/firebase-config.js"></script>
     <script src="js/joias-calculator.js"></script>
     <script src="js/cadastro.js"></script>

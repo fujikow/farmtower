@@ -1021,3 +1021,202 @@ tbody tr:hover {
 .table-container {
     animation: fadeIn 0.5s ease;
 }
+
+/* ===== TELA DE LOGIN ===== */
+.login-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, var(--gremio-azul) 0%, var(--gremio-preto) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999999;
+    padding: 20px;
+}
+
+.login-container {
+    width: 100%;
+    max-width: 450px;
+    animation: fadeIn 0.5s ease;
+}
+
+.login-header {
+    text-align: center;
+    color: var(--gremio-branco);
+    margin-bottom: 30px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.login-header h1 {
+    font-size: 2.5em;
+    margin-bottom: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+}
+
+.login-header h2 {
+    font-size: 1.3em;
+    font-weight: 400;
+    opacity: 0.95;
+}
+
+.login-card {
+    background: var(--gremio-branco);
+    padding: 40px;
+    border-radius: 15px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    border-top: 5px solid var(--gremio-azul);
+    border-bottom: 5px solid var(--gremio-preto);
+    text-align: center;
+}
+
+.lock-icon {
+    font-size: 4em;
+    margin-bottom: 20px;
+    animation: pulse 2s infinite;
+}
+
+.login-card h3 {
+    color: var(--gremio-azul);
+    font-size: 1.8em;
+    margin-bottom: 15px;
+    font-weight: 700;
+}
+
+.login-card p {
+    color: var(--gremio-cinza-claro);
+    margin-bottom: 30px;
+    font-size: 1.05em;
+}
+
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.login-form input {
+    width: 100%;
+    padding: 15px 20px;
+    border: 2px solid var(--gremio-azul);
+    border-radius: 10px;
+    font-size: 1.1em;
+    text-align: center;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.login-form input:focus {
+    outline: none;
+    border-color: var(--gremio-preto);
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.2);
+    background: var(--gremio-branco-suave);
+}
+
+.login-form input.shake {
+    animation: shake 0.5s ease;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-10px); }
+    20%, 40%, 60%, 80% { transform: translateX(10px); }
+}
+
+.btn-login {
+    width: 100%;
+    padding: 15px 25px;
+    background: linear-gradient(135deg, var(--gremio-azul) 0%, var(--gremio-azul-escuro) 100%);
+    color: var(--gremio-branco);
+    border: 2px solid transparent;
+    border-radius: 10px;
+    font-size: 1.2em;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.btn-login:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(13, 110, 253, 0.4);
+    border-color: var(--gremio-preto);
+}
+
+.btn-login span {
+    font-size: 1.3em;
+}
+
+.error-message-login {
+    display: none;
+    margin-top: 20px;
+    padding: 15px;
+    background: rgba(220, 53, 69, 0.1);
+    border: 2px solid #dc3545;
+    border-radius: 10px;
+    color: #dc3545;
+    font-weight: 600;
+    animation: slideDown 0.3s ease;
+}
+
+.login-footer {
+    text-align: center;
+    color: var(--gremio-branco);
+    margin-top: 30px;
+    opacity: 0.9;
+}
+
+.login-footer p {
+    font-size: 1em;
+}
+
+.login-footer strong {
+    font-weight: 700;
+    color: var(--gremio-branco);
+}
+
+/* Responsivo */
+@media (max-width: 480px) {
+    .login-header h1 {
+        font-size: 2em;
+    }
+    
+    .login-header h2 {
+        font-size: 1.1em;
+    }
+    
+    .login-card {
+        padding: 30px 20px;
+    }
+    
+    .lock-icon {
+        font-size: 3em;
+    }
+}
+/* ===== BOTÃO LOGOUT ===== */
+.btn-logout {
+    background: rgba(196, 83, 94, 0.9);
+    color: white;
+    border: 2px solid #ffffff;
+    padding: 12px 24px;
+    border-radius: 25px;
+    font-size: 1.1em;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-logout:hover {
+    background: #dc3545;
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(220, 53, 69, 0.4);
+}

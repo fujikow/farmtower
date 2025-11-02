@@ -12,8 +12,17 @@ let joiasUpdateInterval;
 
 // ===== ABRIR MODAL =====
 function openJoiasModal() {
+    console.log('🔓 Abrindo modal de joias...');
+    
     const modal = document.getElementById('joiasModal');
+    
+    if (!modal) {
+        console.error('❌ Modal não encontrado!');
+        return;
+    }
+    
     modal.classList.add('active');
+    modal.style.display = 'flex'; // Forçar display
     
     // Resetar slider
     const slider = document.getElementById('horasAdicionais');
@@ -25,21 +34,31 @@ function openJoiasModal() {
     updateJoiasCalculator();
     joiasUpdateInterval = setInterval(updateJoiasCalculator, 1000);
     
-    console.log('💎 Modal de joias aberto');
+    console.log('✅ Modal aberto com sucesso');
 }
 
 // ===== FECHAR MODAL =====
 function closeJoiasModal() {
+    console.log('🔒 Fechando modal de joias...');
+    
     const modal = document.getElementById('joiasModal');
+    
+    if (!modal) {
+        console.error('❌ Modal não encontrado!');
+        return;
+    }
+    
     modal.classList.remove('active');
+    modal.style.display = 'none'; // Forçar display
     
     // Parar atualização
     if (joiasUpdateInterval) {
         clearInterval(joiasUpdateInterval);
     }
     
-    console.log('💎 Modal de joias fechado');
+    console.log('✅ Modal fechado com sucesso');
 }
+
 
 // ===== OBTER HORÁRIO DE BRASÍLIA (GMT-3) =====
 function getBrasiliaTime() {
