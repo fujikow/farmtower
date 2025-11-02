@@ -59,7 +59,7 @@
                     <label for="horasAdicionais">⏱️ Horas Adicionais:</label>
                     <div class="slider-container">
                         <input type="range" id="horasAdicionais" min="0" max="44" value="0" class="slider">
-                        <span class="slider-value" id="horasAdicionaisValue">0h</span>
+                         <span class="slider-value" id="horasAdicionaisValue">Total: 2h (Grátis)</span>
                     </div>
                 </div>
 
@@ -156,7 +156,7 @@
                 </button>
 
                 <button class="btn btn-missing" onclick="openMissingModal()">
-                    <span>🚫</span> Torres Sem Cadastro
+                    <span>🚫</span> Torres s/ Cadastro
                 </button>
                 
                 <button class="btn btn-export" onclick="exportToExcel()">
@@ -241,6 +241,5 @@
     <script src="js/firebase-config.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/joias-calculator.js"></script>
-    <script src="js/tabela.js"></script>
-</body>
+    <script src="js/tabela.js"></script> <script src="js/missing-towers.js"></script> </body>
 </html>

@@ -3,7 +3,6 @@
 let joiasUpdateInterval = null;
 
 // Tabela de joias (horas -> joias necessárias)
-// (ATUALIZADO CONFORME SOLICITADO)
 const tabelaJoias = {
     0: 0, 1: 5, 2: 12, 3: 22, 4: 36, 5: 55,
     6: 80, 7: 111, 8: 149, 9: 194, 10: 248,
@@ -103,7 +102,6 @@ function updateJoiasCalculator() {
     // Atualizar horário atual
     const horarioAtualElement = document.getElementById('horarioAtual');
     if (horarioAtualElement) {
-        // MODIFICADO: Chamando a nova função formatModalDateTime
         horarioAtualElement.textContent = formatModalDateTime(brasilia);
     }
     
@@ -111,10 +109,18 @@ function updateJoiasCalculator() {
     const slider = document.getElementById('horasAdicionais');
     const horasAdicionais = slider ? parseInt(slider.value) : 0;
     
-    // Atualizar valor do slider
+    // Atualizar valor do slider (LÓGICA ATUALIZADA)
     const sliderValue = document.getElementById('horasAdicionaisValue');
     if (sliderValue) {
-        sliderValue.textContent = horasAdicionais + 'h';
+        const horasGratis = 2;
+        const horasTotais = horasAdicionais + horasGratis;
+        
+        if (horasAdicionais === 0) {
+             sliderValue.textContent = `Total: ${horasTotais}h (Grátis)`;
+        } else {
+             // Ex: "10h + 2h (Grátis) = 12h"
+             sliderValue.textContent = `${horasAdicionais}h + ${horasGratis}h (Grátis) = ${horasTotais}h`;
+        }
     }
     
     // Calcular hora de liberação
@@ -125,7 +131,6 @@ function updateJoiasCalculator() {
     // Atualizar hora de liberação
     const horaLiberacaoElement = document.getElementById('horaLiberacao');
     if (horaLiberacaoElement) {
-        // MODIFICADO: Chamando a nova função formatModalDateTime
         horaLiberacaoElement.textContent = formatModalDateTime(horaLiberacao);
     }
     
