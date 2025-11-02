@@ -13,6 +13,10 @@
         <header class="header">
             <h1>🏰 ANBU FARM TOWER</h1>
             <h2>MEGAMU - Controle de Torres</h2>
+            <div class="connection-status" id="connectionStatus">
+                <span class="status-dot"></span>
+                <span class="status-text">Conectando...</span>
+            </div>
         </header>
 
         <div class="stats-container">
@@ -61,23 +65,24 @@
         </div>
 
         <div class="legend-bar">
-            <div class="legend-item">
-                <span class="legend-color" style="background: #dc3545;"></span>
-                <span>Menos de 5 minutos</span>
-            </div>
-            <div class="legend-item">
-                <span class="legend-color" style="background: #ffc107;"></span>
-                <span>Menos de 15 minutos</span>
-            </div>
-            <div class="legend-item">
-                <span class="legend-color" style="background: #ff9800;"></span>
-                <span>Menos de 30 minutos</span>
-            </div>
-            <div class="legend-item">
-                <span class="legend-color" style="background: #0d6efd;"></span>
-                <span>Mais de 30 minutos</span>
-            </div>
+             <div class="legend-item">
+             <span class="legend-color" style="background: #dc3545;"></span>
+             <span>Menos de 5 minutos (Vermelho)</span>
+         </div>
+         <div class="legend-item">
+            <span class="legend-color" style="background: #ff9800;"></span>
+            <span>Menos de 15 minutos (Laranja)</span>
         </div>
+         <div class="legend-item">
+             <span class="legend-color" style="background: #ffc107;"></span>
+            <span>Menos de 30 minutos (Amarelo)</span>
+        </div>
+        <div class="legend-item">
+            <span class="legend-color" style="background: #0d6efd;"></span>
+            <span>Mais de 30 minutos (Azul)</span>
+         </div>
+    </div>
+
 
         <div class="table-container">
             <table id="towersTable">
@@ -112,6 +117,11 @@
         </footer>
     </div>
 
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    
+    <script src="js/firebase-config.js"></script>
     <script src="js/tabela.js"></script>
 </body>
 </html>

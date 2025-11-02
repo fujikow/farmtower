@@ -4,10 +4,7 @@ let updateInterval;
 
 // ===== INICIALIZAÇÃO =====
 document.addEventListener('DOMContentLoaded', function() {
-    loadTowers();
-    populateFilters();
-    updateStats();
-    renderTable();
+    loadTowersFromFirebase();
     
     // Atualizar a cada segundo
     updateInterval = setInterval(() => {
@@ -16,19 +13,33 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 1000);
 });
 
-// ===== CARREGAR TORRES =====
-function loadTowers() {
-    allTowers = JSON.parse(localStorage.getItem('anbuFarmTowers')) || [];
-    
-    // Remover torres expiradas automaticamente
-    const now = new Date();
-    allTowers = allTowers.filter(torre => {
-        const finalizacao = new Date(torre.horarioFinalizacao);
-        return finalizacao > now;
+// ===== CARREGAR TORRES DO FIREBASE =====
+function loadTowersFromFirebase() {
+    towersRef.on('value', (snapshot) => {
+        const towers = snapshot.val();
+        allTowers = [];
+        
+        if (towers) {
+            const now = new Date();
+            
+            Object.keys(towers).forEach(key => {
+                const torre = towers[key];
+                const finalizacao = new Date(torre.horarioFinalizacao);
+                
+                // Incluir apenas torres ativas
+                if (finalizacao > now) {
+                    allTowers.push({
+                        id: key,
+                        ...torre
+                    });
+                }
+            });
+        }
+        
+        populateFilters();
+        updateStats();
+        renderTable();
     });
-    
-    // Atualizar localStorage
-    localStorage.setItem('anbuFarmTowers', JSON.stringify(allTowers));
 }
 
 // ===== POPULAR FILTROS =====
@@ -41,11 +52,9 @@ function populateFilters() {
     const filterMapa = document.getElementById('filterMapa');
     const filterServidor = document.getElementById('filterServidor');
 
-    // Limpar filtros
     filterMapa.innerHTML = '<option value="">Todos</option>';
     filterServidor.innerHTML = '<option value="">Todos</option>';
 
-    // Popular mapas
     mapas.forEach(mapa => {
         const option = document.createElement('option');
         option.value = mapa;
@@ -53,7 +62,6 @@ function populateFilters() {
         filterMapa.appendChild(option);
     });
 
-    // Popular servidores
     servidores.forEach(servidor => {
         const option = document.createElement('option');
         option.value = servidor;
@@ -87,7 +95,6 @@ function renderTable() {
     const emptyState = document.getElementById('emptyState');
     const table = document.getElementById('towersTable');
 
-    // Aplicar filtros
     let filteredTowers = allTowers;
 
     if (filterMapa) {
@@ -98,7 +105,6 @@ function renderTable() {
         filteredTowers = filteredTowers.filter(t => t.servidor === filterServidor);
     }
 
-    // Verificar se há torres
     if (filteredTowers.length === 0) {
         table.style.display = 'none';
         emptyState.style.display = 'block';
@@ -108,15 +114,12 @@ function renderTable() {
     table.style.display = 'table';
     emptyState.style.display = 'none';
 
-    // Ordenar por horário de finalização (mais próximo primeiro)
     filteredTowers.sort((a, b) => {
         return new Date(a.horarioFinalizacao) - new Date(b.horarioFinalizacao);
     });
 
-    // Limpar tabela
     tableBody.innerHTML = '';
 
-    // Renderizar cada torre
     filteredTowers.forEach(torre => {
         const row = document.createElement('tr');
         
@@ -127,12 +130,10 @@ function renderTable() {
         const cronometro = calculateCronometro(finalizacaoDate, now);
         const rowClass = getRowClass(finalizacaoDate, now);
 
-        // Aplicar classe de formatação condicional
         if (rowClass) {
             row.className = rowClass;
         }
 
-        // Montar HTML da linha
         row.innerHTML = `
             <td><strong>${torre.mapa}</strong></td>
             <td>${torre.servidor}</td>
@@ -167,7 +168,7 @@ function calculateCronometro(finalizacao, now) {
     return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
-// ===== OBTER CLASSE DA LINHA (FORMATAÇÃO CONDICIONAL) =====
+// ===== OBTER CLASSE DA LINHA =====
 function getRowClass(finalizacao, now) {
     const diff = finalizacao - now;
     const minutes = diff / (1000 * 60);
@@ -175,9 +176,9 @@ function getRowClass(finalizacao, now) {
     if (minutes < 5) {
         return 'row-danger'; // Vermelho - menos de 5 minutos
     } else if (minutes < 15) {
-        return 'row-warning'; // Amarelo - menos de 15 minutos
+        return 'row-orange'; // Laranja - menos de 15 minutos
     } else if (minutes < 30) {
-        return 'row-orange'; // Laranja - menos de 30 minutos
+        return 'row-warning'; // Amarelo - menos de 30 minutos
     } else {
         return 'row-success'; // Azul Grêmio - mais de 30 minutos
     }
@@ -197,22 +198,17 @@ function formatDateTime(date) {
 
 // ===== ATUALIZAR TABELA =====
 function refreshTable() {
-    loadTowers();
-    populateFilters();
-    updateStats();
-    renderTable();
+    loadTowersFromFirebase();
 }
 
 // ===== EXPORTAR PARA EXCEL =====
 function exportToExcel() {
-    // Verificar se há torres para exportar
     if (allTowers.length === 0) {
         showExportMessage('❌ Nenhuma torre para exportar!', 'error');
         return;
     }
 
     try {
-        // Aplicar filtros atuais
         const filterMapa = document.getElementById('filterMapa').value;
         const filterServidor = document.getElementById('filterServidor').value;
         
@@ -226,18 +222,15 @@ function exportToExcel() {
             filteredTowers = filteredTowers.filter(t => t.servidor === filterServidor);
         }
 
-        // Verificar se há torres após filtro
         if (filteredTowers.length === 0) {
             showExportMessage('❌ Nenhuma torre encontrada com os filtros aplicados!', 'error');
             return;
         }
 
-        // Ordenar por horário de finalização
         filteredTowers.sort((a, b) => {
             return new Date(a.horarioFinalizacao) - new Date(b.horarioFinalizacao);
         });
 
-        // Preparar dados para exportação
         const now = new Date();
         const exportData = filteredTowers.map(torre => {
             const vistoDate = new Date(torre.vistoHorario);
@@ -259,29 +252,18 @@ function exportToExcel() {
             };
         });
 
-        // Criar workbook
         const wb = XLSX.utils.book_new();
         const ws = XLSX.utils.json_to_sheet(exportData);
 
-        // Configurar largura das colunas
         const colWidths = [
-            { wch: 15 }, // Mapa
-            { wch: 10 }, // Servidor
-            { wch: 15 }, // Aleatoriedade
-            { wch: 20 }, // Dono
-            { wch: 25 }, // Localização
-            { wch: 20 }, // Visto Horário
-            { wch: 20 }, // Horário Finalização
-            { wch: 12 }, // Cronômetro
-            { wch: 15 }, // Status
-            { wch: 12 }  // Duração
+            { wch: 15 }, { wch: 10 }, { wch: 15 }, { wch: 20 },
+            { wch: 25 }, { wch: 20 }, { wch: 20 }, { wch: 12 },
+            { wch: 15 }, { wch: 12 }
         ];
         ws['!cols'] = colWidths;
 
-        // Adicionar worksheet ao workbook
         XLSX.utils.book_append_sheet(wb, ws, 'Torres Ativas');
 
-        // Adicionar informações adicionais em uma segunda aba
         const infoData = [
             { 'Informação': 'Total de Torres', 'Valor': filteredTowers.length },
             { 'Informação': 'Torres com Aleatoriedade', 'Valor': filteredTowers.filter(t => t.aleatoriedade === 'Sim').length },
@@ -294,16 +276,11 @@ function exportToExcel() {
         wsInfo['!cols'] = [{ wch: 30 }, { wch: 40 }];
         XLSX.utils.book_append_sheet(wb, wsInfo, 'Informações');
 
-        // Gerar nome do arquivo com data e hora
         const fileName = `ANBU_Farm_Tower_${formatFileNameDate(now)}.xlsx`;
-
-        // Fazer download
         XLSX.writeFile(wb, fileName);
 
-        // Mostrar mensagem de sucesso
         showExportMessage('✅ Tabela exportada com sucesso!', 'success');
         
-        // Animação no botão
         const btnExport = document.querySelector('.btn-export');
         btnExport.classList.add('exporting');
         setTimeout(() => {
@@ -316,7 +293,6 @@ function exportToExcel() {
     }
 }
 
-// ===== FORMATAR DATA PARA EXCEL =====
 function formatDateTimeForExcel(date) {
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -328,7 +304,6 @@ function formatDateTimeForExcel(date) {
     return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
 }
 
-// ===== FORMATAR DATA PARA NOME DO ARQUIVO =====
 function formatFileNameDate(date) {
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -339,7 +314,6 @@ function formatFileNameDate(date) {
     return `${day}-${month}-${year}_${hours}h${minutes}m`;
 }
 
-// ===== OBTER TEXTO DO STATUS =====
 function getStatusText(finalizacao, now) {
     const diff = finalizacao - now;
     const minutes = diff / (1000 * 60);
@@ -357,9 +331,7 @@ function getStatusText(finalizacao, now) {
     }
 }
 
-// ===== MOSTRAR MENSAGEM DE EXPORTAÇÃO =====
 function showExportMessage(message, type) {
-    // Criar tooltip se não existir
     let tooltip = document.querySelector('.export-tooltip');
     if (!tooltip) {
         tooltip = document.createElement('div');
@@ -367,7 +339,6 @@ function showExportMessage(message, type) {
         document.body.appendChild(tooltip);
     }
 
-    // Definir mensagem e cor
     tooltip.textContent = message;
     tooltip.style.background = type === 'success' 
         ? 'rgba(13, 110, 253, 0.95)' 
@@ -376,18 +347,16 @@ function showExportMessage(message, type) {
         ? 'var(--gremio-azul)'
         : 'var(--status-critico)';
 
-    // Mostrar tooltip
     tooltip.classList.add('show');
 
-    // Remover após 2 segundos
     setTimeout(() => {
         tooltip.classList.remove('show');
     }, 2000);
 }
 
-// ===== LIMPAR INTERVAL AO SAIR DA PÁGINA =====
 window.addEventListener('beforeunload', function() {
     if (updateInterval) {
         clearInterval(updateInterval);
     }
+    towersRef.off();
 });

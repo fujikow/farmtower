@@ -481,23 +481,40 @@ tbody tr:hover {
 /* ===== FORMATAÇÃO CONDICIONAL ===== */
 .row-danger {
     background: rgba(220, 53, 69, 0.15) !important;
-    border-left: 4px solid var(--status-critico);
+    border-left: 4px solid #dc3545;
 }
 
-.row-warning {
-    background: rgba(255, 193, 7, 0.15) !important;
-    border-left: 4px solid var(--status-atencao);
+.row-danger:hover {
+    background: rgba(220, 53, 69, 0.25) !important;
 }
 
 .row-orange {
     background: rgba(255, 152, 0, 0.15) !important;
-    border-left: 4px solid var(--status-alerta);
+    border-left: 4px solid #ff9800;
+}
+
+.row-orange:hover {
+    background: rgba(255, 152, 0, 0.25) !important;
+}
+
+.row-warning {
+    background: rgba(255, 193, 7, 0.15) !important;
+    border-left: 4px solid #ffc107;
+}
+
+.row-warning:hover {
+    background: rgba(255, 193, 7, 0.25) !important;
 }
 
 .row-success {
     background: rgba(13, 110, 253, 0.08) !important;
     border-left: 4px solid var(--gremio-azul);
 }
+
+.row-success:hover {
+    background: rgba(13, 110, 253, 0.15) !important;
+}
+
 
 /* ===== BADGES ===== */
 .badge {

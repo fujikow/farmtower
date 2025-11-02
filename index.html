@@ -11,6 +11,10 @@
         <header class="header">
             <h1>🏰 ANBU FARM TOWER</h1>
             <h2>MEGAMU</h2>
+            <div class="connection-status" id="connectionStatus">
+                <span class="status-dot"></span>
+                <span class="status-text">Conectando...</span>
+            </div>
         </header>
 
         <div class="success-message" id="successMessage">
@@ -95,7 +99,7 @@
                 </div>
 
                 <div class="button-group">
-                    <button type="submit" class="btn btn-submit">
+                    <button type="submit" class="btn btn-submit" id="submitBtn">
                         <span>📝</span> Cadastrar Torre
                     </button>
                     <button type="button" class="btn btn-view" onclick="window.location.href='tabela.html'">
@@ -110,6 +114,11 @@
         </footer>
     </div>
 
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    
+    <script src="js/firebase-config.js"></script>
     <script src="js/cadastro.js"></script>
 </body>
 </html>

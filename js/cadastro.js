@@ -13,6 +13,11 @@ document.addEventListener('DOMContentLoaded', function() {
 document.getElementById('towerForm').addEventListener('submit', function(e) {
     e.preventDefault();
 
+    // Desabilitar botão durante envio
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span>⏳</span> Cadastrando...';
+
     // Coletar dados do formulário
     const mapa = document.getElementById('mapa').value;
     const servidor = document.getElementById('servidor').value;
@@ -25,16 +30,19 @@ document.getElementById('towerForm').addEventListener('submit', function(e) {
     // Validação
     if (!mapa || !servidor || !dono || !localizacao) {
         showError('Por favor, preencha todos os campos obrigatórios!');
+        resetSubmitButton();
         return;
     }
 
     if (horas === 0 && minutos === 0 && segundos === 0) {
         showError('A duração da torre deve ser maior que zero!');
+        resetSubmitButton();
         return;
     }
 
     if (horas > 48) {
         showError('A duração máxima é de 48 horas!');
+        resetSubmitButton();
         return;
     }
 
@@ -53,7 +61,6 @@ document.getElementById('towerForm').addEventListener('submit', function(e) {
 
     // Criar objeto da torre
     const torre = {
-        id: Date.now(),
         mapa: mapa,
         servidor: servidor,
         aleatoriedade: aleatoriedade,
@@ -66,23 +73,26 @@ document.getElementById('towerForm').addEventListener('submit', function(e) {
         cadastradoEm: new Date().toISOString()
     };
 
-    // Salvar no LocalStorage
-    saveTower(torre);
-
-    // Mostrar mensagem de sucesso
-    showSuccess('Torre cadastrada com sucesso!');
-
-    // Limpar formulário
-    resetForm();
+    // Salvar no Firebase
+    saveTowerToFirebase(torre);
 });
 
-// ===== FUNÇÕES AUXILIARES =====
-function saveTower(torre) {
-    let torres = JSON.parse(localStorage.getItem('anbuFarmTowers')) || [];
-    torres.push(torre);
-    localStorage.setItem('anbuFarmTowers', JSON.stringify(torres));
+// ===== SALVAR NO FIREBASE =====
+function saveTowerToFirebase(torre) {
+    towersRef.push(torre)
+        .then(() => {
+            showSuccess('Torre cadastrada com sucesso!');
+            resetForm();
+            resetSubmitButton();
+        })
+        .catch((error) => {
+            console.error('Erro ao cadastrar torre:', error);
+            showError('Erro ao cadastrar torre. Verifique sua conexão!');
+            resetSubmitButton();
+        });
 }
 
+// ===== FUNÇÕES AUXILIARES =====
 function formatDuration(h, m, s) {
     const parts = [];
     if (h > 0) parts.push(`${h}h`);
@@ -103,7 +113,6 @@ function showSuccess(message) {
         successMsg.style.display = 'none';
     }, 3000);
 
-    // Scroll suave para o topo
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -119,25 +128,27 @@ function showError(message) {
         errorMsg.style.display = 'none';
     }, 3000);
 
-    // Scroll suave para o topo
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function resetForm() {
     document.getElementById('towerForm').reset();
     
-    // Resetar valores de duração para 0
     document.getElementById('horas').value = 0;
     document.getElementById('minutos').value = 0;
     document.getElementById('segundos').value = 0;
     
-    // Focar no primeiro campo
     document.getElementById('mapa').focus();
+}
+
+function resetSubmitButton() {
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '<span>📝</span> Cadastrar Torre';
 }
 
 // ===== VALIDAÇÃO EM TEMPO REAL =====
 document.getElementById('horas').addEventListener('input', function() {
-    // Permitir até 48 horas
     if (this.value > 48) {
         this.value = 48;
         showError('A duração máxima é de 48 horas!');
@@ -149,23 +160,19 @@ document.getElementById('horas').addEventListener('input', function() {
 document.getElementById('minutos').addEventListener('input', function() {
     if (this.value > 59) this.value = 59;
     if (this.value < 0) this.value = 0;
-    updateDurationFeedback();
 });
 
 document.getElementById('segundos').addEventListener('input', function() {
     if (this.value > 59) this.value = 59;
     if (this.value < 0) this.value = 0;
-    updateDurationFeedback();
 });
 
 // ===== ATALHOS DE TECLADO =====
 document.addEventListener('keydown', function(e) {
-    // Ctrl + Enter para submeter o formulário
     if (e.ctrlKey && e.key === 'Enter') {
         document.getElementById('towerForm').dispatchEvent(new Event('submit'));
     }
     
-    // Ctrl + T para ir para a tabela
     if (e.ctrlKey && e.key === 't') {
         e.preventDefault();
         window.location.href = 'tabela.html';
@@ -177,7 +184,6 @@ function updateDurationFeedback() {
     const horasInput = document.getElementById('horas');
     const horas = parseInt(horasInput.value) || 0;
     
-    // Adicionar classe visual se a duração for muito longa
     if (horas >= 24) {
         horasInput.style.borderColor = '#ff9800';
         horasInput.style.fontWeight = 'bold';
