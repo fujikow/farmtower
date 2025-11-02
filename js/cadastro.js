@@ -1,5 +1,6 @@
 // ===== DADOS DE MAPAS E SERVIDORES =====
-const MAPAS = [
+// Alterado para 'var' para evitar conflito de script na index.html
+var MAPAS = [
     'Lorencia',
     'Dungeon',
     'Devias',
@@ -17,7 +18,7 @@ const MAPAS = [
     'Ferea'
 ];
 
-const SERVIDORES = [1, 2, 3, 4, 5, 6, 11, 12, 14, 15, 16, 17, 19];
+var SERVIDORES = [1, 2, 3, 4, 5, 6, 11, 12, 14, 15, 16, 17, 19];
 
 // ===== INICIALIZAÇÃO =====
 document.addEventListener('DOMContentLoaded', function() {
@@ -28,17 +29,27 @@ document.addEventListener('DOMContentLoaded', function() {
     loadServidoresOptions();
     
     // Focar no primeiro campo
-    document.getElementById('mapa').focus();
+    const mapaSelect = document.getElementById('mapa');
+    if (mapaSelect) {
+        mapaSelect.focus();
+    }
     
     // Inicializar campos de duração com 0
-    document.getElementById('horas').value = 0;
-    document.getElementById('minutos').value = 0;
-    document.getElementById('segundos').value = 0;
+    const horasInput = document.getElementById('horas');
+    const minutosInput = document.getElementById('minutos');
+    const segundosInput = document.getElementById('segundos');
+    
+    if(horasInput) horasInput.value = 0;
+    if(minutosInput) minutosInput.value = 0;
+    if(segundosInput) segundosInput.value = 0;
 });
 
 // ===== CARREGAR OPÇÕES DE MAPAS =====
 function loadMapasOptions() {
     const mapaSelect = document.getElementById('mapa');
+    
+    // Proteção: só executa se o elemento existir
+    if (!mapaSelect) return; 
     
     MAPAS.forEach(mapa => {
         const option = document.createElement('option');
@@ -54,6 +65,9 @@ function loadMapasOptions() {
 function loadServidoresOptions() {
     const servidorSelect = document.getElementById('servidor');
     
+    // Proteção: só executa se o elemento existir
+    if (!servidorSelect) return; 
+    
     SERVIDORES.forEach(servidor => {
         const option = document.createElement('option');
         option.value = servidor;
@@ -65,74 +79,77 @@ function loadServidoresOptions() {
 }
 
 // ===== MANIPULAÇÃO DO FORMULÁRIO =====
-document.getElementById('towerForm').addEventListener('submit', function(e) {
-    e.preventDefault();
+const towerForm = document.getElementById('towerForm');
+if (towerForm) {
+    towerForm.addEventListener('submit', function(e) {
+        e.preventDefault();
 
-    // Desabilitar botão durante envio
-    const submitBtn = document.getElementById('submitBtn');
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<span>⏳</span> Cadastrando...';
+        // Desabilitar botão durante envio
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span>⏳</span> Cadastrando...';
 
-    // Coletar dados do formulário
-    const mapa = document.getElementById('mapa').value;
-    const servidor = document.getElementById('servidor').value;
-    const dono = document.getElementById('dono').value.trim();
-    const localizacao = document.getElementById('localizacao').value.trim();
-    const horas = parseInt(document.getElementById('horas').value) || 0;
-    const minutos = parseInt(document.getElementById('minutos').value) || 0;
-    const segundos = parseInt(document.getElementById('segundos').value) || 0;
+        // Coletar dados do formulário
+        const mapa = document.getElementById('mapa').value;
+        const servidor = document.getElementById('servidor').value;
+        const dono = document.getElementById('dono').value.trim();
+        const localizacao = document.getElementById('localizacao').value.trim();
+        const horas = parseInt(document.getElementById('horas').value) || 0;
+        const minutos = parseInt(document.getElementById('minutos').value) || 0;
+        const segundos = parseInt(document.getElementById('segundos').value) || 0;
 
-    // Validação
-    if (!mapa || !servidor || !dono || !localizacao) {
-        showError('Por favor, preencha todos os campos obrigatórios!');
-        resetSubmitButton();
-        return;
-    }
+        // Validação
+        if (!mapa || !servidor || !dono || !localizacao) {
+            showError('Por favor, preencha todos os campos obrigatórios!');
+            resetSubmitButton();
+            return;
+        }
 
-    if (horas === 0 && minutos === 0 && segundos === 0) {
-        showError('A duração da torre deve ser maior que zero!');
-        resetSubmitButton();
-        return;
-    }
+        if (horas === 0 && minutos === 0 && segundos === 0) {
+            showError('A duração da torre deve ser maior que zero!');
+            resetSubmitButton();
+            return;
+        }
 
-    if (horas > 48) {
-        showError('A duração máxima é de 48 horas!');
-        resetSubmitButton();
-        return;
-    }
+        if (horas > 48) {
+            showError('A duração máxima é de 48 horas!');
+            resetSubmitButton();
+            return;
+        }
 
-    // Calcular duração total em segundos
-    const duracaoTotal = (horas * 3600) + (minutos * 60) + segundos;
+        // Calcular duração total em segundos
+        const duracaoTotal = (horas * 3600) + (minutos * 60) + segundos;
 
-    // Horário atual (visto)
-    const vistoHorario = new Date();
+        // Horário atual (visto)
+        const vistoHorario = new Date();
 
-    // Calcular horário de finalização
-    const horarioFinalizacao = new Date(vistoHorario.getTime() + (duracaoTotal * 1000));
+        // Calcular horário de finalização
+        const horarioFinalizacao = new Date(vistoHorario.getTime() + (duracaoTotal * 1000));
 
-    // Verificar aleatoriedade
-    const servidoresAleatorios = ['4', '5', '6', '11', '12', '14', '15'];
-    const aleatoriedade = servidoresAleatorios.includes(servidor) ? 'Sim' : 'Não';
+        // Verificar aleatoriedade
+        const servidoresAleatorios = ['4', '5', '6', '11', '12', '14', '15'];
+        const aleatoriedade = servidoresAleatorios.includes(servidor) ? 'Sim' : 'Não';
 
-    // Criar objeto da torre
-    const torre = {
-        mapa: mapa,
-        servidor: servidor,
-        aleatoriedade: aleatoriedade,
-        dono: dono,
-        localizacao: localizacao,
-        vistoHorario: vistoHorario.toISOString(),
-        horarioFinalizacao: horarioFinalizacao.toISOString(),
-        duracaoSegundos: duracaoTotal,
-        duracaoFormatada: formatDuration(horas, minutos, segundos),
-        cadastradoEm: new Date().toISOString()
-    };
+        // Criar objeto da torre
+        const torre = {
+            mapa: mapa,
+            servidor: servidor,
+            aleatoriedade: aleatoriedade,
+            dono: dono,
+            localizacao: localizacao,
+            vistoHorario: vistoHorario.toISOString(),
+            horarioFinalizacao: horarioFinalizacao.toISOString(),
+            duracaoSegundos: duracaoTotal,
+            duracaoFormatada: formatDuration(horas, minutos, segundos),
+            cadastradoEm: new Date().toISOString()
+        };
 
-    console.log('📤 Enviando torre para Firebase:', torre);
+        console.log('📤 Enviando torre para Firebase:', torre);
 
-    // Salvar no Firebase
-    saveTowerToFirebase(torre);
-});
+        // Salvar no Firebase
+        saveTowerToFirebase(torre);
+    });
+}
 
 // ===== SALVAR NO FIREBASE =====
 function saveTowerToFirebase(torre) {
@@ -163,6 +180,8 @@ function showSuccess(message) {
     const successMsg = document.getElementById('successMessage');
     const errorMsg = document.getElementById('errorMessage');
     
+    if(!successMsg || !errorMsg) return;
+
     errorMsg.style.display = 'none';
     successMsg.textContent = `✅ ${message}`;
     successMsg.style.display = 'block';
@@ -177,6 +196,8 @@ function showSuccess(message) {
 function showError(message) {
     const successMsg = document.getElementById('successMessage');
     const errorMsg = document.getElementById('errorMessage');
+
+    if(!successMsg || !errorMsg) return;
     
     successMsg.style.display = 'none';
     errorMsg.textContent = `❌ ${message}`;
@@ -190,53 +211,78 @@ function showError(message) {
 }
 
 function resetForm() {
-    document.getElementById('towerForm').reset();
+    const towerForm = document.getElementById('towerForm');
+    if(towerForm) towerForm.reset();
     
     // Recarregar opções
-    document.getElementById('mapa').innerHTML = '<option value="">Selecione um mapa</option>';
-    document.getElementById('servidor').innerHTML = '<option value="">Selecione um servidor</option>';
+    const mapaSelect = document.getElementById('mapa');
+    const servidorSelect = document.getElementById('servidor');
+    
+    if(mapaSelect) mapaSelect.innerHTML = '<option value="">Selecione um mapa</option>';
+    if(servidorSelect) servidorSelect.innerHTML = '<option value="">Selecione um servidor</option>';
+    
     loadMapasOptions();
     loadServidoresOptions();
     
-    document.getElementById('horas').value = 0;
-    document.getElementById('minutos').value = 0;
-    document.getElementById('segundos').value = 0;
+    const horasInput = document.getElementById('horas');
+    const minutosInput = document.getElementById('minutos');
+    const segundosInput = document.getElementById('segundos');
     
-    document.getElementById('mapa').focus();
+    if(horasInput) horasInput.value = 0;
+    if(minutosInput) minutosInput.value = 0;
+    if(segundosInput) segundosInput.value = 0;
+    
+    if(mapaSelect) mapaSelect.focus();
 }
 
 function resetSubmitButton() {
     const submitBtn = document.getElementById('submitBtn');
-    submitBtn.disabled = false;
-    submitBtn.innerHTML = '<span>📝</span> Cadastrar Torre';
+    if(submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<span>📝</span> Cadastrar Torre';
+    }
 }
 
 // ===== VALIDAÇÃO EM TEMPO REAL =====
-document.getElementById('horas').addEventListener('input', function() {
-    if (this.value > 48) {
-        this.value = 48;
-        showError('A duração máxima é de 48 horas!');
-    }
-    if (this.value < 0) this.value = 0;
-    updateDurationFeedback();
-});
+const horasInput = document.getElementById('horas');
+if (horasInput) {
+    horasInput.addEventListener('input', function() {
+        if (this.value > 48) {
+            this.value = 48;
+            showError('A duração máxima é de 48 horas!');
+        }
+        if (this.value < 0) this.value = 0;
+        updateDurationFeedback();
+    });
+}
 
-document.getElementById('minutos').addEventListener('input', function() {
-    if (this.value > 59) this.value = 59;
-    if (this.value < 0) this.value = 0;
-});
+const minutosInput = document.getElementById('minutos');
+if (minutosInput) {
+    minutosInput.addEventListener('input', function() {
+        if (this.value > 59) this.value = 59;
+        if (this.value < 0) this.value = 0;
+    });
+}
 
-document.getElementById('segundos').addEventListener('input', function() {
-    if (this.value > 59) this.value = 59;
-    if (this.value < 0) this.value = 0;
-});
+const segundosInput = document.getElementById('segundos');
+if (segundosInput) {
+    segundosInput.addEventListener('input', function() {
+        if (this.value > 59) this.value = 59;
+        if (this.value < 0) this.value = 0;
+    });
+}
 
 // ===== ATALHOS DE TECLADO =====
 document.addEventListener('keydown', function(e) {
+    // Atalho (Ctrl + Enter) para submeter o formulário
     if (e.ctrlKey && e.key === 'Enter') {
-        document.getElementById('towerForm').dispatchEvent(new Event('submit'));
+        const towerForm = document.getElementById('towerForm');
+        if(towerForm) {
+            towerForm.dispatchEvent(new Event('submit'));
+        }
     }
     
+    // Atalho (Ctrl + T) para ir à tabela
     if (e.ctrlKey && e.key === 't') {
         e.preventDefault();
         window.location.href = 'tabela.html';
@@ -246,6 +292,8 @@ document.addEventListener('keydown', function(e) {
 // ===== FEEDBACK VISUAL PARA DURAÇÃO =====
 function updateDurationFeedback() {
     const horasInput = document.getElementById('horas');
+    if(!horasInput) return;
+
     const horas = parseInt(horasInput.value) || 0;
     
     if (horas >= 24) {

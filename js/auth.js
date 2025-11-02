@@ -1,8 +1,7 @@
 // ===== SISTEMA DE AUTENTICAÇÃO UNIVERSAL =====
 
 // DEFINA SUA SENHA AQUI (você pode mudar quando quiser)
-const SENHA_CORRETA = "nars"; // ← MUDE AQUI PARA SUA SENHA
-
+const HASH_CORRETO = "7a9cb0b2fad22578c8e28b88586963f0591dbce61c314eae7496502c94afc352";
 let autenticado = false;
 
 // ===== VERIFICAR AUTENTICAÇÃO AO CARREGAR PÁGINA =====
@@ -67,46 +66,54 @@ function showContent() {
     }
 }
 
-// ===== VERIFICAR SENHA =====
+// ===== VERIFICAR SENHA (VERSÃO SEGURA COM HASH) =====
 function checkPassword() {
     const passwordInput = document.getElementById('passwordInput');
     const errorMessage = document.getElementById('errorMessage');
     const senha = passwordInput.value.trim();
     
-    console.log('🔍 Verificando senha...');
+    console.log('🔍 Verificando senha (via hash)...');
     
     if (senha === '') {
         showError('Por favor, digite a senha!');
         return;
     }
+
+    // --- MUDANÇA PRINCIPAL AQUI ---
+    // 1. Calcular o hash do que o usuário digitou
+    const hashDigitado = sha256(senha); 
     
-    if (senha === SENHA_CORRETA) {
-        console.log('✅ Senha correta!');
+    // 2. Comparar o hash gerado com o hash correto
+    if (hashDigitado === HASH_CORRETO) {
+
+
+        console.log('✅ Hash correto! Acesso permitido.');
         
-        // Salvar autenticação na sessão
+        // Salvar autenticação na sessão (lógica original mantida)
         sessionStorage.setItem('anbu_auth', 'authenticated');
         autenticado = true;
         
-        // Limpar campo
+        // Limpar campo (lógica original mantida)
         passwordInput.value = '';
         
-        // Esconder erro
+        // Esconder erro (lógica original mantida)
         if (errorMessage) {
             errorMessage.style.display = 'none';
         }
         
-        // Mostrar conteúdo
+        // Mostrar conteúdo (lógica original mantida)
         showContent();
         
     } else {
-        console.log('❌ Senha incorreta!');
+        // A senha está incorreta
+        console.log('❌ Hash incorreto! Acesso negado.');
         showError('❌ Senha incorreta! Tente novamente.');
         
-        // Limpar campo
+        // Limpar campo (lógica original mantida)
         passwordInput.value = '';
         passwordInput.focus();
         
-        // Adicionar animação de erro
+        // Adicionar animação de erro (lógica original mantida)
         passwordInput.classList.add('shake');
         setTimeout(() => {
             passwordInput.classList.remove('shake');

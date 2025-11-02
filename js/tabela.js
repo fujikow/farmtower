@@ -1,18 +1,51 @@
 // ===== VARIÁVEIS GLOBAIS =====
 let allTowers = [];
+let allMissingTowers = []; // Torres que não estão ativas
 let updateInterval;
+
+// --- DADOS GERAIS DO JOGO ---
+// CORREÇÃO: Verifica se as variáveis já foram declaradas (pelo cadastro.js)
+// Se não (estamos na tabela.html), declara elas aqui.
+if (typeof MAPAS === 'undefined') {
+  var MAPAS = [
+      'Lorencia',
+      'Dungeon',
+      'Devias',
+      'Noria',
+      'Lost Tower',
+      'Arena',
+      'Atlans',
+      'Tarkan',
+      'Icarus',
+      'Aida',
+      'Kanturu',
+      'Elbeland',
+      'Raklion',
+      'Vulcanus',
+      'Ferea'
+  ];
+}
+
+if (typeof SERVIDORES === 'undefined') {
+ var SERVIDORES = [1, 2, 3, 4, 5, 6, 11, 12, 14, 15, 16, 17, 19];
+}
+
 
 // ===== INICIALIZAÇÃO =====
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 Iniciando tabela com Firebase...');
+    console.log('🚀 Iniciando tabela.js...');
     
-    loadTowersFromFirebase();
+    // Carrega os dados em AMBAS as páginas (index e tabela)
+    // A própria função vai filtrar o que deve ser renderizado.
+    loadTowersFromFirebase(); 
     
-    // Atualizar a cada segundo
-    updateInterval = setInterval(() => {
-        renderTable();
-        updateStats();
-    }, 1000);
+    // O intervalo só roda na página da tabela
+    if (document.getElementById('towersTable')) {
+        updateInterval = setInterval(() => {
+            renderTable(); 
+            updateStats(); 
+        }, 1000);
+    }
 });
 
 // ===== CARREGAR TORRES DO FIREBASE =====
@@ -46,9 +79,11 @@ function loadTowersFromFirebase() {
             console.log('⚠️ Nenhuma torre encontrada no Firebase');
         }
         
+        // Funções que só rodam na página da tabela (agora estão protegidas)
         populateFilters();
         updateStats();
         renderTable();
+
     }, (error) => {
         console.error('❌ Erro ao carregar torres do Firebase:', error);
     });
@@ -56,12 +91,15 @@ function loadTowersFromFirebase() {
 
 // ===== POPULAR FILTROS =====
 function populateFilters() {
+    // Proteção para não rodar no index.html
+    const filterMapa = document.getElementById('filterMapa');
+    if (!filterMapa) return; 
+
     const mapas = [...new Set(allTowers.map(t => t.mapa))].sort();
     const servidores = [...new Set(allTowers.map(t => t.servidor))].sort((a, b) => {
         return parseInt(a) - parseInt(b);
     });
 
-    const filterMapa = document.getElementById('filterMapa');
     const filterServidor = document.getElementById('filterServidor');
 
     filterMapa.innerHTML = '<option value="">Todos</option>';
@@ -89,21 +127,28 @@ function applyFilters() {
 
 // ===== ATUALIZAR ESTATÍSTICAS =====
 function updateStats() {
+    // Proteção para não rodar no index.html
+    const totalTorresEl = document.getElementById('totalTorres');
+    if (!totalTorresEl) return; 
+
     const servidoresAleatorios = ['4', '5', '6', '11', '12', '14', '15'];
     const torresAleatorias = allTowers.filter(t => 
         servidoresAleatorios.includes(t.servidor)
     ).length;
 
-    document.getElementById('totalTorres').textContent = allTowers.length;
+    totalTorresEl.textContent = allTowers.length;
     document.getElementById('torresAtivas').textContent = allTowers.length;
     document.getElementById('torresAleatorias').textContent = torresAleatorias;
 }
 
 // ===== RENDERIZAR TABELA (SEM BADGES) =====
 function renderTable() {
+    // Proteção para não rodar no index.html
+    const tableBody = document.getElementById('tableBody');
+    if (!tableBody) return; 
+    
     const filterMapa = document.getElementById('filterMapa').value;
     const filterServidor = document.getElementById('filterServidor').value;
-    const tableBody = document.getElementById('tableBody');
     const emptyState = document.getElementById('emptyState');
     const table = document.getElementById('towersTable');
 
@@ -139,67 +184,23 @@ function renderTable() {
         const tempoRestante = calculateTempoRestante(finalizacaoDate, now);
         const statusInfo = getStatusInfo(finalizacaoDate, now);
 
-        // Criar linha
         const tr = document.createElement('tr');
-        
-        // ADICIONAR CLASSE DE STATUS NA LINHA
         tr.classList.add(`row-${statusInfo.class}`);
         
-        // CÉLULA 1: Correção (invisível)
-        const td1 = document.createElement('td');
-        td1.className = 'col-fix';
-        tr.appendChild(td1);
+        tr.innerHTML = `
+            <td class="col-fix"></td>
+            <td style="font-size: 1.5em; text-align: center;">${statusInfo.icon}</td>
+            <td><strong>${torre.mapa}</strong></td>
+            <td>${torre.servidor}</td>
+            <td style="font-weight: 600; text-align: center;">${torre.aleatoriedade}</td>
+            <td>${torre.dono}</td>
+            <td>${torre.localizacao}</td>
+            <td>${formatDateTime(vistoDate)}</td>
+            <td>${formatDateTime(finalizacaoDate)}</td>
+            <td><strong>${tempoRestante}</strong></td>
+        `;
         
-        // CÉLULA 2: Status (apenas emoji, sem badge)
-        const td2 = document.createElement('td');
-        td2.textContent = statusInfo.icon;
-        td2.style.fontSize = '1.5em';
-        td2.style.textAlign = 'center';
-        tr.appendChild(td2);
-        
-        // CÉLULA 3: Mapa
-        const td3 = document.createElement('td');
-        td3.innerHTML = `<strong>${torre.mapa}</strong>`;
-        tr.appendChild(td3);
-        
-        // CÉLULA 4: Servidor
-        const td4 = document.createElement('td');
-        td4.textContent = torre.servidor;
-        tr.appendChild(td4);
-        
-        // CÉLULA 5: Aleatoriedade (sem badge)
-        const td5 = document.createElement('td');
-        td5.textContent = torre.aleatoriedade;
-        td5.style.fontWeight = '600';
-        td5.style.textAlign = 'center';
-        tr.appendChild(td5);
-        
-        // CÉLULA 6: Dono
-        const td6 = document.createElement('td');
-        td6.textContent = torre.dono;
-        tr.appendChild(td6);
-        
-        // CÉLULA 7: Localização
-        const td7 = document.createElement('td');
-        td7.textContent = torre.localizacao;
-        tr.appendChild(td7);
-        
-        // CÉLULA 8: Visto Horário
-        const td8 = document.createElement('td');
-        td8.textContent = formatDateTime(vistoDate);
-        tr.appendChild(td8);
-        
-        // CÉLULA 9: Horário Finalização
-        const td9 = document.createElement('td');
-        td9.textContent = formatDateTime(finalizacaoDate);
-        tr.appendChild(td9);
-        
-        // CÉLULA 10: Tempo Restante
-        const td10 = document.createElement('td');
-        td10.innerHTML = `<strong>${tempoRestante}</strong>`;
-        tr.appendChild(td10);
-
-        // CÉLULA 11: ID (adicione após a célula de Tempo Restante)
+        // CÉLULA 11: ID (separada para o clique)
         const td11 = document.createElement('td');
         td11.textContent = torre.id;
         td11.style.fontSize = '0.75em';
@@ -208,11 +209,10 @@ function renderTable() {
         td11.title = 'Clique para copiar';
         td11.style.cursor = 'pointer';
         td11.onclick = function() {
-    navigator.clipboard.writeText(torre.id);
-    alert('ID copiado: ' + torre.id);
-};
-tr.appendChild(td11);
-
+            navigator.clipboard.writeText(torre.id);
+            alert('ID copiado: ' + torre.id);
+        };
+        tr.appendChild(td11);
 
         tableBody.appendChild(tr);
     });
@@ -222,28 +222,34 @@ tr.appendChild(td11);
 
 
 
-// ===== OBTER INFORMAÇÕES DE STATUS (NOVA FUNÇÃO) =====
+// ===== OBTER INFORMAÇÕES DE STATUS (UNIFICADA) =====
 function getStatusInfo(finalizacao, now) {
     const diff = finalizacao - now;
     const minutes = diff / (1000 * 60);
 
-    if (minutes < 5) {
+    if (diff <= 0) {
+        return {
+            class: 'status-expired', 
+            icon: '⚫', 
+            text: 'EXPIRADO'
+        };
+    } else if (minutes < 5) {
         return {
             class: 'status-danger',
             icon: '🔴',
-            text: 'CRÍTICO'
+            text: 'CRÍTICO (< 5 min)'
         };
     } else if (minutes < 15) {
         return {
             class: 'status-orange',
             icon: '🟠',
-            text: 'ATENÇÃO'
+            text: 'ATENÇÃO (< 15 min)'
         };
     } else if (minutes < 30) {
         return {
             class: 'status-warning',
             icon: '🟡',
-            text: 'ALERTA'
+            text: 'ALERTA (< 30 min)'
         };
     } else {
         return {
@@ -254,29 +260,6 @@ function getStatusInfo(finalizacao, now) {
     }
 }
 
-// ===== CRIAR CÉLULA (HELPER FUNCTION) =====
-function createCell(type, content) {
-    const td = document.createElement('td');
-    
-    switch(type) {
-        case 'strong':
-            td.innerHTML = `<strong>${content}</strong>`;
-            break;
-            
-        case 'badge':
-            const badgeClass = content === 'Sim' ? 'badge-success' : 'badge-danger';
-            td.innerHTML = `<span class="badge ${badgeClass}">${content}</span>`;
-            break;
-            
-        case 'text':
-        default:
-            td.textContent = content;
-            break;
-    }
-    
-    return td;
-}
-
 // ===== CALCULAR TEMPO RESTANTE (APENAS HH:MM:SS) =====
 function calculateTempoRestante(finalizacao, now) {
     const diff = finalizacao - now;
@@ -285,30 +268,12 @@ function calculateTempoRestante(finalizacao, now) {
         return '00:00:00';
     }
 
-    // Calcular total de horas, minutos e segundos
     const totalSeconds = Math.floor(diff / 1000);
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
 
-    // Formatar como HH:MM:SS
     return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-}
-
-// ===== OBTER CLASSE DA LINHA (FORMATAÇÃO CONDICIONAL) =====
-function getRowClass(finalizacao, now) {
-    const diff = finalizacao - now;
-    const minutes = diff / (1000 * 60);
-
-    if (minutes < 5) {
-        return 'row-danger'; // 🔴 Vermelho - menos de 5 minutos
-    } else if (minutes < 15) {
-        return 'row-orange'; // 🟠 Laranja - menos de 15 minutos
-    } else if (minutes < 30) {
-        return 'row-warning'; // 🟡 Amarelo - menos de 30 minutos
-    } else {
-        return 'row-success'; // 🔵 Azul Grêmio - mais de 30 minutos
-    }
 }
 
 // ===== FORMATAR DATA E HORA =====
@@ -325,12 +290,18 @@ function formatDateTime(date) {
 
 // ===== ATUALIZAR TABELA =====
 function refreshTable() {
+    // Proteção para não rodar no index.html
+    if (!document.getElementById('towersTable')) return; 
+
     console.log('🔄 Atualizando tabela...');
     renderTable();
 }
 
 // ===== EXPORTAR PARA EXCEL =====
 function exportToExcel() {
+    // Proteção para não rodar no index.html
+    if (!document.getElementById('towersTable')) return; 
+
     if (allTowers.length === 0) {
         showExportMessage('❌ Nenhuma torre para exportar!', 'error');
         return;
@@ -364,7 +335,7 @@ function exportToExcel() {
             const vistoDate = new Date(torre.vistoHorario);
             const finalizacaoDate = new Date(torre.horarioFinalizacao);
             const tempoRestante = calculateTempoRestante(finalizacaoDate, now);
-            const status = getStatusText(finalizacaoDate, now);
+            const status = getStatusInfo(finalizacaoDate, now).text;
 
             return {
                 'Mapa': torre.mapa,
@@ -428,27 +399,9 @@ function formatFileNameDate(date) {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const year = date.getFullYear();
     const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0'); // CORRIGIDO: fechamento das aspas
+    const minutes = String(date.getMinutes()).padStart(2, '0'); 
 
     return `${day}-${month}-${year}_${hours}h${minutes}m`;
-}
-
-
-function getStatusText(finalizacao, now) {
-    const diff = finalizacao - now;
-    const minutes = diff / (1000 * 60);
-
-    if (diff <= 0) {
-        return 'EXPIRADO';
-    } else if (minutes < 5) {
-        return 'CRÍTICO (< 5 min)';
-    } else if (minutes < 15) {
-        return 'ATENÇÃO (< 15 min)';
-    } else if (minutes < 30) {
-        return 'ALERTA (< 30 min)';
-    } else {
-        return 'ATIVO';
-    }
 }
 
 function showExportMessage(message, type) {
@@ -480,3 +433,204 @@ window.addEventListener('beforeunload', function() {
     }
     towersRef.off();
 });
+
+
+// ===== NOVAS FUNÇÕES: MODAL DE TORRES SEM CADASTRO (MISSING) =====
+
+/**
+ * Abre o modal de torres sem cadastro e inicia o carregamento.
+ */
+function openMissingModal() {
+    console.log('🔓 Abrindo modal de torres sem cadastro...');
+    
+    // Assegura que os dados de torres ativas (allTowers) estejam carregados
+    // Se a variável allTowers estiver vazia, força uma recarga.
+    if (allTowers.length === 0 && typeof loadTowersFromFirebase === 'function') {
+        console.log('⚠️ allTowers está vazio. Recarregando dados do Firebase...');
+        loadTowersFromFirebase(); // Garante que temos os dados
+    }
+    
+    // A lógica de carregar o modal foi movida para dentro de loadMissingTowers
+    // para garantir que os dados estejam prontos.
+    loadMissingTowers();
+}
+
+/**
+ * Fecha o modal de torres sem cadastro.
+ */
+function closeMissingModal() {
+    console.log('🔒 Fechando modal de torres sem cadastro...');
+    const modal = document.getElementById('missingModal');
+    if (modal) {
+        modal.classList.remove('active');
+        modal.style.display = 'none';
+        
+        // Limpa a lista e filtros para a próxima abertura
+        const listContainer = document.getElementById('missingListContainer');
+        if (listContainer) {
+            listContainer.innerHTML = '';
+        }
+        
+        const filterMapa = document.getElementById('filterMissingMapa');
+        const filterServidor = document.getElementById('filterMissingServidor');
+        
+        if(filterMapa) filterMapa.innerHTML = '<option value="">Todos</option>';
+        if(filterServidor) filterServidor.innerHTML = '<option value="">Todos</option>';
+
+        allMissingTowers = []; // Limpa cache
+    }
+}
+
+/**
+ * Carrega todas as torres que NÃO estão na lista de ativas.
+ */
+function loadMissingTowers() {
+    const listContainer = document.getElementById('missingListContainer');
+    // Proteção: Não fazer nada se o container não existir
+    if (!listContainer) {
+        console.error("Elemento 'missingListContainer' não encontrado.");
+        return;
+    }
+    
+    listContainer.innerHTML = '<p>Calculando torres sem cadastro...</p>';
+
+    // 1. Criar um "mapa" de torres ativas para busca rápida.
+    const activeTowersMap = new Set();
+    allTowers.forEach(torre => {
+        activeTowersMap.add(`${torre.mapa}-${torre.servidor}`);
+    });
+
+    allMissingTowers = []; // Limpa cache anterior
+
+    // 2. Iterar por TODAS as combinações possíveis de Mapa e Servidor
+    // Verifica se MAPAS e SERVIDORES existem (evita erro caso cadastro.js falhe)
+    if (typeof MAPAS === 'undefined' || typeof SERVIDORES === 'undefined') {
+        console.error("MAPAS ou SERVIDORES não estão definidos. Verifique cadastro.js");
+        listContainer.innerHTML = '<p>Erro: Dados de mapas não carregados.</p>';
+        return;
+    }
+    
+    MAPAS.forEach(mapa => {
+        SERVIDORES.forEach(servidor => {
+            const torreKey = `${mapa}-${servidor}`;
+            
+            // 3. Se a combinação NÃO ESTÁ no mapa de ativas, ela está "sem cadastro"
+            if (!activeTowersMap.has(torreKey)) {
+                allMissingTowers.push({
+                    mapa: mapa,
+                    servidor: servidor.toString() // Garante que é string
+                });
+            }
+        });
+    });
+
+    console.log(`✅ ${allMissingTowers.length} torres sem cadastro encontradas.`);
+
+    // Abre o modal AGORA, pois os dados estão prontos
+    const modal = document.getElementById('missingModal');
+    if (modal) {
+        modal.classList.add('active');
+        modal.style.display = 'flex';
+    }
+
+    if (allMissingTowers.length > 0) {
+        populateMissingFilters();
+        renderMissingList();
+    } else {
+        listContainer.innerHTML = `
+            <div class="expired-empty-state">
+                <div class="empty-icon">🎉</div>
+                <h3>Tudo cadastrado!</h3>
+                <p>Todas as torres possíveis estão ativas no momento.</p>
+            </div>`;
+    }
+}
+
+/**
+ * Popula os filtros <select> do modal com base nas torres encontradas.
+ */
+function populateMissingFilters() {
+    const filterMapa = document.getElementById('filterMissingMapa');
+    const filterServidor = document.getElementById('filterMissingServidor');
+
+    // Proteção caso os elementos não existam
+    if (!filterMapa || !filterServidor) return;
+
+    // Usamos os dados de allMissingTowers para os filtros
+    const mapas = [...new Set(allMissingTowers.map(t => t.mapa))].sort();
+    const servidores = [...new Set(allMissingTowers.map(t => t.servidor))].sort((a, b) => parseInt(a) - parseInt(b));
+
+    filterMapa.innerHTML = '<option value="">Todos</option>';
+    filterServidor.innerHTML = '<option value="">Todos</option>';
+
+    mapas.forEach(mapa => {
+        filterMapa.appendChild(new Option(mapa, mapa));
+    });
+
+    servidores.forEach(servidor => {
+        filterServidor.appendChild(new Option(servidor, servidor));
+    });
+}
+
+/**
+ * Renderiza a lista/tabela de torres sem cadastro no modal.
+ */
+function renderMissingList() {
+    const filterMapa = document.getElementById('filterMissingMapa').value;
+    const filterServidor = document.getElementById('filterMissingServidor').value;
+    const listContainer = document.getElementById('missingListContainer');
+
+    // Proteção caso o elemento não exista
+    if (!listContainer) return;
+
+    let filteredTowers = allMissingTowers;
+
+    if (filterMapa) {
+        filteredTowers = filteredTowers.filter(t => t.mapa === filterMapa);
+    }
+    if (filterServidor) {
+        filteredTowers = filteredTowers.filter(t => t.servidor === filterServidor);
+    }
+
+    if (filteredTowers.length === 0) {
+        listContainer.innerHTML = `
+            <div class="expired-empty-state">
+                <div class="empty-icon">📭</div>
+                <h3>Nenhum resultado</h3>
+                <p>Nenhuma torre sem cadastro encontrada com os filtros aplicados.</p>
+            </div>`;
+        return;
+    }
+
+    // Criar tabela
+    const table = document.createElement('table');
+    table.innerHTML = `
+        <thead>
+            <tr>
+                <th>Mapa</th>
+                <th>Servidor</th>
+            </tr>
+        </thead>
+    `;
+    
+    const tbody = document.createElement('tbody');
+    // Ordena por mapa, depois por servidor
+    filteredTowers.sort((a, b) => {
+        if (a.mapa < b.mapa) return -1;
+        if (a.mapa > b.mapa) return 1;
+        return parseInt(a.servidor) - parseInt(b.servidor);
+    });
+
+    filteredTowers.forEach(torre => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><strong>${torre.mapa}</strong></td>
+            <td>${torre.servidor}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    table.appendChild(tbody);
+    listContainer.innerHTML = ''; // Limpa "carregando"
+    listContainer.appendChild(table);
+}
