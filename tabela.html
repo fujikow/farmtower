@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ANBU Farm Tower - Tabela</title>
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Biblioteca para exportar Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+    <div class="container-full">
+        <header class="header">
+            <h1>🏰 ANBU FARM TOWER</h1>
+            <h2>MEGAMU - Controle de Torres</h2>
+        </header>
+
+        <div class="stats-container">
+            <div class="stat-card">
+                <div class="stat-number" id="totalTorres">0</div>
+                <div class="stat-label">Total de Torres</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="torresAtivas">0</div>
+                <div class="stat-label">Torres Ativas</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="torresAleatorias">0</div>
+                <div class="stat-label">Com Aleatoriedade</div>
+            </div>
+        </div>
+
+        <div class="controls-bar">
+            <div class="controls-left">
+                <button class="btn btn-back" onclick="window.location.href='index.html'">
+                    <span>⬅️</span> Voltar
+                </button>
+                <button class="btn btn-refresh" onclick="refreshTable()">
+                    <span>🔄</span> Atualizar
+                </button>
+                <button class="btn btn-export" onclick="exportToExcel()">
+                    <span>📥</span> Exportar Excel
+                </button>
+            </div>
+            
+            <div class="controls-right">
+                <div class="filter-group">
+                    <label for="filterMapa">🗺️ Mapa:</label>
+                    <select id="filterMapa" onchange="applyFilters()">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="filterServidor">🖥️ Servidor:</label>
+                    <select id="filterServidor" onchange="applyFilters()">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="legend-bar">
+            <div class="legend-item">
+                <span class="legend-color" style="background: #dc3545;"></span>
+                <span>Menos de 5 minutos</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background: #ffc107;"></span>
+                <span>Menos de 15 minutos</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background: #ff9800;"></span>
+                <span>Menos de 30 minutos</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background: #0d6efd;"></span>
+                <span>Mais de 30 minutos</span>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table id="towersTable">
+                <thead>
+                    <tr>
+                        <th>Mapa</th>
+                        <th>Servidor</th>
+                        <th>Aleatoriedade</th>
+                        <th>Dono</th>
+                        <th>Localização</th>
+                        <th>Visto Horário</th>
+                        <th>Horário Finalização</th>
+                        <th>Cronômetro</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                </tbody>
+            </table>
+            
+            <div class="empty-state" id="emptyState" style="display: none;">
+                <div class="empty-icon">📭</div>
+                <h2>Nenhuma torre ativa</h2>
+                <p>Todas as torres expiraram ou nenhuma foi cadastrada ainda.</p>
+                <button class="btn btn-submit" onclick="window.location.href='index.html'">
+                    <span>➕</span> Cadastrar Torre
+                </button>
+            </div>
+        </div>
+
+        <footer class="footer">
+            <p>Criado por <strong>fujikoftw</strong> - O MELHOR DL DO MEGAMU</p>
+        </footer>
+    </div>
+
+    <script src="js/tabela.js"></script>
+</body>
+</html>

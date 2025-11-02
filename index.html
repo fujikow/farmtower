@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ANBU Farm Tower - Cadastro</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🏰 ANBU FARM TOWER</h1>
+            <h2>MEGAMU</h2>
+        </header>
+
+        <div class="success-message" id="successMessage">
+            ✅ Torre cadastrada com sucesso!
+        </div>
+
+        <div class="error-message" id="errorMessage">
+            ❌ Por favor, preencha todos os campos obrigatórios!
+        </div>
+
+        <div class="form-card">
+            <h3>📝 Cadastro de Torre</h3>
+            
+            <form id="towerForm">
+                <div class="form-group">
+                    <label for="mapa">Mapa *</label>
+                    <select id="mapa" required>
+                        <option value="">Selecione um mapa</option>
+                        <option value="Lorencia">Lorencia</option>
+                        <option value="Dungeon">Dungeon</option>
+                        <option value="Devias">Devias</option>
+                        <option value="Noria">Noria</option>
+                        <option value="Lost Tower">Lost Tower</option>
+                        <option value="Arena">Arena</option>
+                        <option value="Atlans">Atlans</option>
+                        <option value="Tarkan">Tarkan</option>
+                        <option value="Icarus">Icarus</option>
+                        <option value="Aida">Aida</option>
+                        <option value="Kanturu">Kanturu</option>
+                        <option value="Elbeland">Elbeland</option>
+                        <option value="Raklion">Raklion</option>
+                        <option value="Vulcanus">Vulcanus</option>
+                        <option value="Ferea">Ferea</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="servidor">Servidor *</label>
+                    <select id="servidor" required>
+                        <option value="">Selecione um servidor</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                        <option value="11">11</option>
+                        <option value="12">12</option>
+                        <option value="14">14</option>
+                        <option value="15">15</option>
+                        <option value="16">16</option>
+                        <option value="17">17</option>
+                        <option value="19">19</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="dono">Dono *</label>
+                    <input type="text" id="dono" placeholder="Digite o nome do dono" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="localizacao">Localização Específica *</label>
+                    <input type="text" id="localizacao" placeholder="Ex: X:123 Y:456 ou Hotspot Central" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="duracao">Duração da Torre * <span class="duration-hint">(Máximo: 48 horas)</span></label>
+                    <div class="duration-inputs">
+                        <div class="duration-field">
+                            <input type="number" id="horas" min="0" max="48" value="0" required>
+                            <span>h</span>
+                        </div>
+                        <div class="duration-field">
+                            <input type="number" id="minutos" min="0" max="59" value="0" required>
+                            <span>m</span>
+                        </div>
+                        <div class="duration-field">
+                            <input type="number" id="segundos" min="0" max="59" value="0" required>
+                            <span>s</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button type="submit" class="btn btn-submit">
+                        <span>📝</span> Cadastrar Torre
+                    </button>
+                    <button type="button" class="btn btn-view" onclick="window.location.href='tabela.html'">
+                        <span>📊</span> Ver Tabela
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <footer class="footer">
+            <p>Criado por <strong>fujikoftw</strong> - O MELHOR DL DO MEGAMU</p>
+        </footer>
+    </div>
+
+    <script src="js/cadastro.js"></script>
+</body>
+</html>
