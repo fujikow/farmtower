@@ -6,9 +6,10 @@
     <title>ANBU Farm Tower - Tabela</title>
     <link rel="stylesheet" href="css/style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-sha256/0.11.0/sha256.min.js"></script>
 </head>
 <body>
-    <!-- ===== TELA DE LOGIN ===== -->
     <div id="loginScreen" class="login-screen">
         <div class="login-container">
             <div class="login-header">
@@ -42,7 +43,6 @@
         </div>
     </div>
 
-    <!-- ===== MODAL DE CÁLCULO DE JOIAS ===== -->
     <div class="modal-overlay" id="joiasModal">
         <div class="modal-content modal-joias">
             <div class="modal-header">
@@ -76,7 +76,43 @@
         </div>
     </div>
 
-    <!-- ===== CONTEÚDO PRINCIPAL (será mostrado após login) ===== -->
+    <div class="modal-overlay" id="missingModal">
+        <div class="modal-content modal-missing">
+            <div class="modal-header">
+                <h2>🚫 Torres sem cadastro</h2>
+                <button class="modal-close" onclick="closeMissingModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-subtitle">
+                    Exibindo todas as combinações de Mapa/Servidor que não possuem um cadastro ATIVO no momento.
+                </p>
+                
+                <div class="expired-filters">
+                    <div class="filter-group">
+                        <label for="filterMissingMapa">🗺️ Mapa:</label>
+                        <select id="filterMissingMapa" onchange="renderMissingList()">
+                            <option value="">Todos</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="filterMissingServidor">🖥️ Servidor:</label>
+                        <select id="filterMissingServidor" onchange="renderMissingList()">
+                            <option value="">Todos</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="expired-list-container" id="missingListContainer">
+                    <div class="expired-empty-state">
+                        <div class="empty-icon">🎉</div>
+                        <h3>Tudo cadastrado!</h3>
+                        <p>Todas as torres possíveis estão ativas no momento.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="container-full" style="display: none;">
         <header class="header">
             <h1>🏰 ANBU FARM TOWER</h1>
@@ -95,7 +131,6 @@
             </div>
         </header>
 
-        <!-- ESTATÍSTICAS -->
         <div class="stats-container">
             <div class="stat-card">
                 <div class="stat-number" id="totalTorres">0</div>
@@ -111,7 +146,6 @@
             </div>
         </div>
 
-        <!-- CONTROLES -->
         <div class="controls-bar">
             <div class="controls-left">
                 <button class="btn btn-back" onclick="window.location.href='index.html'">
@@ -120,6 +154,11 @@
                 <button class="btn btn-refresh" onclick="refreshTable()">
                     <span>🔄</span> Atualizar
                 </button>
+
+                <button class="btn btn-missing" onclick="openMissingModal()">
+                    <span>🚫</span> Torres Sem Cadastro
+                </button>
+                
                 <button class="btn btn-export" onclick="exportToExcel()">
                     <span>📥</span> Exportar Excel
                 </button>
@@ -142,7 +181,6 @@
             </div>
         </div>
 
-        <!-- LEGENDA -->
         <div class="legend-bar">
             <div class="legend-item">
                 <span class="legend-icon">🔴</span>
@@ -162,13 +200,11 @@
             </div>
         </div>
 
-        <!-- TABELA -->
         <div class="table-container">
             <table id="towersTable">
                 <thead>
                     <tr>
-                        <th class="col-fix"></th> <!-- Coluna de correção (invisível) -->
-                        <th>Status</th>
+                        <th class="col-fix"></th> <th>Status</th>
                         <th>Mapa</th>
                         <th>Servidor</th>
                         <th>Aleatoriedade</th>
@@ -181,8 +217,7 @@
                     </tr>
                 </thead>
                 <tbody id="tableBody">
-                    <!-- Linhas serão inseridas aqui via JavaScript -->
-                </tbody>
+                    </tbody>
             </table>
             
             <div class="empty-state" id="emptyState" style="display: none;">
@@ -200,11 +235,9 @@
         </footer>
     </div>
 
-    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     
-    <!-- Scripts do Sistema -->
     <script src="js/firebase-config.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/joias-calculator.js"></script>
