@@ -8,7 +8,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
-    <body>
     <!-- ===== TELA DE LOGIN ===== -->
     <div id="loginScreen" class="login-screen">
         <div class="login-container">
@@ -43,16 +42,7 @@
         </div>
     </div>
 
-    <!-- ===== CONTEÚDO PRINCIPAL (será mostrado após login) ===== -->
-    <!-- Modal de Cálculo de Joias -->
-    <div class="modal-overlay" id="joiasModal">
-        <!-- ... resto do código do modal ... -->
-    </div>
-
-    <div class="container-full" style="display: none;">
-        <!-- ... resto do conteúdo da página ... -->
-
-    <!-- Modal de Cálculo de Joias -->
+    <!-- ===== MODAL DE CÁLCULO DE JOIAS ===== -->
     <div class="modal-overlay" id="joiasModal">
         <div class="modal-content modal-joias">
             <div class="modal-header">
@@ -86,14 +76,17 @@
         </div>
     </div>
 
-
-    <div class="container-full">
+    <!-- ===== CONTEÚDO PRINCIPAL (será mostrado após login) ===== -->
+    <div class="container-full" style="display: none;">
         <header class="header">
             <h1>🏰 ANBU FARM TOWER</h1>
             <h2>MEGAMU - Controle de Torres</h2>
             <div class="header-buttons">
                 <button class="btn-joias" onclick="openJoiasModal()">
                     💎 Calcular Joias
+                </button>
+                <button class="btn-logout" onclick="logout()">
+                    🚪 Sair
                 </button>
                 <div class="connection-status" id="connectionStatus">
                     <span class="status-dot"></span>
@@ -102,6 +95,7 @@
             </div>
         </header>
 
+        <!-- ESTATÍSTICAS -->
         <div class="stats-container">
             <div class="stat-card">
                 <div class="stat-number" id="totalTorres">0</div>
@@ -117,6 +111,7 @@
             </div>
         </div>
 
+        <!-- CONTROLES -->
         <div class="controls-bar">
             <div class="controls-left">
                 <button class="btn btn-back" onclick="window.location.href='index.html'">
@@ -147,6 +142,7 @@
             </div>
         </div>
 
+        <!-- LEGENDA -->
         <div class="legend-bar">
             <div class="legend-item">
                 <span class="legend-icon">🔴</span>
@@ -166,6 +162,7 @@
             </div>
         </div>
 
+        <!-- TABELA -->
         <div class="table-container">
             <table id="towersTable">
                 <thead>
@@ -180,9 +177,11 @@
                         <th>Visto Horário</th>
                         <th>Horário Finalização</th>
                         <th>Tempo Restante</th>
+                        <th>ID</th>
                     </tr>
                 </thead>
                 <tbody id="tableBody">
+                    <!-- Linhas serão inseridas aqui via JavaScript -->
                 </tbody>
             </table>
             
@@ -201,8 +200,11 @@
         </footer>
     </div>
 
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    
+    <!-- Scripts do Sistema -->
     <script src="js/firebase-config.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/joias-calculator.js"></script>

@@ -199,6 +199,21 @@ function renderTable() {
         td10.innerHTML = `<strong>${tempoRestante}</strong>`;
         tr.appendChild(td10);
 
+        // CÉLULA 11: ID (adicione após a célula de Tempo Restante)
+        const td11 = document.createElement('td');
+        td11.textContent = torre.id;
+        td11.style.fontSize = '0.75em';
+        td11.style.color = '#6c757d';
+        td11.style.fontFamily = 'monospace';
+        td11.title = 'Clique para copiar';
+        td11.style.cursor = 'pointer';
+        td11.onclick = function() {
+    navigator.clipboard.writeText(torre.id);
+    alert('ID copiado: ' + torre.id);
+};
+tr.appendChild(td11);
+
+
         tableBody.appendChild(tr);
     });
     
