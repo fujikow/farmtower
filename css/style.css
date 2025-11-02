@@ -17,7 +17,7 @@
     --gremio-branco: #ffffff;
     --gremio-branco-suave: #f8f9fa;
     
-    /* Cores de status baseadas no Grêmio */
+    /* Cores de status */
     --status-critico: #dc3545;
     --status-atencao: #ffc107;
     --status-alerta: #ff9800;
@@ -62,6 +62,275 @@ body {
     font-weight: 400;
     opacity: 0.95;
     color: var(--gremio-branco);
+}
+
+/* ===== HEADER BUTTONS ===== */
+.header-buttons {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-top: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.btn-joias {
+    background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+    color: var(--gremio-preto);
+    border: 2px solid #ffa500;
+    padding: 12px 24px;
+    border-radius: 25px;
+    font-size: 1.1em;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-joias:hover {
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 0 8px 25px rgba(255, 215, 0, 0.6);
+    background: linear-gradient(135deg, #ffed4e 0%, #ffd700 100%);
+}
+
+/* ===== STATUS DE CONEXÃO ===== */
+.connection-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.2);
+    padding: 8px 15px;
+    border-radius: 20px;
+    backdrop-filter: blur(10px);
+}
+
+.status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #ffc107;
+    animation: pulse 2s infinite;
+}
+
+.status-dot.connected {
+    background: #28a745;
+}
+
+.status-dot.disconnected {
+    background: #dc3545;
+    animation: none;
+}
+
+.status-text {
+    color: white;
+    font-size: 0.9em;
+    font-weight: 600;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* ===== MODAL DE JOIAS ===== */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(5px);
+}
+
+.modal-overlay.active {
+    display: flex;
+}
+
+.modal-content {
+    background: var(--gremio-branco);
+    border-radius: 15px;
+    width: 90%;
+    max-width: 450px;
+    box-shadow: 0 20px 60px rgba(13, 110, 253, 0.5);
+    animation: modalSlideIn 0.3s ease;
+    border: 3px solid var(--gremio-azul);
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-50px) scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.modal-header {
+    background: linear-gradient(135deg, var(--gremio-azul) 0%, var(--gremio-preto) 100%);
+    color: var(--gremio-branco);
+    padding: 20px;
+    border-radius: 12px 12px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h2 {
+    font-size: 1.5em;
+    margin: 0;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    color: var(--gremio-branco);
+    font-size: 1.8em;
+    cursor: pointer;
+    padding: 0;
+    width: 35px;
+    height: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: rotate(90deg);
+}
+
+.modal-joias {
+    max-width: 500px;
+}
+
+.modal-joias .modal-body {
+    padding: 30px;
+}
+
+.joias-info-group {
+    margin-bottom: 25px;
+    padding: 15px;
+    background: var(--gremio-branco-suave);
+    border-radius: 10px;
+    border-left: 4px solid var(--gremio-azul);
+}
+
+.joias-info-group label {
+    display: block;
+    font-weight: 600;
+    color: var(--gremio-preto);
+    margin-bottom: 8px;
+    font-size: 1.05em;
+}
+
+.joias-value {
+    font-size: 1.8em;
+    font-weight: 700;
+    color: var(--gremio-azul);
+    font-family: 'Courier New', monospace;
+}
+
+.joias-value.highlight {
+    color: #28a745;
+}
+
+.joias-input-group {
+    margin-bottom: 25px;
+    padding: 20px;
+    background: var(--gremio-branco-suave);
+    border-radius: 10px;
+    border-left: 4px solid #ffd700;
+}
+
+.joias-input-group label {
+    display: block;
+    font-weight: 600;
+    color: var(--gremio-preto);
+    margin-bottom: 15px;
+    font-size: 1.05em;
+}
+
+.slider-container {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.slider {
+    flex: 1;
+    height: 8px;
+    border-radius: 5px;
+    background: #ddd;
+    outline: none;
+    -webkit-appearance: none;
+}
+
+.slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--gremio-azul) 0%, var(--gremio-preto) 100%);
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.slider::-moz-range-thumb {
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--gremio-azul) 0%, var(--gremio-preto) 100%);
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    border: none;
+}
+
+.slider-value {
+    font-size: 1.5em;
+    font-weight: 700;
+    color: var(--gremio-azul);
+    min-width: 50px;
+    text-align: center;
+}
+
+.joias-result {
+    margin-top: 30px;
+    padding: 25px;
+    background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+    border-radius: 15px;
+    text-align: center;
+    box-shadow: 0 8px 20px rgba(255, 215, 0, 0.4);
+    border: 3px solid #ffa500;
+}
+
+.joias-result label {
+    display: block;
+    font-weight: 700;
+    color: var(--gremio-preto);
+    margin-bottom: 10px;
+    font-size: 1.2em;
+    text-transform: uppercase;
+}
+
+.joias-number {
+    font-size: 3em;
+    font-weight: 900;
+    color: var(--gremio-preto);
+    text-shadow: 2px 2px 4px rgba(255, 255, 255, 0.5);
+    font-family: 'Courier New', monospace;
 }
 
 /* ===== CONTAINERS ===== */
@@ -423,12 +692,11 @@ body {
     color: var(--gremio-preto);
 }
 
-.legend-color {
-    width: 20px;
-    height: 20px;
-    border-radius: 4px;
+.legend-icon {
+    font-size: 1.3em;
     display: inline-block;
-    border: 2px solid var(--gremio-preto);
+    width: 30px;
+    text-align: center;
 }
 
 /* ===== TABELA ===== */
@@ -470,71 +738,75 @@ td {
 }
 
 tbody tr {
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
 }
 
-tbody tr:hover {
-    background: var(--gremio-branco-suave);
-    transform: scale(1.01);
+/* ===== COLUNA DE CORREÇÃO (INVISÍVEL) ===== */
+.col-fix {
+    width: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    background: transparent !important;
+    overflow: hidden !important;
+    max-width: 0 !important;
+    min-width: 0 !important;
 }
 
-/* ===== FORMATAÇÃO CONDICIONAL ===== */
-.row-danger {
+th.col-fix,
+td.col-fix {
+    display: table-cell !important;
+    visibility: hidden !important;
+    line-height: 0 !important;
+    font-size: 0 !important;
+}
+
+/* ===== CORES DE FUNDO DAS LINHAS POR STATUS ===== */
+
+/* Linha CRÍTICA - Vermelho (menos de 5 minutos) */
+tbody tr.row-status-danger {
     background: rgba(220, 53, 69, 0.15) !important;
     border-left: 4px solid #dc3545;
 }
 
-.row-danger:hover {
+tbody tr.row-status-danger:hover {
     background: rgba(220, 53, 69, 0.25) !important;
 }
 
-.row-orange {
+/* Linha ATENÇÃO - Laranja (menos de 15 minutos) */
+tbody tr.row-status-orange {
     background: rgba(255, 152, 0, 0.15) !important;
     border-left: 4px solid #ff9800;
 }
 
-.row-orange:hover {
+tbody tr.row-status-orange:hover {
     background: rgba(255, 152, 0, 0.25) !important;
 }
 
-.row-warning {
+/* Linha ALERTA - Amarelo (menos de 30 minutos) */
+tbody tr.row-status-warning {
     background: rgba(255, 193, 7, 0.15) !important;
     border-left: 4px solid #ffc107;
 }
 
-.row-warning:hover {
+tbody tr.row-status-warning:hover {
     background: rgba(255, 193, 7, 0.25) !important;
 }
 
-.row-success {
+/* Linha ATIVO - Azul Grêmio (mais de 30 minutos) */
+tbody tr.row-status-success {
     background: rgba(13, 110, 253, 0.08) !important;
     border-left: 4px solid var(--gremio-azul);
 }
 
-.row-success:hover {
+tbody tr.row-status-success:hover {
     background: rgba(13, 110, 253, 0.15) !important;
 }
 
-
-/* ===== BADGES ===== */
-.badge {
-    display: inline-block;
-    padding: 5px 12px;
-    border-radius: 20px;
-    font-size: 0.85em;
-    font-weight: 600;
-}
-
-.badge-success {
-    background: var(--gremio-azul);
-    color: var(--gremio-branco);
-    border: 2px solid var(--gremio-azul-escuro);
-}
-
-.badge-danger {
-    background: var(--gremio-preto);
-    color: var(--gremio-branco);
-    border: 2px solid var(--gremio-cinza-escuro);
+/* Hover e transições */
+tbody tr:hover {
+    transform: scale(1.01);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 /* ===== ESTADO VAZIO ===== */
@@ -627,7 +899,7 @@ tbody tr:hover {
     font-weight: 700;
 }
 
-/* ===== SCROLLBAR PERSONALIZADA (Cores do Grêmio) ===== */
+/* ===== SCROLLBAR PERSONALIZADA ===== */
 ::-webkit-scrollbar {
     width: 12px;
     height: 12px;
@@ -656,6 +928,15 @@ tbody tr:hover {
 
     .header h2 {
         font-size: 1.2em;
+    }
+
+    .header-buttons {
+        flex-direction: column;
+    }
+
+    .btn-joias {
+        width: 100%;
+        justify-content: center;
     }
 
     .form-card {
@@ -697,6 +978,18 @@ tbody tr:hover {
         flex-direction: column;
         align-items: flex-start;
     }
+
+    .modal-joias {
+        width: 95%;
+    }
+
+    .joias-value {
+        font-size: 1.4em;
+    }
+
+    .joias-number {
+        font-size: 2.2em;
+    }
 }
 
 @media (max-width: 480px) {
@@ -720,12 +1013,8 @@ tbody tr:hover {
 
 /* ===== ANIMAÇÕES ADICIONAIS ===== */
 @keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
-    to {
-        opacity: 1;
-    }
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 .form-card,
@@ -734,25 +1023,4 @@ tbody tr:hover {
 .legend-bar,
 .table-container {
     animation: fadeIn 0.5s ease;
-}
-
-/* ===== EFEITO HOVER NAS LINHAS DA TABELA ===== */
-tbody tr {
-    position: relative;
-}
-
-tbody tr::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    height: 100%;
-    width: 3px;
-    background: var(--gremio-azul);
-    transform: scaleY(0);
-    transition: transform 0.3s ease;
-}
-
-tbody tr:hover::before {
-    transform: scaleY(1);
 }

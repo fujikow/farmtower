@@ -50,6 +50,7 @@ function cleanExpiredTowers() {
                 // Remover se expirou há mais de 1 hora
                 if (now - finalizacao > 60 * 60 * 1000) {
                     towersRef.child(key).remove();
+                    console.log('🗑️ Torre expirada removida:', key);
                 }
             });
         }
@@ -58,3 +59,6 @@ function cleanExpiredTowers() {
 
 // Executar limpeza ao carregar
 cleanExpiredTowers();
+
+console.log('🔥 Firebase inicializado com sucesso!');
+

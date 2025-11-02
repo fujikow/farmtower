@@ -7,13 +7,52 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+    <!-- Modal de Cálculo de Joias -->
+    <div class="modal-overlay" id="joiasModal">
+        <div class="modal-content modal-joias">
+            <div class="modal-header">
+                <h2>💎 Cálculo de Joias Necessárias</h2>
+                <button class="modal-close" onclick="closeJoiasModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="joias-info-group">
+                    <label>🕐 Horário Atual (GMT -3):</label>
+                    <div class="joias-value" id="horarioAtual">--:--:--</div>
+                </div>
+
+                <div class="joias-input-group">
+                    <label for="horasAdicionais">⏱️ Horas Adicionais:</label>
+                    <div class="slider-container">
+                        <input type="range" id="horasAdicionais" min="0" max="44" value="0" class="slider">
+                        <span class="slider-value" id="horasAdicionaisValue">0h</span>
+                    </div>
+                </div>
+
+                <div class="joias-info-group">
+                    <label>🔓 Hora de Liberação:</label>
+                    <div class="joias-value highlight" id="horaLiberacao">--:--:--</div>
+                </div>
+
+                <div class="joias-result">
+                    <label>💎 Joias Necessárias:</label>
+                    <div class="joias-number" id="joiasNecessarias">0</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="container">
         <header class="header">
             <h1>🏰 ANBU FARM TOWER</h1>
             <h2>MEGAMU</h2>
-            <div class="connection-status" id="connectionStatus">
-                <span class="status-dot"></span>
-                <span class="status-text">Conectando...</span>
+            <div class="header-buttons">
+                <button class="btn-joias" onclick="openJoiasModal()">
+                    💎 Calcular Joias
+                </button>
+                <div class="connection-status" id="connectionStatus">
+                    <span class="status-dot"></span>
+                    <span class="status-text">Conectando...</span>
+                </div>
             </div>
         </header>
 
@@ -33,21 +72,7 @@
                     <label for="mapa">Mapa *</label>
                     <select id="mapa" required>
                         <option value="">Selecione um mapa</option>
-                        <option value="Lorencia">Lorencia</option>
-                        <option value="Dungeon">Dungeon</option>
-                        <option value="Devias">Devias</option>
-                        <option value="Noria">Noria</option>
-                        <option value="Lost Tower">Lost Tower</option>
-                        <option value="Arena">Arena</option>
-                        <option value="Atlans">Atlans</option>
-                        <option value="Tarkan">Tarkan</option>
-                        <option value="Icarus">Icarus</option>
-                        <option value="Aida">Aida</option>
-                        <option value="Kanturu">Kanturu</option>
-                        <option value="Elbeland">Elbeland</option>
-                        <option value="Raklion">Raklion</option>
-                        <option value="Vulcanus">Vulcanus</option>
-                        <option value="Ferea">Ferea</option>
+                        <!-- Opções carregadas via JavaScript -->
                     </select>
                 </div>
 
@@ -55,19 +80,7 @@
                     <label for="servidor">Servidor *</label>
                     <select id="servidor" required>
                         <option value="">Selecione um servidor</option>
-                        <option value="1">1</option>
-                        <option value="2">2</option>
-                        <option value="3">3</option>
-                        <option value="4">4</option>
-                        <option value="5">5</option>
-                        <option value="6">6</option>
-                        <option value="11">11</option>
-                        <option value="12">12</option>
-                        <option value="14">14</option>
-                        <option value="15">15</option>
-                        <option value="16">16</option>
-                        <option value="17">17</option>
-                        <option value="19">19</option>
+                        <!-- Opções carregadas via JavaScript -->
                     </select>
                 </div>
 
@@ -120,6 +133,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     
     <script src="js/firebase-config.js"></script>
+    <script src="js/joias-calculator.js"></script>
     <script src="js/cadastro.js"></script>
 </body>
 </html>

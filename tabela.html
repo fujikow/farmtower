@@ -5,17 +5,55 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ANBU Farm Tower - Tabela</title>
     <link rel="stylesheet" href="css/style.css">
-    <!-- Biblioteca para exportar Excel -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
+    <!-- Modal de Cálculo de Joias -->
+    <div class="modal-overlay" id="joiasModal">
+        <div class="modal-content modal-joias">
+            <div class="modal-header">
+                <h2>💎 Cálculo de Joias Necessárias</h2>
+                <button class="modal-close" onclick="closeJoiasModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="joias-info-group">
+                    <label>🕐 Horário Atual (GMT -3):</label>
+                    <div class="joias-value" id="horarioAtual">--:--:--</div>
+                </div>
+
+                <div class="joias-input-group">
+                    <label for="horasAdicionais">⏱️ Horas Adicionais:</label>
+                    <div class="slider-container">
+                        <input type="range" id="horasAdicionais" min="0" max="44" value="0" class="slider">
+                        <span class="slider-value" id="horasAdicionaisValue">0h</span>
+                    </div>
+                </div>
+
+                <div class="joias-info-group">
+                    <label>🔓 Hora de Liberação:</label>
+                    <div class="joias-value highlight" id="horaLiberacao">--:--:--</div>
+                </div>
+
+                <div class="joias-result">
+                    <label>💎 Joias Necessárias:</label>
+                    <div class="joias-number" id="joiasNecessarias">0</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="container-full">
         <header class="header">
             <h1>🏰 ANBU FARM TOWER</h1>
             <h2>MEGAMU - Controle de Torres</h2>
-            <div class="connection-status" id="connectionStatus">
-                <span class="status-dot"></span>
-                <span class="status-text">Conectando...</span>
+            <div class="header-buttons">
+                <button class="btn-joias" onclick="openJoiasModal()">
+                    💎 Calcular Joias
+                </button>
+                <div class="connection-status" id="connectionStatus">
+                    <span class="status-dot"></span>
+                    <span class="status-text">Conectando...</span>
+                </div>
             </div>
         </header>
 
@@ -65,29 +103,30 @@
         </div>
 
         <div class="legend-bar">
-             <div class="legend-item">
-             <span class="legend-color" style="background: #dc3545;"></span>
-             <span>Menos de 5 minutos (Vermelho)</span>
-         </div>
-         <div class="legend-item">
-            <span class="legend-color" style="background: #ff9800;"></span>
-            <span>Menos de 15 minutos (Laranja)</span>
+            <div class="legend-item">
+                <span class="legend-icon">🔴</span>
+                <span>Menos de 5 minutos (CRÍTICO)</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-icon">🟠</span>
+                <span>Menos de 15 minutos (ATENÇÃO)</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-icon">🟡</span>
+                <span>Menos de 30 minutos (ALERTA)</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-icon">🔵</span>
+                <span>Mais de 30 minutos (ATIVO)</span>
+            </div>
         </div>
-         <div class="legend-item">
-             <span class="legend-color" style="background: #ffc107;"></span>
-            <span>Menos de 30 minutos (Amarelo)</span>
-        </div>
-        <div class="legend-item">
-            <span class="legend-color" style="background: #0d6efd;"></span>
-            <span>Mais de 30 minutos (Azul)</span>
-         </div>
-    </div>
-
 
         <div class="table-container">
             <table id="towersTable">
                 <thead>
                     <tr>
+                        <th class="col-fix"></th> <!-- Coluna de correção (invisível) -->
+                        <th>Status</th>
                         <th>Mapa</th>
                         <th>Servidor</th>
                         <th>Aleatoriedade</th>
@@ -95,7 +134,7 @@
                         <th>Localização</th>
                         <th>Visto Horário</th>
                         <th>Horário Finalização</th>
-                        <th>Cronômetro</th>
+                        <th>Tempo Restante</th>
                     </tr>
                 </thead>
                 <tbody id="tableBody">
@@ -117,11 +156,11 @@
         </footer>
     </div>
 
-    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     
     <script src="js/firebase-config.js"></script>
+    <script src="js/joias-calculator.js"></script>
     <script src="js/tabela.js"></script>
 </body>
 </html>

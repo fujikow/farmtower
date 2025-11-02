@@ -4,6 +4,8 @@ let updateInterval;
 
 // ===== INICIALIZAÇÃO =====
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Iniciando tabela com Firebase...');
+    
     loadTowersFromFirebase();
     
     // Atualizar a cada segundo
@@ -15,9 +17,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ===== CARREGAR TORRES DO FIREBASE =====
 function loadTowersFromFirebase() {
+    console.log('📡 Conectando ao Firebase...');
+    
     towersRef.on('value', (snapshot) => {
         const towers = snapshot.val();
         allTowers = [];
+        
+        console.log('📦 Dados recebidos do Firebase:', towers);
         
         if (towers) {
             const now = new Date();
@@ -34,11 +40,17 @@ function loadTowersFromFirebase() {
                     });
                 }
             });
+            
+            console.log('✅ Torres ativas carregadas:', allTowers.length);
+        } else {
+            console.log('⚠️ Nenhuma torre encontrada no Firebase');
         }
         
         populateFilters();
         updateStats();
         renderTable();
+    }, (error) => {
+        console.error('❌ Erro ao carregar torres do Firebase:', error);
     });
 }
 
@@ -87,7 +99,7 @@ function updateStats() {
     document.getElementById('torresAleatorias').textContent = torresAleatorias;
 }
 
-// ===== RENDERIZAR TABELA =====
+// ===== RENDERIZAR TABELA (SEM BADGES) =====
 function renderTable() {
     const filterMapa = document.getElementById('filterMapa').value;
     const filterServidor = document.getElementById('filterServidor').value;
@@ -121,66 +133,166 @@ function renderTable() {
     tableBody.innerHTML = '';
 
     filteredTowers.forEach(torre => {
-        const row = document.createElement('tr');
-        
+        const now = new Date();
         const vistoDate = new Date(torre.vistoHorario);
         const finalizacaoDate = new Date(torre.horarioFinalizacao);
-        const now = new Date();
+        const tempoRestante = calculateTempoRestante(finalizacaoDate, now);
+        const statusInfo = getStatusInfo(finalizacaoDate, now);
+
+        // Criar linha
+        const tr = document.createElement('tr');
         
-        const cronometro = calculateCronometro(finalizacaoDate, now);
-        const rowClass = getRowClass(finalizacaoDate, now);
+        // ADICIONAR CLASSE DE STATUS NA LINHA
+        tr.classList.add(`row-${statusInfo.class}`);
+        
+        // CÉLULA 1: Correção (invisível)
+        const td1 = document.createElement('td');
+        td1.className = 'col-fix';
+        tr.appendChild(td1);
+        
+        // CÉLULA 2: Status (apenas emoji, sem badge)
+        const td2 = document.createElement('td');
+        td2.textContent = statusInfo.icon;
+        td2.style.fontSize = '1.5em';
+        td2.style.textAlign = 'center';
+        tr.appendChild(td2);
+        
+        // CÉLULA 3: Mapa
+        const td3 = document.createElement('td');
+        td3.innerHTML = `<strong>${torre.mapa}</strong>`;
+        tr.appendChild(td3);
+        
+        // CÉLULA 4: Servidor
+        const td4 = document.createElement('td');
+        td4.textContent = torre.servidor;
+        tr.appendChild(td4);
+        
+        // CÉLULA 5: Aleatoriedade (sem badge)
+        const td5 = document.createElement('td');
+        td5.textContent = torre.aleatoriedade;
+        td5.style.fontWeight = '600';
+        td5.style.textAlign = 'center';
+        tr.appendChild(td5);
+        
+        // CÉLULA 6: Dono
+        const td6 = document.createElement('td');
+        td6.textContent = torre.dono;
+        tr.appendChild(td6);
+        
+        // CÉLULA 7: Localização
+        const td7 = document.createElement('td');
+        td7.textContent = torre.localizacao;
+        tr.appendChild(td7);
+        
+        // CÉLULA 8: Visto Horário
+        const td8 = document.createElement('td');
+        td8.textContent = formatDateTime(vistoDate);
+        tr.appendChild(td8);
+        
+        // CÉLULA 9: Horário Finalização
+        const td9 = document.createElement('td');
+        td9.textContent = formatDateTime(finalizacaoDate);
+        tr.appendChild(td9);
+        
+        // CÉLULA 10: Tempo Restante
+        const td10 = document.createElement('td');
+        td10.innerHTML = `<strong>${tempoRestante}</strong>`;
+        tr.appendChild(td10);
 
-        if (rowClass) {
-            row.className = rowClass;
-        }
-
-        row.innerHTML = `
-            <td><strong>${torre.mapa}</strong></td>
-            <td>${torre.servidor}</td>
-            <td>
-                <span class="badge ${torre.aleatoriedade === 'Sim' ? 'badge-success' : 'badge-danger'}">
-                    ${torre.aleatoriedade}
-                </span>
-            </td>
-            <td>${torre.dono}</td>
-            <td>${torre.localizacao}</td>
-            <td>${formatDateTime(vistoDate)}</td>
-            <td>${formatDateTime(finalizacaoDate)}</td>
-            <td><strong>${cronometro}</strong></td>
-        `;
-
-        tableBody.appendChild(row);
+        tableBody.appendChild(tr);
     });
+    
+    console.log('✅ Tabela renderizada com', filteredTowers.length, 'torres');
 }
 
-// ===== CALCULAR CRONÔMETRO =====
-function calculateCronometro(finalizacao, now) {
+
+
+// ===== OBTER INFORMAÇÕES DE STATUS (NOVA FUNÇÃO) =====
+function getStatusInfo(finalizacao, now) {
+    const diff = finalizacao - now;
+    const minutes = diff / (1000 * 60);
+
+    if (minutes < 5) {
+        return {
+            class: 'status-danger',
+            icon: '🔴',
+            text: 'CRÍTICO'
+        };
+    } else if (minutes < 15) {
+        return {
+            class: 'status-orange',
+            icon: '🟠',
+            text: 'ATENÇÃO'
+        };
+    } else if (minutes < 30) {
+        return {
+            class: 'status-warning',
+            icon: '🟡',
+            text: 'ALERTA'
+        };
+    } else {
+        return {
+            class: 'status-success',
+            icon: '🔵',
+            text: 'ATIVO'
+        };
+    }
+}
+
+// ===== CRIAR CÉLULA (HELPER FUNCTION) =====
+function createCell(type, content) {
+    const td = document.createElement('td');
+    
+    switch(type) {
+        case 'strong':
+            td.innerHTML = `<strong>${content}</strong>`;
+            break;
+            
+        case 'badge':
+            const badgeClass = content === 'Sim' ? 'badge-success' : 'badge-danger';
+            td.innerHTML = `<span class="badge ${badgeClass}">${content}</span>`;
+            break;
+            
+        case 'text':
+        default:
+            td.textContent = content;
+            break;
+    }
+    
+    return td;
+}
+
+// ===== CALCULAR TEMPO RESTANTE (APENAS HH:MM:SS) =====
+function calculateTempoRestante(finalizacao, now) {
     const diff = finalizacao - now;
 
     if (diff <= 0) {
-        return 'EXPIRADO';
+        return '00:00:00';
     }
 
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+    // Calcular total de horas, minutos e segundos
+    const totalSeconds = Math.floor(diff / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
 
+    // Formatar como HH:MM:SS
     return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
-// ===== OBTER CLASSE DA LINHA =====
+// ===== OBTER CLASSE DA LINHA (FORMATAÇÃO CONDICIONAL) =====
 function getRowClass(finalizacao, now) {
     const diff = finalizacao - now;
     const minutes = diff / (1000 * 60);
 
     if (minutes < 5) {
-        return 'row-danger'; // Vermelho - menos de 5 minutos
+        return 'row-danger'; // 🔴 Vermelho - menos de 5 minutos
     } else if (minutes < 15) {
-        return 'row-orange'; // Laranja - menos de 15 minutos
+        return 'row-orange'; // 🟠 Laranja - menos de 15 minutos
     } else if (minutes < 30) {
-        return 'row-warning'; // Amarelo - menos de 30 minutos
+        return 'row-warning'; // 🟡 Amarelo - menos de 30 minutos
     } else {
-        return 'row-success'; // Azul Grêmio - mais de 30 minutos
+        return 'row-success'; // 🔵 Azul Grêmio - mais de 30 minutos
     }
 }
 
@@ -198,7 +310,8 @@ function formatDateTime(date) {
 
 // ===== ATUALIZAR TABELA =====
 function refreshTable() {
-    loadTowersFromFirebase();
+    console.log('🔄 Atualizando tabela...');
+    renderTable();
 }
 
 // ===== EXPORTAR PARA EXCEL =====
@@ -235,7 +348,7 @@ function exportToExcel() {
         const exportData = filteredTowers.map(torre => {
             const vistoDate = new Date(torre.vistoHorario);
             const finalizacaoDate = new Date(torre.horarioFinalizacao);
-            const cronometro = calculateCronometro(finalizacaoDate, now);
+            const tempoRestante = calculateTempoRestante(finalizacaoDate, now);
             const status = getStatusText(finalizacaoDate, now);
 
             return {
@@ -244,9 +357,9 @@ function exportToExcel() {
                 'Aleatoriedade': torre.aleatoriedade,
                 'Dono': torre.dono,
                 'Localização': torre.localizacao,
-                'Visto Horário': formatDateTimeForExcel(vistoDate),
-                'Horário Finalização': formatDateTimeForExcel(finalizacaoDate),
-                'Cronômetro': cronometro,
+                'Visto Horário': formatDateTime(vistoDate),
+                'Horário Finalização': formatDateTime(finalizacaoDate),
+                'Tempo Restante': tempoRestante,
                 'Status': status,
                 'Duração': torre.duracaoFormatada
             };
@@ -267,7 +380,7 @@ function exportToExcel() {
         const infoData = [
             { 'Informação': 'Total de Torres', 'Valor': filteredTowers.length },
             { 'Informação': 'Torres com Aleatoriedade', 'Valor': filteredTowers.filter(t => t.aleatoriedade === 'Sim').length },
-            { 'Informação': 'Data/Hora da Exportação', 'Valor': formatDateTimeForExcel(now) },
+            { 'Informação': 'Data/Hora da Exportação', 'Valor': formatDateTime(now) },
             { 'Informação': 'Exportado por', 'Valor': 'ANBU Farm Tower - MEGAMU' },
             { 'Informação': 'Criado por', 'Valor': 'fujikoftw - O MELHOR DL DO MEGAMU' }
         ];
@@ -282,26 +395,17 @@ function exportToExcel() {
         showExportMessage('✅ Tabela exportada com sucesso!', 'success');
         
         const btnExport = document.querySelector('.btn-export');
-        btnExport.classList.add('exporting');
-        setTimeout(() => {
-            btnExport.classList.remove('exporting');
-        }, 500);
+        if (btnExport) {
+            btnExport.classList.add('exporting');
+            setTimeout(() => {
+                btnExport.classList.remove('exporting');
+            }, 500);
+        }
 
     } catch (error) {
-        console.error('Erro ao exportar:', error);
+        console.error('❌ Erro ao exportar:', error);
         showExportMessage('❌ Erro ao exportar tabela!', 'error');
     }
-}
-
-function formatDateTimeForExcel(date) {
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    const seconds = String(date.getSeconds()).padStart(2, '0');
-
-    return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
 }
 
 function formatFileNameDate(date) {
@@ -309,10 +413,11 @@ function formatFileNameDate(date) {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const year = date.getFullYear();
     const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0'); // CORRIGIDO: fechamento das aspas
 
     return `${day}-${month}-${year}_${hours}h${minutes}m`;
 }
+
 
 function getStatusText(finalizacao, now) {
     const diff = finalizacao - now;

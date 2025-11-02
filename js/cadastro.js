@@ -1,5 +1,32 @@
+// ===== DADOS DE MAPAS E SERVIDORES =====
+const MAPAS = [
+    'Lorencia',
+    'Dungeon',
+    'Devias',
+    'Noria',
+    'Lost Tower',
+    'Arena',
+    'Atlans',
+    'Tarkan',
+    'Icarus',
+    'Aida',
+    'Kanturu',
+    'Elbeland',
+    'Raklion',
+    'Vulcanus',
+    'Ferea'
+];
+
+const SERVIDORES = [1, 2, 3, 4, 5, 6, 11, 12, 14, 15, 16, 17, 19];
+
 // ===== INICIALIZAÇÃO =====
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('📝 Página de cadastro carregada');
+    
+    // Carregar opções dinâmicas
+    loadMapasOptions();
+    loadServidoresOptions();
+    
     // Focar no primeiro campo
     document.getElementById('mapa').focus();
     
@@ -8,6 +35,34 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('minutos').value = 0;
     document.getElementById('segundos').value = 0;
 });
+
+// ===== CARREGAR OPÇÕES DE MAPAS =====
+function loadMapasOptions() {
+    const mapaSelect = document.getElementById('mapa');
+    
+    MAPAS.forEach(mapa => {
+        const option = document.createElement('option');
+        option.value = mapa;
+        option.textContent = mapa;
+        mapaSelect.appendChild(option);
+    });
+    
+    console.log('✅ Mapas carregados:', MAPAS.length);
+}
+
+// ===== CARREGAR OPÇÕES DE SERVIDORES =====
+function loadServidoresOptions() {
+    const servidorSelect = document.getElementById('servidor');
+    
+    SERVIDORES.forEach(servidor => {
+        const option = document.createElement('option');
+        option.value = servidor;
+        option.textContent = servidor;
+        servidorSelect.appendChild(option);
+    });
+    
+    console.log('✅ Servidores carregados:', SERVIDORES.length);
+}
 
 // ===== MANIPULAÇÃO DO FORMULÁRIO =====
 document.getElementById('towerForm').addEventListener('submit', function(e) {
@@ -73,6 +128,8 @@ document.getElementById('towerForm').addEventListener('submit', function(e) {
         cadastradoEm: new Date().toISOString()
     };
 
+    console.log('📤 Enviando torre para Firebase:', torre);
+
     // Salvar no Firebase
     saveTowerToFirebase(torre);
 });
@@ -81,12 +138,13 @@ document.getElementById('towerForm').addEventListener('submit', function(e) {
 function saveTowerToFirebase(torre) {
     towersRef.push(torre)
         .then(() => {
+            console.log('✅ Torre cadastrada no Firebase com sucesso!');
             showSuccess('Torre cadastrada com sucesso!');
             resetForm();
             resetSubmitButton();
         })
         .catch((error) => {
-            console.error('Erro ao cadastrar torre:', error);
+            console.error('❌ Erro ao cadastrar torre:', error);
             showError('Erro ao cadastrar torre. Verifique sua conexão!');
             resetSubmitButton();
         });
@@ -133,6 +191,12 @@ function showError(message) {
 
 function resetForm() {
     document.getElementById('towerForm').reset();
+    
+    // Recarregar opções
+    document.getElementById('mapa').innerHTML = '<option value="">Selecione um mapa</option>';
+    document.getElementById('servidor').innerHTML = '<option value="">Selecione um servidor</option>';
+    loadMapasOptions();
+    loadServidoresOptions();
     
     document.getElementById('horas').value = 0;
     document.getElementById('minutos').value = 0;
