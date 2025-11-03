@@ -93,7 +93,7 @@ function closeJoiasModal() {
     }
 }
 
-// ===== ATUALIZAR CALCULADORA =====
+// ===== ATUALIZAR CALCULADORA (COM TRADUÇÃO) =====
 function updateJoiasCalculator() {
     // Horário atual (GMT-3 / Brasília)
     const now = new Date();
@@ -109,17 +109,20 @@ function updateJoiasCalculator() {
     const slider = document.getElementById('horasAdicionais');
     const horasAdicionais = slider ? parseInt(slider.value) : 0;
     
-    // Atualizar valor do slider (LÓGICA ATUALIZADA)
+    // Atualizar valor do slider (LÓGICA ATUALIZADA COM i18n)
     const sliderValue = document.getElementById('horasAdicionaisValue');
     if (sliderValue) {
         const horasGratis = 2;
         const horasTotais = horasAdicionais + horasGratis;
         
+        // Pega a tradução de "(Grátis)" do i18n.js
+        const freeText = getTranslation('jewel_modal_free');
+        
         if (horasAdicionais === 0) {
-             sliderValue.textContent = `Total: ${horasTotais}h (Grátis)`;
+             sliderValue.textContent = `Total: ${horasTotais}h ${freeText}`;
         } else {
              // Ex: "10h + 2h (Grátis) = 12h"
-             sliderValue.textContent = `${horasAdicionais}h + ${horasGratis}h (Grátis) = ${horasTotais}h`;
+             sliderValue.textContent = `${horasAdicionais}h + ${horasGratis}h ${freeText} = ${horasTotais}h`;
         }
     }
     

@@ -1332,3 +1332,27 @@ tbody tr:hover {
     border-color: var(--gremio-preto);
     box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.2);
 }
+
+/* ===== SELETOR DE IDIOMA ===== */
+.language-switcher {
+    display: flex;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.2);
+    padding: 5px;
+    border-radius: 20px;
+}
+
+.language-switcher button {
+    background: transparent;
+    border: none;
+    font-size: 1.5em; /* Tamanho da bandeira (emoji) */
+    cursor: pointer;
+    opacity: 0.7;
+    transition: all 0.2s ease;
+    padding: 0 5px;
+}
+
+.language-switcher button:hover {
+    opacity: 1;
+    transform: scale(1.1);
+}

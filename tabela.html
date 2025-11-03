@@ -1,13 +1,11 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
-<head>
+<html lang="pt"> <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ANBU Farm Tower - Tabela</title>
     <link rel="stylesheet" href="css/style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    
-    </head>
+</head>
 <body>
     
     <div id="loginScreen" class="login-screen">
@@ -19,18 +17,19 @@
             
             <div class="login-card">
                 <div class="lock-icon">🔒</div>
-                <h3>Acesso Protegido</h3>
-                <p>Digite a senha para acessar o sistema</p>
+                <h3 data-i18n-key="login_title">Acesso Protegido</h3>
+                <p data-i18n-key="login_subtitle">Digite a senha para acessar o sistema</p>
                 
                 <div class="login-form">
                     <input 
                         type="password" 
                         id="passwordInput" 
                         placeholder="Digite a senha" 
+                        data-i18n-key="login_placeholder_password"
                         autocomplete="current-password"
                     >
                     <button onclick="handleLogin()" class="btn-login">
-                        <span>🔓</span> Entrar
+                        <span>🔓</span> <span data-i18n-key="login_button">Entrar</span>
                     </button>
                 </div>
                 
@@ -38,35 +37,38 @@
             </div>
             
             <div class="login-footer">
-                <p>Criado por <strong>fujikoftw</strong> - O MELHOR DL DO MEGAMU</p>
+                <p data-i18n-key="footer_credit">Criado por <strong>fujikoftw</strong> - O MELHOR DL DO MEGAMU</p>
             </div>
         </div>
     </div>
 
     <div class="modal-overlay" id="joiasModal">
         <div class="modal-content modal-joias">
-            <div class="modal-header">
-                <h2>💎 Cálculo de Joias Necessárias</h2>
+             <div class="modal-header">
+                <h2 data-i18n-key="jewel_modal_title">💎 Cálculo de Joias Necessárias</h2>
                 <button class="modal-close" onclick="closeJoiasModal()">✕</button>
             </div>
             <div class="modal-body">
                 <div class="joias-info-group">
-                    <label>🕐 Horário Atual (GMT -3):</label>
-                    <div class="joias-value" id="horarioAtual">--:--:--</div>
+                    <label data-i18n-key="jewel_modal_current_time">🕐 Horário Atual (GMT -3):</label>
+                    <div class="joias-value" id="horarioAtual">--/-- --:--:--</div>
                 </div>
+
                 <div class="joias-input-group">
-                    <label for="horasAdicionais">⏱️ Horas Adicionais:</label>
+                    <label for="horasAdicionais" data-i18n-key="jewel_modal_additional_hours">⏱️ Horas Adicionais:</label>
                     <div class="slider-container">
                         <input type="range" id="horasAdicionais" min="0" max="44" value="0" class="slider">
                         <span class="slider-value" id="horasAdicionaisValue">Total: 2h (Grátis)</span>
                     </div>
                 </div>
+
                 <div class="joias-info-group">
-                    <label>🔓 Hora de Liberação:</label>
-                    <div class="joias-value highlight" id="horaLiberacao">--:--:--</div>
+                    <label data-i18n-key="jewel_modal_release_time">🔓 Hora de Liberação:</label>
+                    <div class="joias-value highlight" id="horaLiberacao">--/-- --:--:--</div>
                 </div>
+
                 <div class="joias-result">
-                    <label>💎 Joias Necessárias:</label>
+                    <label data-i18n-key="jewel_modal_jewels_needed">💎 Joias Necessárias:</label>
                     <div class="joias-number" id="joiasNecessarias">0</div>
                 </div>
             </div>
@@ -74,31 +76,33 @@
     </div>
 
     <div class="modal-overlay" id="missingModal">
-        <div class="modal-content modal-missing">
+         <div class="modal-content modal-missing">
             <div class="modal-header">
-                <h2>🚫 Torres sem cadastro</h2>
+                <h2 data-i18n-key="missing_modal_title">🚫 Torres sem cadastro</h2>
                 <button class="modal-close" onclick="closeMissingModal()">✕</button>
             </div>
             <div class="modal-body">
-                <p class="modal-subtitle">
+                <p class="modal-subtitle" data-i18n-key="missing_modal_subtitle">
                     Exibindo todas as combinações de Mapa/Servidor que não possuem um cadastro ATIVO no momento.
                 </p>
+                
                 <div class="expired-filters">
                     <div class="filter-group">
-                        <label for="filterMissingMapa">🗺️ Mapa:</label>
+                        <label for="filterMissingMapa" data-i18n-key="form_map">🗺️ Mapa:</label>
                         <select id="filterMissingMapa" onchange="renderMissingList()">
                             <option value="">Todos</option>
                         </select>
                     </div>
                     <div class="filter-group">
-                        <label for="filterMissingServidor">🖥️ Servidor:</label>
+                        <label for="filterMissingServidor" data-i18n-key="form_server">🖥️ Servidor:</label>
                         <select id="filterMissingServidor" onchange="renderMissingList()">
                             <option value="">Todos</option>
                         </select>
                     </div>
                 </div>
+                
                 <div class="expired-list-container" id="missingListContainer">
-                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -106,117 +110,130 @@
     <div class="container-full" style="display: none;">
         <header class="header">
             <h1>🏰 ANBU FARM TOWER</h1>
-            <h2>MEGAMU - Controle de Torres</h2>
+            <h2 data-i18n-key="table_title">MEGAMU - Controle de Torres</h2>
             <div class="header-buttons">
                 <button class="btn-joias" onclick="openJoiasModal()">
-                    💎 Calcular Joias
+                    <span>💎</span> <span data-i18n-key="btn_jewels">Calcular Joias</span>
                 </button>
+                
+                <div class="language-switcher">
+                    <button onclick="setLanguage('pt')" title="Português">🇧🇷</button>
+                    <button onclick="setLanguage('en')" title="English">🇺🇸</button> <button onclick="setLanguage('es')" title="Español">🇪🇸</button>
+                </div>
+
                 <button class="btn-logout" onclick="logout()">
-                    🚪 Sair
+                    <span>🚪</span> <span data-i18n-key="btn_logout">Sair</span>
                 </button>
                 <div class="connection-status" id="connectionStatus">
                     <span class="status-dot"></span>
-                    <span class="status-text">Conectando...</span>
+                    <span class="status-text" data-i18n-key="connection_status">Conectando...</span>
                 </div>
             </div>
         </header>
+
         <div class="stats-container">
             <div class="stat-card">
                 <div class="stat-number" id="totalTorres">0</div>
-                <div class="stat-label">Total de Torres</div>
+                <div class="stat-label" data-i18n-key="stats_total_towers">Total de Torres</div>
             </div>
             <div class="stat-card">
                 <div class="stat-number" id="torresAtivas">0</div>
-                <div class="stat-label">Torres Ativas</div>
+                <div class="stat-label" data-i18n-key="stats_active_towers">Torres Ativas</div>
             </div>
             <div class="stat-card">
                 <div class="stat-number" id="torresAleatorias">0</div>
-                <div class="stat-label">Com Aleatoriedade</div>
+                <div class="stat-label" data-i18n-key="table_header_random">Com Aleatoriedade</div>
             </div>
         </div>
+
         <div class="controls-bar">
             <div class="controls-left">
                 <button class="btn btn-back" onclick="window.location.href='index.html'">
-                    <span>⬅️</span> Voltar
+                    <span>⬅️</span> <span data-i18n-key="btn_back">Voltar</span>
                 </button>
                 <button class="btn btn-refresh" onclick="refreshTable()">
-                    <span>🔄</span> Atualizar
+                    <span>🔄</span> <span data-i18n-key="btn_refresh">Atualizar</span>
                 </button>
                 <button class="btn btn-missing" onclick="openMissingModal()">
-                    <span>🚫</span> Torres s/ Cadastro
+                    <span>🚫</span> <span data-i18n-key="btn_missing_towers">Torres s/ Cadastro</span>
                 </button>
                 <button class="btn btn-export" onclick="exportToExcel()">
-                    <span>📥</span> Exportar Excel
+                    <span>📥</span> <span data-i18n-key="btn_export">Exportar Excel</span>
                 </button>
             </div>
+            
             <div class="controls-right">
                 <div class="filter-group">
-                    <label for="filterDono">🧑‍💻 Dono:</label>
-                    <input type="text" id="filterDono" placeholder="Nome do dono" oninput="applyFilters()">
+                    <label for="filterDono" data-i18n-key="table_header_owner">🧑‍💻 Dono:</label>
+                    <input type="text" id="filterDono" placeholder="Nome do dono" data-i18n-key="form_owner_placeholder" oninput="applyFilters()">
                 </div>
                 <div class="filter-group">
-                    <label for="filterMapa">🗺️ Mapa:</label>
+                    <label for="filterMapa" data-i18n-key="form_map">🗺️ Mapa:</label>
                     <select id="filterMapa" onchange="applyFilters()">
                         <option value="">Todos</option>
                     </select>
                 </div>
                 <div class="filter-group">
-                    <label for="filterServidor">🖥️ Servidor:</label>
+                    <label for="filterServidor" data-i18n-key="form_server">🖥️ Servidor:</label>
                     <select id="filterServidor" onchange="applyFilters()">
                         <option value="">Todos</option>
                     </select>
                 </div>
             </div>
         </div>
+
         <div class="legend-bar">
             <div class="legend-item">
                 <span class="legend-icon">🔴</span>
-                <span>Menos de 5 minutos (CRÍTICO)</span>
+                <span data-i18n-key="legend_critical">Menos de 5 minutos (CRÍTICO)</span>
             </div>
             <div class="legend-item">
                 <span class="legend-icon">🟠</span>
-                <span>Menos de 15 minutos (ATENÇÃO)</span>
+                <span data-i18n-key="legend_attention">Menos de 15 minutos (ATENÇÃO)</span>
             </div>
             <div class="legend-item">
                 <span class="legend-icon">🟡</span>
-                <span>Menos de 30 minutos (ALERTA)</span>
+                <span data-i18n-key="legend_alert">Menos de 30 minutos (ALERTA)</span>
             </div>
             <div class="legend-item">
                 <span class="legend-icon">🔵</span>
-                <span>Mais de 30 minutos (ATIVO)</span>
+                <span data-i18n-key="legend_active">Mais de 30 minutos (ATIVO)</span>
             </div>
         </div>
+
         <div class="table-container">
             <table id="towersTable">
                 <thead>
                     <tr>
                         <th class="col-fix"></th>
-                        <th>Status</th>
-                        <th>Mapa</th>
-                        <th>Servidor</th>
-                        <th>Aleatoriedade</th>
-                        <th>Dono</th>
-                        <th>Localização</th>
-                        <th>Visto Horário</th>
-                        <th>Horário Finalização</th>
-                        <th>Tempo Restante</th>
+                        <th data-i18n-key="table_header_status">Status</th>
+                        <th data-i18n-key="table_header_map">Mapa</th>
+                        <th data-i18n-key="table_header_server">Servidor</th>
+                        <th data-i18n-key="table_header_random">Aleatoriedade</th>
+                        <th data-i18n-key="table_header_owner">Dono</th>
+                        <th data-i18n-key="table_header_location">Localização</th>
+                        <th data-i18n-key="table_header_seen">Visto Horário</th>
+                        <th data-i18n-key="table_header_end">Horário Finalização</th>
+                        <th data-i18n-key="table_header_remaining">Tempo Restante</th>
                         <th>ID</th>
                     </tr>
                 </thead>
                 <tbody id="tableBody">
                     </tbody>
             </table>
+            
             <div class="empty-state" id="emptyState" style="display: none;">
                 <div class="empty-icon">📭</div>
-                <h2>Nenhuma torre ativa</h2>
-                <p>Todas as torres expiraram ou nenhuma foi cadastrada ainda.</p>
+                <h2 data-i18n-key="empty_table_title">Nenhuma torre ativa</h2>
+                <p data-i18n-key="empty_table_subtitle">Todas as torres expiraram ou nenhuma foi cadastrada ainda.</p>
                 <button class="btn btn-submit" onclick="window.location.href='index.html'">
-                    <span>➕</span> Cadastrar Torre
+                    <span>➕</span> <span data-i18n-key="form_button_register">Cadastrar Torre</span>
                 </button>
             </div>
         </div>
+
         <footer class="footer">
-            <p>Criado por <strong>fujikoftw</strong> - O MELHOR DL DO MEGAMU</p>
+            <p data-i18n-key="footer_credit">Criado por <strong>fujikoftw</strong> - O MELHOR DL DO MEGAMU</p>
         </footer>
     </div>
 
@@ -225,6 +242,8 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     
     <script src="js/firebase-config.js"></script>
+
+    <script src="js/i18n.js"></script>
 
     <script src="js/auth.js"></script>
     <script src="js/joias-calculator.js"></script>

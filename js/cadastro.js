@@ -104,42 +104,47 @@ if (towerForm) {
             resetSubmitButton();
             return;
         }
-
         if (horas === 0 && minutos === 0 && segundos === 0) {
             showError('A duração da torre deve ser maior que zero!');
             resetSubmitButton();
             return;
         }
-
         if (horas > 48) {
             showError('A duração máxima é de 48 horas!');
             resetSubmitButton();
             return;
         }
 
-        // ===== VALIDAÇÃO DE DUPLICATAS (COM POP-UP) =====
+        // ===== VALIDAÇÃO DE DUPLICATAS (COM OPÇÃO DE SOBREESCREVER) =====
+        let duplicateTower = null; // Armazena a torre duplicada, se encontrada
+
         if (typeof allTowers === 'undefined') {
             console.warn('⚠️ Atenção: array allTowers (do tabela.js) não está definido. A verificação de duplicatas será pulada.');
         } else {
             console.log(`[Verificação de Duplicata] Verificando ${mapa}-${servidor} contra ${allTowers.length} torres ativas...`);
             
-            const isDuplicate = allTowers.some(torre => 
+            // Usamos .find() para obter o objeto duplicado (incluindo seu ID)
+            duplicateTower = allTowers.find(torre => 
                 torre.mapa === mapa && torre.servidor === servidor
             );
 
-            if (isDuplicate) {
+            if (duplicateTower) {
                 const errorMsg = `Já existe uma torre ATIVA cadastrada em ${mapa} (Servidor ${servidor})!`;
-                
                 console.error('❌ ERRO DE DUPLICATA:', errorMsg); 
                 
-                // *** POP-UP ADICIONADO AQUI ***
-                alert('❌ ERRO: ' + errorMsg); 
-                
-                // (Ainda chamamos o showError para o caso de o usuário querer ver no topo)
-                showError(errorMsg);
-                
-                resetSubmitButton();
-                return; // Impede o cadastro
+                // *** POP-UP DE CONFIRMAÇÃO ***
+                if (confirm(`❌ ERRO: ${errorMsg}\n\nDeseja sobreescrever os dados antigos?`)) {
+                    // Usuário clicou "OK"
+                    console.log('✅ [Verificação de Duplicata] Usuário escolheu sobreescrever.');
+                    // O script continua, e a variável 'duplicateTower' conterá o ID
+                } else {
+                    // Usuário clicou "Cancelar"
+                    console.log('🛑 [Verificação de Duplicata] Usuário cancelou a sobreescrita.');
+                    showError('Cadastro cancelado pelo usuário.'); // Mostra erro normal
+                    resetSubmitButton();
+                    return; // Impede o cadastro
+                }
+
             } else {
                 console.log('✅ [Verificação de Duplicata] Nenhuma duplicata encontrada. Prosseguindo com o cadastro.');
             }
@@ -171,28 +176,45 @@ if (towerForm) {
             horarioFinalizacao: horarioFinalizacao.toISOString(),
             duracaoSegundos: duracaoTotal,
             duracaoFormatada: formatDuration(horas, minutos, segundos),
-            cadastradoEm: new Date().toISOString()
+            cadastradoEm: new Date().toISOString() // Atualiza a data de cadastro
         };
 
         console.log('📤 Enviando torre para Firebase:', torre);
 
         // Salvar no Firebase
-        saveTowerToFirebase(torre);
+        // Passamos o ID da duplicata (ou null se não houver)
+        saveTowerToFirebase(torre, duplicateTower ? duplicateTower.id : null);
     });
 }
 
-// ===== SALVAR NO FIREBASE =====
-function saveTowerToFirebase(torre) {
-    towersRef.push(torre)
+// ===== SALVAR NO FIREBASE (MODIFICADO) =====
+function saveTowerToFirebase(torre, existingId) {
+    let promise;
+    
+    if (existingId) {
+        // ID existe, então vamos SOBREESCREVER (usando .set())
+        console.log(`...Sobreescrevendo torre no ID: ${existingId}`);
+        promise = towersRef.child(existingId).set(torre);
+    } else {
+        // ID não existe, então vamos CRIAR NOVO (usando .push())
+        console.log('...Criando novo registro de torre...');
+        promise = towersRef.push(torre);
+    }
+
+    // A lógica de sucesso/erro é a mesma
+    promise
         .then(() => {
-            console.log('✅ Torre cadastrada no Firebase com sucesso!');
-            showSuccess('Torre cadastrada com sucesso!');
+            // Mensagem personalizada se foi cadastro ou sobreescrita
+            const message = existingId ? '✅ Torre sobreescrita com sucesso!' : '✅ Torre cadastrada com sucesso!';
+            
+            console.log(message);
+            showSuccess(message); // Mostra a barra verde
             resetForm();
             resetSubmitButton();
         })
         .catch((error) => {
-            console.error('❌ Erro ao cadastrar torre:', error);
-            showError('Erro ao cadastrar torre. Verifique sua conexão!');
+            console.error('❌ Erro ao salvar torre:', error);
+            showError('Erro ao salvar torre. Verifique sua conexão!');
             resetSubmitButton();
         });
 }
@@ -213,7 +235,7 @@ function showSuccess(message) {
     if(!successMsg || !errorMsg) return;
 
     errorMsg.style.display = 'none';
-    successMsg.textContent = `✅ ${message}`;
+    successMsg.textContent = message; // Mensagem já vem com emoji
     successMsg.style.display = 'block';
     
     setTimeout(() => {

@@ -1,6 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
-<head>
+<html lang="pt"> <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ANBU Farm Tower - Cadastro</title>
@@ -12,17 +11,17 @@
     <div class="modal-overlay" id="joiasModal">
         <div class="modal-content modal-joias">
             <div class="modal-header">
-                <h2>💎 Cálculo de Joias Necessárias</h2>
+                <h2 data-i18n-key="jewel_modal_title">💎 Cálculo de Joias Necessárias</h2>
                 <button class="modal-close" onclick="closeJoiasModal()">✕</button>
             </div>
             <div class="modal-body">
                 <div class="joias-info-group">
-                    <label>🕐 Horário Atual (GMT -3):</label>
+                    <label data-i18n-key="jewel_modal_current_time">🕐 Horário Atual (GMT -3):</label>
                     <div class="joias-value" id="horarioAtual">--/-- --:--:--</div>
                 </div>
 
                 <div class="joias-input-group">
-                    <label for="horasAdicionais">⏱️ Horas Adicionais:</label>
+                    <label for="horasAdicionais" data-i18n-key="jewel_modal_additional_hours">⏱️ Horas Adicionais:</label>
                     <div class="slider-container">
                         <input type="range" id="horasAdicionais" min="0" max="44" value="0" class="slider">
                         <span class="slider-value" id="horasAdicionaisValue">Total: 2h (Grátis)</span>
@@ -30,12 +29,12 @@
                 </div>
 
                 <div class="joias-info-group">
-                    <label>🔓 Hora de Liberação:</label>
+                    <label data-i18n-key="jewel_modal_release_time">🔓 Hora de Liberação:</label>
                     <div class="joias-value highlight" id="horaLiberacao">--/-- --:--:--</div>
                 </div>
 
                 <div class="joias-result">
-                    <label>💎 Joias Necessárias:</label>
+                    <label data-i18n-key="jewel_modal_jewels_needed">💎 Joias Necessárias:</label>
                     <div class="joias-number" id="joiasNecessarias">0</div>
                 </div>
             </div>
@@ -45,23 +44,23 @@
     <div class="modal-overlay" id="missingModal">
         <div class="modal-content modal-missing">
             <div class="modal-header">
-                <h2>🚫 Torres sem cadastro</h2>
+                <h2 data-i18n-key="missing_modal_title">🚫 Torres sem cadastro</h2>
                 <button class="modal-close" onclick="closeMissingModal()">✕</button>
             </div>
             <div class="modal-body">
-                <p class="modal-subtitle">
+                <p class="modal-subtitle" data-i18n-key="missing_modal_subtitle">
                     Exibindo todas as combinações de Mapa/Servidor que não possuem um cadastro ATIVO no momento.
                 </p>
                 
                 <div class="expired-filters">
                     <div class="filter-group">
-                        <label for="filterMissingMapa">🗺️ Mapa:</label>
+                        <label for="filterMissingMapa" data-i18n-key="form_map">🗺️ Mapa:</label>
                         <select id="filterMissingMapa" onchange="renderMissingList()">
                             <option value="">Todos</option>
                         </select>
                     </div>
                     <div class="filter-group">
-                        <label for="filterMissingServidor">🖥️ Servidor:</label>
+                        <label for="filterMissingServidor" data-i18n-key="form_server">🖥️ Servidor:</label>
                         <select id="filterMissingServidor" onchange="renderMissingList()">
                             <option value="">Todos</option>
                         </select>
@@ -69,7 +68,7 @@
                 </div>
                 
                 <div class="expired-list-container" id="missingListContainer">
-                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -83,18 +82,19 @@
             
             <div class="login-card">
                 <div class="lock-icon">🔒</div>
-                <h3>Acesso Protegido</h3>
-                <p>Digite a senha para acessar o sistema</p>
+                <h3 data-i18n-key="login_title">Acesso Protegido</h3>
+                <p data-i18n-key="login_subtitle">Digite a senha para acessar o sistema</p>
                 
                 <div class="login-form">
                     <input 
                         type="password" 
                         id="passwordInput" 
                         placeholder="Digite a senha" 
+                        data-i18n-key="login_placeholder_password"
                         autocomplete="current-password"
                     >
                     <button onclick="handleLogin()" class="btn-login">
-                        <span>🔓</span> Entrar
+                        <span>🔓</span> <span data-i18n-key="login_button">Entrar</span>
                     </button>
                 </div>
                 
@@ -102,7 +102,7 @@
             </div>
             
             <div class="login-footer">
-                <p>Criado por <strong>fujikoftw</strong> - O MELHOR DL DO MEGAMU</p>
+                <p data-i18n-key="footer_credit">Criado por <strong>fujikoftw</strong> - O MELHOR DL DO MEGAMU</p>
             </div>
         </div>
     </div>
@@ -110,56 +110,59 @@
     <div class="container" style="display: none;">
         <header class="header">
             <h1>🏰 ANBU FARM TOWER</h1>
-            <h2>MEGAMU - Cadastro de Torres</h2>
+            <h2 data-i18n-key="form_title">MEGAMU - Cadastro de Torres</h2>
             <div class="header-buttons">
-                <button class="btn-logout" onclick="logout()">
+                
+                <div class="language-switcher">
+                    <button onclick="setLanguage('pt')" title="Português">🇧🇷</button>
+                    <button onclick="setLanguage('en')" title="English">🇺🇸</button> <button onclick="setLanguage('es')" title="Español">🇪🇸</button>
+                </div>
+                
+                <button class="btn-logout" onclick="logout()" data-i18n-key="btn_logout">
                     🚪 Sair
                 </button>
                 <div class="connection-status" id="connectionStatus">
                     <span class="status-dot"></span>
-                    <span class="status-text">Conectando...</span>
+                    <span class="status-text" data-i18n-key="connection_status">Conectando...</span>
                 </div>
             </div>
         </header>
 
-        <div class="success-message" id="successMessage">
-            ✅ Torre cadastrada com sucesso!
-        </div>
-
-        <div class="error-message" id="errorMessage">
-            ❌ Por favor, preencha todos os campos obrigatórios!
-        </div>
+        <div class="success-message" id="successMessage"></div>
+        <div class="error-message" id="errorMessage"></div>
 
         <div class="form-card">
-            <h3>📝 Cadastro de Torre</h3>
+            <h3 data-i18n-key="form_title">📝 Cadastro de Torre</h3>
             
             <form id="towerForm">
                 <div class="form-group">
-                    <label for="mapa">Mapa *</label>
+                    <label for="mapa" data-i18n-key="form_map">Mapa *</label>
                     <select id="mapa" required>
                         <option value="">Selecione um mapa</option>
                         </select>
                 </div>
 
                 <div class="form-group">
-                    <label for="servidor">Servidor *</label>
+                    <label for="servidor" data-i18n-key="form_server">Servidor *</label>
                     <select id="servidor" required>
                         <option value="">Selecione um servidor</option>
                         </select>
                 </div>
 
                 <div class="form-group">
-                    <label for="dono">Dono *</label>
-                    <input type="text" id="dono" placeholder="Digite o nome do dono" required>
+                    <label for="dono" data-i18n-key="form_owner">Dono *</label>
+                    <input type="text" id="dono" placeholder="Digite o nome do dono" data-i18n-key="form_owner_placeholder" required>
                 </div>
 
                 <div class="form-group">
-                    <label for="localizacao">Localização Específica *</label>
-                    <input type="text" id="localizacao" placeholder="Ex: X:123 Y:456 ou Hotspot Central" required>
+                    <label for="localizacao" data-i18n-key="form_location">Localização Específica *</label>
+                    <input type="text" id="localizacao" placeholder="Ex: X:123 Y:456 ou Hotspot Central" data-i18n-key="form_location_placeholder" required>
                 </div>
 
                 <div class="form-group">
-                    <label for="duracao">Duração da Torre * <span class="duration-hint">(Máximo: 48 horas)</span></label>
+                    <label for="duracao" data-i18n-key="form_duration">Duração da Torre *</label> 
+                    <span class="duration-hint" data-i18n-key="form_duration_hint">(Máximo: 48 horas)</span>
+                    
                     <div class="duration-inputs">
                         <div class="duration-field">
                             <input type="number" id="horas" min="0" max="48" value="0" required>
@@ -178,22 +181,22 @@
 
                 <div class="button-group">
                     <button type="submit" class="btn btn-submit" id="submitBtn">
-                        <span>📝</span> Cadastrar Torre
+                        <span>📝</span> <span data-i18n-key="form_button_register">Cadastrar Torre</span>
                     </button>
                     <button type="button" class="btn btn-view" onclick="window.location.href='tabela.html'">
-                        <span>📊</span> Ver Tabela
+                        <span>📊</span> <span data-i18n-key="form_button_view_table">Ver Tabela</span>
                     </button>
                 </div>
                 <div class="button-group" style="margin-top: 15px;">
                      <button type="button" class="btn btn-missing" onclick="openMissingModal()">
-                        <span>🚫</span> Torres s/ Cadastro
+                        <span>🚫</span> <span data-i18n-key="form_button_missing">Torres s/ Cadastro</span>
                     </button>
                 </div>
             </form>
         </div>
 
         <footer class="footer">
-            <p>Criado por <strong>fujikoftw</strong> - O MELHOR DL DO MEGAMU</p>
+            <p data-i18n-key="footer_credit">Criado por <strong>fujikoftw</strong> - O MELHOR DL DO MEGAMU</p>
         </footer>
     </div>
 
@@ -202,6 +205,8 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     
     <script src="js/firebase-config.js"></script>
+
+    <script src="js/i18n.js"></script>
 
     <script src="js/auth.js"></script>
     <script src="js/joias-calculator.js"></script>
