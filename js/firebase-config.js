@@ -18,27 +18,43 @@ firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 const towersRef = database.ref('towers');
 
+// ===== NOVO: SINCRONIZADOR DE HORA DO SERVIDOR =====
+let serverTimeOffset = 0; // Armazena a diferença entre o cliente e o servidor
+
+const offsetRef = database.ref('.info/serverTimeOffset');
+offsetRef.on('value', (snapshot) => {
+    serverTimeOffset = snapshot.val() || 0;
+    console.log(`[Time Sync] Desvio do servidor: ${serverTimeOffset}ms`);
+});
+
+/**
+ * Retorna um objeto Date com a hora atual estimada do servidor (em UTC),
+ * corrigindo qualquer erro no relógio local do usuário.
+ */
+function getEstimatedServerTime() {
+    return new Date(new Date().getTime() + serverTimeOffset);
+}
+// ===== FIM DO SINCRONIZADOR =====
+
+
 // Monitorar status de conexão
 const connectedRef = database.ref('.info/connected');
 connectedRef.on('value', (snapshot) => {
     const statusElement = document.getElementById('connectionStatus');
     if (statusElement) {
         if (snapshot.val() === true) {
-            statusElement.innerHTML = '<span class="status-dot connected"></span><span class="status-text">Conectado</span>';
+            statusElement.innerHTML = '<span class="status-dot connected"></span><span class="status-text" data-i18n-key="connection_status_connected">Conectado</span>'; // (Chave de tradução atualizada recomendada)
         } else {
-            statusElement.innerHTML = '<span class="status-dot disconnected"></span><span class="status-text">Desconectado</span>';
+            statusElement.innerHTML = '<span class="status-dot disconnected"></span><span class="status-text" data-i18n-key="connection_status_disconnected">Desconectado</span>'; // (Chave de tradução atualizada recomendada)
         }
     }
 });
 
-// Limpar torres expiradas automaticamente (executar a cada 5 minutos)
-setInterval(() => {
-    cleanExpiredTowers();
-}, 5 * 60 * 1000);
 
 // Função para limpar torres expiradas
 function cleanExpiredTowers() {
-    const now = new Date().getTime();
+    // Usamos a hora corrigida do servidor aqui também
+    const now = getEstimatedServerTime().getTime(); 
     
     towersRef.once('value', (snapshot) => {
         const towers = snapshot.val();
@@ -57,8 +73,6 @@ function cleanExpiredTowers() {
     });
 }
 
-// Executar limpeza ao carregar
-cleanExpiredTowers();
+// (As chamadas para cleanExpiredTowers() agora são iniciadas pelo auth.js após o login)
 
 console.log('🔥 Firebase inicializado com sucesso!');
-

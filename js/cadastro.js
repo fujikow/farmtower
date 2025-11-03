@@ -100,49 +100,46 @@ if (towerForm) {
 
         // Validação
         if (!mapa || !servidor || !dono || !localizacao) {
-            showError('Por favor, preencha todos os campos obrigatórios!');
+            showError(getTranslation('error_all_fields'));
             resetSubmitButton();
             return;
         }
         if (horas === 0 && minutos === 0 && segundos === 0) {
-            showError('A duração da torre deve ser maior que zero!');
+            showError(getTranslation('error_duration_zero'));
             resetSubmitButton();
             return;
         }
         if (horas > 48) {
-            showError('A duração máxima é de 48 horas!');
+            showError(getTranslation('error_duration_max'));
             resetSubmitButton();
             return;
         }
 
         // ===== VALIDAÇÃO DE DUPLICATAS (COM OPÇÃO DE SOBREESCREVER) =====
-        let duplicateTower = null; // Armazena a torre duplicada, se encontrada
+        let duplicateTower = null; 
 
         if (typeof allTowers === 'undefined') {
             console.warn('⚠️ Atenção: array allTowers (do tabela.js) não está definido. A verificação de duplicatas será pulada.');
         } else {
             console.log(`[Verificação de Duplicata] Verificando ${mapa}-${servidor} contra ${allTowers.length} torres ativas...`);
             
-            // Usamos .find() para obter o objeto duplicado (incluindo seu ID)
             duplicateTower = allTowers.find(torre => 
                 torre.mapa === mapa && torre.servidor === servidor
             );
 
             if (duplicateTower) {
-                const errorMsg = `Já existe uma torre ATIVA cadastrada em ${mapa} (Servidor ${servidor})!`;
+                const errorMsg = getTranslation('error_duplicate_tower', { mapa: mapa, servidor: servidor });
                 console.error('❌ ERRO DE DUPLICATA:', errorMsg); 
                 
-                // *** POP-UP DE CONFIRMAÇÃO ***
-                if (confirm(`❌ ERRO: ${errorMsg}\n\nDeseja sobreescrever os dados antigos?`)) {
-                    // Usuário clicou "OK"
+                const confirmMsg = getTranslation('error_duplicate_overwrite_confirm', { mapa: mapa, servidor: servidor });
+                
+                if (confirm(confirmMsg)) {
                     console.log('✅ [Verificação de Duplicata] Usuário escolheu sobreescrever.');
-                    // O script continua, e a variável 'duplicateTower' conterá o ID
                 } else {
-                    // Usuário clicou "Cancelar"
                     console.log('🛑 [Verificação de Duplicata] Usuário cancelou a sobreescrita.');
-                    showError('Cadastro cancelado pelo usuário.'); // Mostra erro normal
+                    showError(getTranslation('error_duplicate_cancelled')); 
                     resetSubmitButton();
-                    return; // Impede o cadastro
+                    return; 
                 }
 
             } else {
@@ -155,11 +152,13 @@ if (towerForm) {
         // Calcular duração total em segundos
         const duracaoTotal = (horas * 3600) + (minutos * 60) + segundos;
 
-        // Horário atual (visto)
-        const vistoHorario = new Date();
+        // ===== ALTERAÇÃO DE TIMEZONE =====
+        // Horário atual (visto) - USA A HORA CORRIGIDA DO SERVIDOR
+        const vistoHorario = getEstimatedServerTime(); // Função do firebase-config.js
 
         // Calcular horário de finalização
         const horarioFinalizacao = new Date(vistoHorario.getTime() + (duracaoTotal * 1000));
+        // ===== FIM DA ALTERAÇÃO =====
 
         // Verificar aleatoriedade
         const servidoresAleatorios = ['4', '5', '6', '11', '12', '14', '15'];
@@ -172,17 +171,16 @@ if (towerForm) {
             aleatoriedade: aleatoriedade,
             dono: dono,
             localizacao: localizacao,
-            vistoHorario: vistoHorario.toISOString(),
-            horarioFinalizacao: horarioFinalizacao.toISOString(),
+            vistoHorario: vistoHorario.toISOString(), // Salva em UTC
+            horarioFinalizacao: horarioFinalizacao.toISOString(), // Salva em UTC
             duracaoSegundos: duracaoTotal,
             duracaoFormatada: formatDuration(horas, minutos, segundos),
-            cadastradoEm: new Date().toISOString() // Atualiza a data de cadastro
+            cadastradoEm: vistoHorario.toISOString() // Atualiza usando a hora corrigida
         };
 
         console.log('📤 Enviando torre para Firebase:', torre);
 
         // Salvar no Firebase
-        // Passamos o ID da duplicata (ou null se não houver)
         saveTowerToFirebase(torre, duplicateTower ? duplicateTower.id : null);
     });
 }
@@ -192,20 +190,17 @@ function saveTowerToFirebase(torre, existingId) {
     let promise;
     
     if (existingId) {
-        // ID existe, então vamos SOBREESCREVER (usando .set())
         console.log(`...Sobreescrevendo torre no ID: ${existingId}`);
         promise = towersRef.child(existingId).set(torre);
     } else {
-        // ID não existe, então vamos CRIAR NOVO (usando .push())
         console.log('...Criando novo registro de torre...');
         promise = towersRef.push(torre);
     }
 
-    // A lógica de sucesso/erro é a mesma
     promise
         .then(() => {
-            // Mensagem personalizada se foi cadastro ou sobreescrita
-            const message = existingId ? '✅ Torre sobreescrita com sucesso!' : '✅ Torre cadastrada com sucesso!';
+            const messageKey = existingId ? 'success_tower_overwritten' : 'success_tower_registered';
+            const message = getTranslation(messageKey);
             
             console.log(message);
             showSuccess(message); // Mostra a barra verde
@@ -214,7 +209,7 @@ function saveTowerToFirebase(torre, existingId) {
         })
         .catch((error) => {
             console.error('❌ Erro ao salvar torre:', error);
-            showError('Erro ao salvar torre. Verifique sua conexão!');
+            showError(getTranslation('error_save_tower'));
             resetSubmitButton();
         });
 }
@@ -235,7 +230,7 @@ function showSuccess(message) {
     if(!successMsg || !errorMsg) return;
 
     errorMsg.style.display = 'none';
-    successMsg.textContent = message; // Mensagem já vem com emoji
+    successMsg.textContent = message; 
     successMsg.style.display = 'block';
     
     setTimeout(() => {
@@ -252,7 +247,7 @@ function showError(message) {
     if(!successMsg || !errorMsg) return;
     
     successMsg.style.display = 'none';
-    errorMsg.textContent = `❌ ${message}`;
+    errorMsg.textContent = message; // Mensagem já vem formatada (com ❌)
     errorMsg.style.display = 'block';
     
     setTimeout(() => {
@@ -291,7 +286,9 @@ function resetSubmitButton() {
     const submitBtn = document.getElementById('submitBtn');
     if(submitBtn) {
         submitBtn.disabled = false;
-        submitBtn.innerHTML = '<span>📝</span> Cadastrar Torre';
+        // Usa a tradução para resetar o botão
+        const buttonText = getTranslation('form_button_register');
+        submitBtn.innerHTML = `<span>📝</span> ${buttonText}`;
     }
 }
 
@@ -301,7 +298,7 @@ if (horasInput) {
     horasInput.addEventListener('input', function() {
         if (this.value > 48) {
             this.value = 48;
-            showError('A duração máxima é de 48 horas!');
+            showError(getTranslation('error_duration_max'));
         }
         if (this.value < 0) this.value = 0;
         updateDurationFeedback();
