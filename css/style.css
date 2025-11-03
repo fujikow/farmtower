@@ -1310,3 +1310,25 @@ tbody tr:hover {
     padding: 40px 20px;
     color: var(--gremio-cinza-claro);
 }
+
+.filter-group input[type="text"] {
+    padding: 10px 15px;
+    border: 2px solid var(--gremio-azul);
+    border-radius: 8px;
+    font-size: 0.95em;
+    transition: all 0.3s ease;
+    background: var(--gremio-branco);
+    font-family: inherit; /* Garante a mesma fonte */
+    color: var(--gremio-preto);
+}
+
+.filter-group input[type="text"]::placeholder {
+    color: var(--gremio-cinza-claro);
+    opacity: 0.8;
+}
+
+.filter-group input[type="text"]:focus {
+    outline: none;
+    border-color: var(--gremio-preto);
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.2);
+}

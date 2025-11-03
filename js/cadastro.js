@@ -117,6 +117,36 @@ if (towerForm) {
             return;
         }
 
+        // ===== VALIDAÇÃO DE DUPLICATAS (COM POP-UP) =====
+        if (typeof allTowers === 'undefined') {
+            console.warn('⚠️ Atenção: array allTowers (do tabela.js) não está definido. A verificação de duplicatas será pulada.');
+        } else {
+            console.log(`[Verificação de Duplicata] Verificando ${mapa}-${servidor} contra ${allTowers.length} torres ativas...`);
+            
+            const isDuplicate = allTowers.some(torre => 
+                torre.mapa === mapa && torre.servidor === servidor
+            );
+
+            if (isDuplicate) {
+                const errorMsg = `Já existe uma torre ATIVA cadastrada em ${mapa} (Servidor ${servidor})!`;
+                
+                console.error('❌ ERRO DE DUPLICATA:', errorMsg); 
+                
+                // *** POP-UP ADICIONADO AQUI ***
+                alert('❌ ERRO: ' + errorMsg); 
+                
+                // (Ainda chamamos o showError para o caso de o usuário querer ver no topo)
+                showError(errorMsg);
+                
+                resetSubmitButton();
+                return; // Impede o cadastro
+            } else {
+                console.log('✅ [Verificação de Duplicata] Nenhuma duplicata encontrada. Prosseguindo com o cadastro.');
+            }
+        }
+        // ===== FIM DA VALIDAÇÃO =====
+
+
         // Calcular duração total em segundos
         const duracaoTotal = (horas * 3600) + (minutos * 60) + segundos;
 

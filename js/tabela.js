@@ -1,46 +1,28 @@
 // ===== VARIÁVEIS GLOBAIS =====
 let allTowers = [];
-// let allMissingTowers = []; // <-- REMOVIDO
 let updateInterval;
 
 // --- DADOS GERAIS DO JOGO ---
-// CORREÇÃO: Verifica se as variáveis já foram declaradas (pelo cadastro.js)
-// Se não (estamos na tabela.html), declara elas aqui.
 if (typeof MAPAS === 'undefined') {
   var MAPAS = [
-      'Lorencia',
-      'Dungeon',
-      'Devias',
-      'Noria',
-      'Lost Tower',
-      'Arena',
-      'Atlans',
-      'Tarkan',
-      'Icarus',
-      'Aida',
-      'Kanturu',
-      'Elbeland',
-      'Raklion',
-      'Vulcanus',
-      'Ferea'
+      'Lorencia', 'Dungeon', 'Devias', 'Noria', 'Lost Tower', 'Arena', 'Atlans', 
+      'Tarkan', 'Icarus', 'Aida', 'Kanturu', 'Elbeland', 'Raklion', 'Vulcanus', 'Ferea'
   ];
 }
-
 if (typeof SERVIDORES === 'undefined') {
  var SERVIDORES = [1, 2, 3, 4, 5, 6, 11, 12, 14, 15, 16, 17, 19];
 }
-
 
 // ===== INICIALIZAÇÃO =====
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 Iniciando tabela.js...');
     
-    // Carrega os dados em AMBAS as páginas (index e tabela)
-    // A própria função vai filtrar o que deve ser renderizado.
-    loadTowersFromFirebase(); 
+    // O loadTowersFromFirebase é chamado pelo auth.js após o login
     
     // O intervalo só roda na página da tabela
     if (document.getElementById('towersTable')) {
+        // RECOMENDAÇÃO: Substituir este intervalo pela Otimização de Performance (Passo 1)
+        // que discutimos anteriormente para atualizar apenas os timers.
         updateInterval = setInterval(() => {
             renderTable(); 
             updateStats(); 
@@ -65,7 +47,6 @@ function loadTowersFromFirebase() {
                 const torre = towers[key];
                 const finalizacao = new Date(torre.horarioFinalizacao);
                 
-                // Incluir apenas torres ativas
                 if (finalizacao > now) {
                     allTowers.push({
                         id: key,
@@ -79,7 +60,6 @@ function loadTowersFromFirebase() {
             console.log('⚠️ Nenhuma torre encontrada no Firebase');
         }
         
-        // Funções que só rodam na página da tabela (agora estão protegidas)
         populateFilters();
         updateStats();
         renderTable();
@@ -91,10 +71,11 @@ function loadTowersFromFirebase() {
 
 // ===== POPULAR FILTROS =====
 function populateFilters() {
-    // Proteção para não rodar no index.html
     const filterMapa = document.getElementById('filterMapa');
     if (!filterMapa) return; 
 
+    // Popula apenas os filtros <select>
+    // O filtro de Dono é texto livre, não precisa ser populado
     const mapas = [...new Set(allTowers.map(t => t.mapa))].sort();
     const servidores = [...new Set(allTowers.map(t => t.servidor))].sort((a, b) => {
         return parseInt(a) - parseInt(b);
@@ -122,33 +103,57 @@ function populateFilters() {
 
 // ===== APLICAR FILTROS =====
 function applyFilters() {
+    // Esta função agora é chamada por todos os 3 filtros
     renderTable();
 }
 
 // ===== ATUALIZAR ESTATÍSTICAS =====
 function updateStats() {
-    // Proteção para não rodar no index.html
     const totalTorresEl = document.getElementById('totalTorres');
     if (!totalTorresEl) return; 
 
     const servidoresAleatorios = ['4', '5', '6', '11', '12', '14', '15'];
-    const torresAleatorias = allTowers.filter(t => 
+    
+    // ATENÇÃO: As estatísticas agora devem ser baseadas nas torres *visíveis* (filtradas)
+    // Para isso, precisamos pegar os filtros AQUI também.
+    const filterMapa = document.getElementById('filterMapa').value;
+    const filterServidor = document.getElementById('filterServidor').value;
+    const filterDono = document.getElementById('filterDono').value.trim().toLowerCase();
+
+    let filteredTowers = allTowers;
+    if (filterMapa) {
+        filteredTowers = filteredTowers.filter(t => t.mapa === filterMapa);
+    }
+    if (filterServidor) {
+        filteredTowers = filteredTowers.filter(t => t.servidor === filterServidor);
+    }
+    if (filterDono) {
+        filteredTowers = filteredTowers.filter(t => 
+            t.dono.toLowerCase().includes(filterDono)
+        );
+    }
+    
+    const torresAleatorias = filteredTowers.filter(t => 
         servidoresAleatorios.includes(t.servidor)
     ).length;
 
-    totalTorresEl.textContent = allTowers.length;
-    document.getElementById('torresAtivas').textContent = allTowers.length;
+    // Atualiza os stats para refletir a contagem filtrada
+    totalTorresEl.textContent = filteredTowers.length;
+    document.getElementById('torresAtivas').textContent = filteredTowers.length;
     document.getElementById('torresAleatorias').textContent = torresAleatorias;
 }
 
 // ===== RENDERIZAR TABELA (SEM BADGES) =====
+// (Função ATUALIZADA com filtro de Dono)
 function renderTable() {
-    // Proteção para não rodar no index.html
     const tableBody = document.getElementById('tableBody');
     if (!tableBody) return; 
     
+    // --- LÓGICA DE FILTRO ATUALIZADA ---
     const filterMapa = document.getElementById('filterMapa').value;
     const filterServidor = document.getElementById('filterServidor').value;
+    const filterDono = document.getElementById('filterDono').value.trim().toLowerCase();
+    
     const emptyState = document.getElementById('emptyState');
     const table = document.getElementById('towersTable');
 
@@ -161,6 +166,15 @@ function renderTable() {
     if (filterServidor) {
         filteredTowers = filteredTowers.filter(t => t.servidor === filterServidor);
     }
+
+    // NOVO FILTRO APLICADO
+    if (filterDono) {
+        filteredTowers = filteredTowers.filter(t => 
+            t.dono.toLowerCase().includes(filterDono)
+        );
+    }
+    // --- FIM DA LÓGICA DE FILTRO ---
+
 
     if (filteredTowers.length === 0) {
         table.style.display = 'none';
@@ -200,7 +214,6 @@ function renderTable() {
             <td><strong>${tempoRestante}</strong></td>
         `;
         
-        // CÉLULA 11: ID (separada para o clique)
         const td11 = document.createElement('td');
         td11.textContent = torre.id;
         td11.style.fontSize = '0.75em';
@@ -217,7 +230,7 @@ function renderTable() {
         tableBody.appendChild(tr);
     });
     
-    console.log('✅ Tabela renderizada com', filteredTowers.length, 'torres');
+    // console.log('✅ Tabela renderizada com', filteredTowers.length, 'torres');
 }
 
 
@@ -228,45 +241,22 @@ function getStatusInfo(finalizacao, now) {
     const minutes = diff / (1000 * 60);
 
     if (diff <= 0) {
-        return {
-            class: 'status-expired', 
-            icon: '⚫', 
-            text: 'EXPIRADO'
-        };
+        return { class: 'status-expired', icon: '⚫', text: 'EXPIRADO' };
     } else if (minutes < 5) {
-        return {
-            class: 'status-danger',
-            icon: '🔴',
-            text: 'CRÍTICO (< 5 min)'
-        };
+        return { class: 'status-danger', icon: '🔴', text: 'CRÍTICO (< 5 min)' };
     } else if (minutes < 15) {
-        return {
-            class: 'status-orange',
-            icon: '🟠',
-            text: 'ATENÇÃO (< 15 min)'
-        };
+        return { class: 'status-orange', icon: '🟠', text: 'ATENÇÃO (< 15 min)' };
     } else if (minutes < 30) {
-        return {
-            class: 'status-warning',
-            icon: '🟡',
-            text: 'ALERTA (< 30 min)'
-        };
+        return { class: 'status-warning', icon: '🟡', text: 'ALERTA (< 30 min)' };
     } else {
-        return {
-            class: 'status-success',
-            icon: '🔵',
-            text: 'ATIVO'
-        };
+        return { class: 'status-success', icon: '🔵', text: 'ATIVO' };
     }
 }
 
 // ===== CALCULAR TEMPO RESTANTE (APENAS HH:MM:SS) =====
 function calculateTempoRestante(finalizacao, now) {
     const diff = finalizacao - now;
-
-    if (diff <= 0) {
-        return '00:00:00';
-    }
+    if (diff <= 0) return '00:00:00';
 
     const totalSeconds = Math.floor(diff / 1000);
     const hours = Math.floor(totalSeconds / 3600);
@@ -290,16 +280,13 @@ function formatDateTime(date) {
 
 // ===== ATUALIZAR TABELA =====
 function refreshTable() {
-    // Proteção para não rodar no index.html
     if (!document.getElementById('towersTable')) return; 
-
     console.log('🔄 Atualizando tabela...');
     renderTable();
 }
 
 // ===== EXPORTAR PARA EXCEL =====
 function exportToExcel() {
-    // Proteção para não rodar no index.html
     if (!document.getElementById('towersTable')) return; 
 
     if (allTowers.length === 0) {
@@ -308,17 +295,22 @@ function exportToExcel() {
     }
 
     try {
+        // Pega os filtros atuais para exportar apenas o que está visível
         const filterMapa = document.getElementById('filterMapa').value;
         const filterServidor = document.getElementById('filterServidor').value;
+        const filterDono = document.getElementById('filterDono').value.trim().toLowerCase();
         
         let filteredTowers = allTowers;
-
         if (filterMapa) {
             filteredTowers = filteredTowers.filter(t => t.mapa === filterMapa);
         }
-
         if (filterServidor) {
             filteredTowers = filteredTowers.filter(t => t.servidor === filterServidor);
+        }
+        if (filterDono) {
+            filteredTowers = filteredTowers.filter(t => 
+                t.dono.toLowerCase().includes(filterDono)
+            );
         }
 
         if (filteredTowers.length === 0) {
@@ -411,7 +403,6 @@ function showExportMessage(message, type) {
         tooltip.className = 'export-tooltip';
         document.body.appendChild(tooltip);
     }
-
     tooltip.textContent = message;
     tooltip.style.background = type === 'success' 
         ? 'rgba(13, 110, 253, 0.95)' 
@@ -419,9 +410,7 @@ function showExportMessage(message, type) {
     tooltip.style.borderColor = type === 'success'
         ? 'var(--gremio-azul)'
         : 'var(--status-critico)';
-
     tooltip.classList.add('show');
-
     setTimeout(() => {
         tooltip.classList.remove('show');
     }, 2000);
