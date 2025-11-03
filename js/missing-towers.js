@@ -3,7 +3,9 @@
 // 1. allTowers (definido em tabela.js)
 // 2. MAPAS e SERVIDORES (definidos em cadastro.js ou tabela.js)
 
-let allMissingTowers = []; // Torres que não estão ativas
+// ESTRUTURA MODIFICADA: Agora é um objeto para agrupar servidores por mapa
+// Ex: { "Lorencia": ["1", "2", "4"], "Devias": ["3"] }
+let allMissingTowers = {}; 
 
 /**
  * Abre o modal de torres sem cadastro e inicia o carregamento.
@@ -12,14 +14,11 @@ function openMissingModal() {
     console.log('🔓 Abrindo modal de torres sem cadastro...');
     
     // Assegura que os dados de torres ativas (allTowers) estejam carregados
-    // Se a variável allTowers estiver vazia, força uma recarga.
     if (allTowers.length === 0 && typeof loadTowersFromFirebase === 'function') {
         console.log('⚠️ allTowers está vazio. Recarregando dados do Firebase...');
-        loadTowersFromFirebase(); // Garante que temos os dados
+        loadTowersFromFirebase(); 
     }
     
-    // A lógica de carregar o modal foi movida para dentro de loadMissingTowers
-    // para garantir que os dados estejam prontos.
     loadMissingTowers();
 }
 
@@ -45,21 +44,20 @@ function closeMissingModal() {
         if(filterMapa) filterMapa.innerHTML = '<option value="">Todos</option>';
         if(filterServidor) filterServidor.innerHTML = '<option value="">Todos</option>';
 
-        allMissingTowers = []; // Limpa cache
+        allMissingTowers = {}; // Limpa cache (resetando para objeto)
     }
 }
 
 /**
  * Carrega todas as torres que NÃO estão na lista de ativas.
+ * LÓGICA MODIFICADA para agrupar servidores.
  */
 function loadMissingTowers() {
     const listContainer = document.getElementById('missingListContainer');
-    // Proteção: Não fazer nada se o container não existir
     if (!listContainer) {
         console.error("Elemento 'missingListContainer' não encontrado.");
         return;
     }
-    
     listContainer.innerHTML = '<p>Calculando torres sem cadastro...</p>';
 
     // 1. Criar um "mapa" de torres ativas para busca rápida.
@@ -68,31 +66,35 @@ function loadMissingTowers() {
         activeTowersMap.add(`${torre.mapa}-${torre.servidor}`);
     });
 
-    allMissingTowers = []; // Limpa cache anterior
+    allMissingTowers = {}; // Limpa cache anterior (resetando para objeto)
 
-    // 2. Iterar por TODAS as combinações possíveis de Mapa e Servidor
-    // Verifica se MAPAS e SERVIDORES existem (evita erro caso cadastro.js falhe)
+    // 2. Verifica se MAPAS e SERVIDORES existem
     if (typeof MAPAS === 'undefined' || typeof SERVIDORES === 'undefined') {
         console.error("MAPAS ou SERVIDORES não estão definidos. Verifique cadastro.js ou tabela.js");
         listContainer.innerHTML = '<p>Erro: Dados de mapas não carregados.</p>';
         return;
     }
-    
+
+    // 3. Iterar por TODAS as combinações
     MAPAS.forEach(mapa => {
         SERVIDORES.forEach(servidor => {
             const torreKey = `${mapa}-${servidor}`;
             
-            // 3. Se a combinação NÃO ESTÁ no mapa de ativas, ela está "sem cadastro"
+            // 4. Se a combinação NÃO ESTÁ no mapa de ativas...
             if (!activeTowersMap.has(torreKey)) {
-                allMissingTowers.push({
-                    mapa: mapa,
-                    servidor: servidor.toString() // Garante que é string
-                });
+                
+                // 5. (MODIFICADO) Adiciona ao grupo do mapa
+                // Se o mapa ainda não está no nosso objeto, cria um array vazio para ele
+                if (!allMissingTowers[mapa]) {
+                    allMissingTowers[mapa] = [];
+                }
+                // Adiciona o servidor ao array desse mapa
+                allMissingTowers[mapa].push(servidor.toString());
             }
         });
     });
 
-    console.log(`✅ ${allMissingTowers.length} torres sem cadastro encontradas.`);
+    console.log(`✅ ${Object.keys(allMissingTowers).length} mapas com torres faltando.`);
 
     // Abre o modal AGORA, pois os dados estão prontos
     const modal = document.getElementById('missingModal');
@@ -101,7 +103,8 @@ function loadMissingTowers() {
         modal.style.display = 'flex';
     }
 
-    if (allMissingTowers.length > 0) {
+    // LÓGICA MODIFICADA: Verifica o tamanho do objeto
+    if (Object.keys(allMissingTowers).length > 0) {
         populateMissingFilters();
         renderMissingList();
     } else {
@@ -116,18 +119,25 @@ function loadMissingTowers() {
 
 /**
  * Popula os filtros <select> do modal com base nas torres encontradas.
+ * LÓGICA MODIFICADA para ler a nova estrutura de dados.
  */
 function populateMissingFilters() {
     const filterMapa = document.getElementById('filterMissingMapa');
     const filterServidor = document.getElementById('filterMissingServidor');
-
-    // Proteção caso os elementos não existam
     if (!filterMapa || !filterServidor) return;
 
-    // Usamos os dados de allMissingTowers para os filtros
-    const mapas = [...new Set(allMissingTowers.map(t => t.mapa))].sort();
-    const servidores = [...new Set(allMissingTowers.map(t => t.servidor))].sort((a, b) => parseInt(a) - parseInt(b));
+    // LÓGICA MODIFICADA:
+    // Mapas são as chaves do nosso objeto
+    const mapas = Object.keys(allMissingTowers).sort();
+    
+    // Servidores são todos os valores, achatados (flat) e únicos (Set)
+    const allServersSet = new Set();
+    Object.values(allMissingTowers).forEach(serverArray => {
+        serverArray.forEach(server => allServersSet.add(server));
+    });
+    const servidores = [...allServersSet].sort((a, b) => parseInt(a) - parseInt(b));
 
+    // O resto da lógica é a mesma
     filterMapa.innerHTML = '<option value="">Todos</option>';
     filterServidor.innerHTML = '<option value="">Todos</option>';
 
@@ -142,25 +152,46 @@ function populateMissingFilters() {
 
 /**
  * Renderiza a lista/tabela de torres sem cadastro no modal.
+ * LÓGICA MODIFICADA para agrupar servidores.
  */
 function renderMissingList() {
     const filterMapa = document.getElementById('filterMissingMapa').value;
     const filterServidor = document.getElementById('filterMissingServidor').value;
     const listContainer = document.getElementById('missingListContainer');
-
-    // Proteção caso o elemento não exista
     if (!listContainer) return;
 
-    let filteredTowers = allMissingTowers;
+    let filteredData = {};
 
-    if (filterMapa) {
-        filteredTowers = filteredTowers.filter(t => t.mapa === filterMapa);
-    }
-    if (filterServidor) {
-        filteredTowers = filteredTowers.filter(t => t.servidor === filterServidor);
+    // 1. Filtrar os dados
+    if (!filterMapa && !filterServidor) {
+        // Sem filtros, usa todos os dados
+        filteredData = allMissingTowers;
+    } else {
+        // Loop principal sobre os dados originais
+        for (const mapa in allMissingTowers) {
+            // Filtro de Mapa: Se um mapa foi selecionado E não é este mapa, pula
+            if (filterMapa && mapa !== filterMapa) {
+                continue;
+            }
+
+            const servidoresDoMapa = allMissingTowers[mapa];
+
+            // Filtro de Servidor:
+            if (filterServidor) {
+                // Se o servidor selecionado EXISTE neste mapa...
+                if (servidoresDoMapa.includes(filterServidor)) {
+                    // ...adiciona ao resultado, mas MOSTRA APENAS O SERVIDOR FILTRADO
+                    filteredData[mapa] = [filterServidor];
+                }
+            } else {
+                // Se não há filtro de servidor, mas passou no filtro de mapa, adiciona todos
+                filteredData[mapa] = servidoresDoMapa;
+            }
+        }
     }
 
-    if (filteredTowers.length === 0) {
+    // 2. Verificar se o resultado filtrado está vazio
+    if (Object.keys(filteredData).length === 0) {
         listContainer.innerHTML = `
             <div class="expired-empty-state">
                 <div class="empty-icon">📭</div>
@@ -170,30 +201,33 @@ function renderMissingList() {
         return;
     }
 
-    // Criar tabela
+    // 3. Renderizar a tabela
     const table = document.createElement('table');
     table.innerHTML = `
         <thead>
             <tr>
                 <th>Mapa</th>
-                <th>Servidor</th>
+                <th>Servidores sem Cadastro</th>
             </tr>
         </thead>
     `;
     
     const tbody = document.createElement('tbody');
-    // Ordena por mapa, depois por servidor
-    filteredTowers.sort((a, b) => {
-        if (a.mapa < b.mapa) return -1;
-        if (a.mapa > b.mapa) return 1;
-        return parseInt(a.servidor) - parseInt(b.servidor);
-    });
+    
+    // Ordena pelos nomes dos mapas
+    const mapasOrdenados = Object.keys(filteredData).sort();
 
-    filteredTowers.forEach(torre => {
+    mapasOrdenados.forEach(mapa => {
         const tr = document.createElement('tr');
+        
+        // LÓGICA DE AGRUPAMENTO:
+        // Pega o array de servidores (ex: ['1', '2', '4'])
+        // e transforma em string (ex: "1, 2, 4")
+        const servidoresString = filteredData[mapa].join(', ');
+
         tr.innerHTML = `
-            <td><strong>${torre.mapa}</strong></td>
-            <td>${torre.servidor}</td>
+            <td><strong>${mapa}</strong></td>
+            <td>${servidoresString}</td>
         `;
         tbody.appendChild(tr);
     });
