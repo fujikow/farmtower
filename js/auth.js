@@ -1,42 +1,98 @@
-// ===== SISTEMA DE AUTENTICAÇÃO UNIVERSAL =====
+// ===== SISTEMA DE AUTENTICAÇÃO UNIVERSAL (COM FIREBASE AUTH) =====
 
-// DEFINA SUA SENHA AQUI (você pode mudar quando quiser)
-const HASH_CORRETO = "7a9cb0b2fad22578c8e28b88586963f0591dbce61c314eae7496502c94afc352";
-let autenticado = false;
+// Referência ao serviço de autenticação
+// Esta linha SÓ funciona se firebase-auth-compat.js foi carregado ANTES.
+const auth = firebase.auth();
 
 // ===== VERIFICAR AUTENTICAÇÃO AO CARREGAR PÁGINA =====
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🔒 Verificando autenticação...');
+    console.log('🔒 Verificando autenticação via Firebase...');
     
-    // Verificar se já está autenticado na sessão
-    const authSession = sessionStorage.getItem('anbu_auth');
-    
-    if (authSession === 'authenticated') {
-        autenticado = true;
-        showContent();
-    } else {
-        showLoginScreen();
-    }
+    // O Firebase nos diz se o usuário está logado ou não
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            // Se 'user' existir, ele está logado
+            console.log('✅ Usuário autenticado:', user.email);
+            showContent(); // Mostra o conteúdo principal
+        } else {
+            // Se 'user' for nulo, ele está deslogado
+            console.log('🔐 Usuário deslogado.');
+            showLoginScreen(); // Mostra a tela de login
+        }
+    });
 });
+
+// ===== TENTAR FAZER LOGIN (Versão com E-mail Fixo) =====
+function handleLogin() {
+    
+    // !!! MUDE AQUI !!!
+    // Coloque o e-mail que você cadastrou no Painel do Firebase.
+    const EMAIL_FIXO = "fujikow.kontarski@gmail.com"; 
+    // !!! MUDE AQUI !!!
+
+    const passwordInput = document.getElementById('passwordInput');
+    const senha = passwordInput.value.trim();
+
+    if (senha === '') {
+        showLoginError('Por favor, digite a senha!');
+        return;
+    }
+
+    console.log('🔍 Tentando login via Firebase com e-mail fixo...');
+
+    // Função principal do Firebase para logar
+    auth.signInWithEmailAndPassword(EMAIL_FIXO, senha)
+        .then(userCredential => {
+            // Sucesso! O onAuthStateChanged acima cuidará de mostrar o conteúdo.
+            console.log('Login bem-sucedido!', userCredential.user.email);
+            passwordInput.value = ''; // Limpa o campo
+        })
+        .catch(error => {
+            // Erro no login
+            console.error('❌ Falha no login:', error.code, error.message);
+            
+            let mensagemErro = '❌ Senha incorreta! Tente novamente.';
+            if (error.code === 'auth/wrong-password') {
+                mensagemErro = '❌ Senha incorreta! Tente novamente.';
+            } else if (error.code === 'auth/user-not-found') {
+                mensagemErro = '❌ Erro de configuração (Usuário fixo não encontrado).';
+            }
+            
+            showLoginError(mensagemErro);
+            
+            // Animação de erro
+            passwordInput.classList.add('shake');
+            setTimeout(() => {
+                passwordInput.classList.remove('shake');
+            }, 500);
+        });
+}
+
+// ===== FAZER LOGOUT =====
+function logout() {
+    console.log('🚪 Fazendo logout...');
+    
+    if (confirm('Deseja realmente sair?')) {
+        auth.signOut(); // O onAuthStateChanged cuidará de mostrar a tela de login
+    }
+}
 
 // ===== MOSTRAR TELA DE LOGIN =====
 function showLoginScreen() {
     console.log('🔐 Mostrando tela de login...');
     
-    // Esconder conteúdo principal (funciona para ambas as páginas)
     const mainContent = document.querySelector('.container-full') || document.querySelector('.container');
     if (mainContent) {
         mainContent.style.display = 'none';
     }
     
-    // Mostrar tela de login
     const loginScreen = document.getElementById('loginScreen');
     if (loginScreen) {
         loginScreen.style.display = 'flex';
     }
     
-    // Focar no campo de senha
     setTimeout(() => {
+        // Foca no campo de senha, já que não há e-mail
         const passwordInput = document.getElementById('passwordInput');
         if (passwordInput) {
             passwordInput.focus();
@@ -48,81 +104,25 @@ function showLoginScreen() {
 function showContent() {
     console.log('✅ Autenticado! Mostrando conteúdo...');
     
-    // Esconder tela de login
     const loginScreen = document.getElementById('loginScreen');
     if (loginScreen) {
         loginScreen.style.display = 'none';
     }
     
-    // Mostrar conteúdo principal (funciona para ambas as páginas)
     const mainContent = document.querySelector('.container-full') || document.querySelector('.container');
     if (mainContent) {
         mainContent.style.display = 'block';
     }
     
     // Se estiver na página da tabela, iniciar carregamento das torres
+    // Esta função agora só é chamada DEPOIS do login
     if (typeof loadTowersFromFirebase === 'function') {
         loadTowersFromFirebase();
     }
 }
 
-// ===== VERIFICAR SENHA (VERSÃO SEGURA COM HASH) =====
-function checkPassword() {
-    const passwordInput = document.getElementById('passwordInput');
-    const errorMessage = document.getElementById('errorMessage');
-    const senha = passwordInput.value.trim();
-    
-    console.log('🔍 Verificando senha (via hash)...');
-    
-    if (senha === '') {
-        showError('Por favor, digite a senha!');
-        return;
-    }
-
-    // --- MUDANÇA PRINCIPAL AQUI ---
-    // 1. Calcular o hash do que o usuário digitou
-    const hashDigitado = sha256(senha); 
-    
-    // 2. Comparar o hash gerado com o hash correto
-    if (hashDigitado === HASH_CORRETO) {
-
-
-        console.log('✅ Hash correto! Acesso permitido.');
-        
-        // Salvar autenticação na sessão (lógica original mantida)
-        sessionStorage.setItem('anbu_auth', 'authenticated');
-        autenticado = true;
-        
-        // Limpar campo (lógica original mantida)
-        passwordInput.value = '';
-        
-        // Esconder erro (lógica original mantida)
-        if (errorMessage) {
-            errorMessage.style.display = 'none';
-        }
-        
-        // Mostrar conteúdo (lógica original mantida)
-        showContent();
-        
-    } else {
-        // A senha está incorreta
-        console.log('❌ Hash incorreto! Acesso negado.');
-        showError('❌ Senha incorreta! Tente novamente.');
-        
-        // Limpar campo (lógica original mantida)
-        passwordInput.value = '';
-        passwordInput.focus();
-        
-        // Adicionar animação de erro (lógica original mantida)
-        passwordInput.classList.add('shake');
-        setTimeout(() => {
-            passwordInput.classList.remove('shake');
-        }, 500);
-    }
-}
-
 // ===== MOSTRAR MENSAGEM DE ERRO =====
-function showError(message) {
+function showLoginError(message) {
     const errorMessage = document.getElementById('errorMessage');
     if (errorMessage) {
         errorMessage.textContent = message;
@@ -133,25 +133,14 @@ function showError(message) {
 // ===== PERMITIR ENTER PARA ENVIAR =====
 document.addEventListener('DOMContentLoaded', function() {
     const passwordInput = document.getElementById('passwordInput');
+    
+    const handleKeypress = function(e) {
+        if (e.key === 'Enter') {
+            handleLogin();
+        }
+    };
+
     if (passwordInput) {
-        passwordInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                checkPassword();
-            }
-        });
+        passwordInput.addEventListener('keypress', handleKeypress);
     }
 });
-
-// ===== LOGOUT =====
-function logout() {
-    console.log('🚪 Fazendo logout...');
-    
-    // Confirmar logout
-    if (confirm('Deseja realmente sair?')) {
-        sessionStorage.removeItem('anbu_auth');
-        autenticado = false;
-        
-        // Recarregar página para mostrar tela de login
-        window.location.reload();
-    }
-}

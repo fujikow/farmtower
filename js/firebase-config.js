@@ -2,13 +2,13 @@
 // SUBSTITUA ESTAS CONFIGURAÇÕES PELAS SUAS DO FIREBASE CONSOLE
 
 const firebaseConfig = {
-    apiKey: "AIzaSyDEXAMPLE_KEY_SUBSTITUA_AQUI",
-    authDomain: "anbu-farm-tower.firebaseapp.com",
-    databaseURL: "https://anbu-farm-tower-default-rtdb.firebaseio.com",
-    projectId: "anbu-farm-tower",
-    storageBucket: "anbu-farm-tower.appspot.com",
-    messagingSenderId: "123456789012",
-    appId: "1:123456789012:web:abc123def456"
+  apiKey: "AIzaSyCbZ2OC1HTPbg-MHvFpve3LN4tRDKc8MCI",
+  authDomain: "anbu-farm-tower.firebaseapp.com",
+  databaseURL: "https://anbu-farm-tower-default-rtdb.firebaseio.com",
+  projectId: "anbu-farm-tower",
+  storageBucket: "anbu-farm-tower.firebasestorage.app",
+  messagingSenderId: "280009511261",
+  appId: "1:280009511261:web:d0fccc9bd795bab44ed8b4"
 };
 
 // Inicializar Firebase
