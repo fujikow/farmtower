@@ -73,6 +73,106 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="ruudModal">
+        <div class="modal-content modal-ruud">
+            <div class="modal-header">
+                <h2 data-i18n-key="ruud_modal_title">Análise Custo-Benefício: Farm de Ruud</h2>
+                <button class="modal-close" onclick="closeRuudModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                
+                <div class="ruud-settings">
+                    <h3 data-i18n-key="ruud_settings_title">Cenário de Mercado</h3>
+
+                    <div class="ruud-input-group">
+                        <label for="ruud_conversion_rate" data-i18n-key="ruud_conversion">Conversão (1 MC = ? Ruud)</label>
+                        <input type="number" id="ruud_conversion_rate" value="5">
+                    </div>
+
+                    <div class="ruud-input-group">
+                        <label>
+                            <span data-i18n-key="ruud_farm_rate">Sua Taxa de Farm (Ruud / hora)</span>
+                            <span class="tooltip-container">
+                                ⓘ
+                                <span class="tooltip-text" data-i18n-key="ruud_farm_tooltip">
+                                    Estimativas Padrão:
+                                    - Torre Ruim: 1000 Ruud/h
+                                    - Torre Média: 1400 Ruud/h
+                                    - Torre Boa: 1800 Ruud/h
+                                </span>
+                            </span>
+                        </label>
+                        <input type="number" id="ruud_farm_rate" value="1400">
+                    </div>
+
+                    <div class="ruud-input-group">
+                        <label data-i18n-key="ruud_jewel_prices">Preço das Joias (MC p/ 100) - Clique para selecionar</label>
+                        
+                        <div class="jewel-selection-grid">
+                            
+                            <div class="jewel-input-container">
+                                <label for="price_bless">Bless:</label>
+                                <input type="number" id="price_bless">
+                                <button class="btn-jewel-select active" data-jewel="bless" data-i18n-key="ruud_btn_select_jewel">Selecionar</button>
+                            </div>
+                            
+                            <div class="jewel-input-container">
+                                <label for="price_soul">Soul:</label>
+                                <input type="number" id="price_soul">
+                                <button class="btn-jewel-select" data-jewel="soul" data-i18n-key="ruud_btn_select_jewel">Selecionar</button>
+                            </div>
+                            
+                            <div class="jewel-input-container">
+                                <label for="price_chaos">Chaos:</label>
+                                <input type="number" id="price_chaos">
+                                <button class="btn-jewel-select" data-jewel="chaos" data-i18n-key="ruud_btn_select_jewel">Selecionar</button>
+                            </div>
+                            
+                            <div class="jewel-input-container">
+                                <label for="price_life">Life:</label>
+                                <input type="number" id="price_life">
+                                <button class="btn-jewel-select" data-jewel="life" data-i18n-key="ruud_btn_select_jewel">Selecionar</button>
+                            </div>
+
+                            <div class="jewel-input-container">
+                                <label for="price_harmony">Harmony:</label>
+                                <input type="number" id="price_harmony">
+                                <button class="btn-jewel-select" data-jewel="harmony" data-i18n-key="ruud_btn_select_jewel">Selecionar</button>
+                            </div>
+
+                            <div class="jewel-input-container">
+                                <label for="price_creation">Creation:</label>
+                                <input type="number" id="price_creation">
+                                <button class="btn-jewel-select" data-jewel="creation" data-i18n-key="ruud_btn_select_jewel">Selecionar</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    </div>
+
+                <div class="ruud-results">
+                    <h3 data-i18n-key="ruud_results_title">Resultados Hora a Hora</h3>
+                    <div class="ruud-results-table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th data-i18n-key="ruud_col_hour">Hora Add.</th>
+                                    <th data-i18n-key="ruud_col_cost_jewels">Custo (Joias) da Hora</th>
+                                    <th data-i18n-key="ruud_col_cost_mc">Custo (MC) da Hora</th>
+                                    <th data-i18n-key="ruud_col_profit_mc">Lucro (MC) da Hora</th>
+                                    <th data-i18n-key="ruud_col_profit_accum">Lucro Acum. (MC)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ruudResultsTableBody">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
    <div id="loginScreen" class="login-screen">
         <div class="login-container">
             <div class="login-header">
@@ -112,7 +212,6 @@
             <h1>🏰 ANBU FARM TOWER</h1>
             <h2 data-i18n-key="form_title">MEGAMU - Cadastro de Torres</h2>
             <div class="header-buttons">
-                
                 <div class="language-switcher">
                     <button onclick="setLanguage('pt')" title="Português">🇧🇷</button>
                     <button onclick="setLanguage('en')" title="English">🇺🇸</button> <button onclick="setLanguage('es')" title="Español">🇪🇸</button>
@@ -125,7 +224,9 @@
                     <span class="status-dot"></span>
                     <span class="status-text" data-i18n-key="connection_status">Conectando...</span>
                 </div>
+                
             </div>
+            
         </header>
 
         <div class="success-message" id="successMessage"></div>

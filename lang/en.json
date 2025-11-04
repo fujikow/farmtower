@@ -84,5 +84,27 @@
   "export_error_generic": "❌ Error exporting table!",
   
   "success_tower_registered": "✅ Tower registered successfully!",
-  "success_tower_overwritten": "✅ Tower overwritten successfully!"
+  "success_tower_overwritten": "✅ Tower overwritten successfully!",
+
+ 
+  "btn_ruud_calc": "Ruud C/B Analysis",
+  "ruud_modal_title": "Cost-Benefit Analysis: Ruud Farm",
+  "ruud_modal_subtitle": "Calculate your profit (in MC) when farming Ruud, based on jewel prices and your farm rate.",
+  "ruud_settings_title": "Market Scenario",
+  "ruud_conversion": "Conversion (1 MC = ? Ruud)",
+  "ruud_jewel_prices": "Jewel Prices (MC per 100)",
+  "ruud_farm_rate": "Farm Rate (Ruud / hour)",
+  "ruud_farm_tooltip": "Standard Estimates:\n- Bad Tower: 1000 Ruud/h\n- Medium Tower: 1400 Ruud/h\n- Good Tower: 1800 Ruud/h",
+  "ruud_scenario_title": "Calculation Scenario",
+  "ruud_jewel_used": "Jewel Consumed",
+  "ruud_farm_tier": "Tower Tier",
+  "ruud_tier_bad": "Bad (e.g., 1000)",
+  "ruud_tier_medium": "Medium (e.g., 1400)",
+  "ruud_tier_good": "Good (e.g., 1800)",
+  "ruud_results_title": "Hour-by-Hour Results",
+  "ruud_col_hour": "Add. Hour",
+  "ruud_col_cost_jewels": "Cost (Jewels) this Hour",
+  "ruud_col_cost_mc": "Cost (MC) this Hour",
+  "ruud_col_profit_mc": "Profit (MC) this Hour",
+  "ruud_col_profit_accum": "Accum. Profit (MC)"
 }
