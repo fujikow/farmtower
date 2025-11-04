@@ -21,8 +21,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // O intervalo só roda na página da tabela
     if (document.getElementById('towersTable')) {
-        // RECOMENDAÇÃO: Substituir este intervalo pela Otimização de Performance (Passo 1)
-        // que discutimos anteriormente para atualizar apenas os timers.
         updateInterval = setInterval(() => {
             renderTable(); 
             updateStats(); 
@@ -30,7 +28,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// ===== CARREGAR TORRES DO FIREBASE =====
+// ===== CARREGAR TORRES DO FIREBASE (LÓGICA DE FILTRO ATUALIZADA) =====
 function loadTowersFromFirebase() {
     console.log('📡 Conectando ao Firebase...');
     
@@ -43,19 +41,26 @@ function loadTowersFromFirebase() {
         if (towers) {
             const now = new Date();
             
+            // ===== MUDANÇA AQUI =====
+            // Definimos um "tempo de corte" 5 minutos ATRÁS de agora.
+            // (5 minutos * 60 segundos * 1000 milissegundos)
+            const cutoffTime = now.getTime() - (5 * 60 * 1000);
+
             Object.keys(towers).forEach(key => {
                 const torre = towers[key];
                 const finalizacao = new Date(torre.horarioFinalizacao);
                 
-                if (finalizacao > now) {
+                // MUDANÇA: Incluir torres ativas E as que expiraram nos últimos 5 min
+                if (finalizacao.getTime() > cutoffTime) { 
                     allTowers.push({
                         id: key,
                         ...torre
                     });
                 }
             });
+            // ===== FIM DA MUDANÇA =====
             
-            console.log('✅ Torres ativas carregadas:', allTowers.length);
+            console.log('✅ Torres (ativas e expiradas recentes) carregadas:', allTowers.length);
         } else {
             console.log('⚠️ Nenhuma torre encontrada no Firebase');
         }
@@ -74,8 +79,6 @@ function populateFilters() {
     const filterMapa = document.getElementById('filterMapa');
     if (!filterMapa) return; 
 
-    // Popula apenas os filtros <select>
-    // O filtro de Dono é texto livre, não precisa ser populado
     const mapas = [...new Set(allTowers.map(t => t.mapa))].sort();
     const servidores = [...new Set(allTowers.map(t => t.servidor))].sort((a, b) => {
         return parseInt(a) - parseInt(b);
@@ -103,7 +106,6 @@ function populateFilters() {
 
 // ===== APLICAR FILTROS =====
 function applyFilters() {
-    // Esta função agora é chamada por todos os 3 filtros
     renderTable();
 }
 
@@ -114,8 +116,6 @@ function updateStats() {
 
     const servidoresAleatorios = ['4', '5', '6', '11', '12', '14', '15'];
     
-    // ATENÇÃO: As estatísticas agora devem ser baseadas nas torres *visíveis* (filtradas)
-    // Para isso, precisamos pegar os filtros AQUI também.
     const filterMapa = document.getElementById('filterMapa').value;
     const filterServidor = document.getElementById('filterServidor').value;
     const filterDono = document.getElementById('filterDono').value.trim().toLowerCase();
@@ -133,23 +133,24 @@ function updateStats() {
         );
     }
     
-    const torresAleatorias = filteredTowers.filter(t => 
+    // Atualiza estatísticas para incluir apenas as ativas (mesmo que expiradas estejam visíveis)
+    const now = new Date().getTime();
+    const activeFilteredTowers = filteredTowers.filter(t => new Date(t.horarioFinalizacao).getTime() > now);
+
+    const torresAleatorias = activeFilteredTowers.filter(t => 
         servidoresAleatorios.includes(t.servidor)
     ).length;
 
-    // Atualiza os stats para refletir a contagem filtrada
-    totalTorresEl.textContent = filteredTowers.length;
-    document.getElementById('torresAtivas').textContent = filteredTowers.length;
+    totalTorresEl.textContent = activeFilteredTowers.length;
+    document.getElementById('torresAtivas').textContent = activeFilteredTowers.length;
     document.getElementById('torresAleatorias').textContent = torresAleatorias;
 }
 
 // ===== RENDERIZAR TABELA (SEM BADGES) =====
-// (Função ATUALIZADA com filtro de Dono)
 function renderTable() {
     const tableBody = document.getElementById('tableBody');
     if (!tableBody) return; 
     
-    // --- LÓGICA DE FILTRO ATUALIZADA ---
     const filterMapa = document.getElementById('filterMapa').value;
     const filterServidor = document.getElementById('filterServidor').value;
     const filterDono = document.getElementById('filterDono').value.trim().toLowerCase();
@@ -167,23 +168,19 @@ function renderTable() {
         filteredTowers = filteredTowers.filter(t => t.servidor === filterServidor);
     }
 
-    // NOVO FILTRO APLICADO
     if (filterDono) {
         filteredTowers = filteredTowers.filter(t => 
             t.dono.toLowerCase().includes(filterDono)
         );
     }
-    // --- FIM DA LÓGICA DE FILTRO ---
-
 
     if (filteredTowers.length === 0) {
         table.style.display = 'none';
         emptyState.style.display = 'block';
-        return;
+    } else {
+        table.style.display = 'table';
+        emptyState.style.display = 'none';
     }
-
-    table.style.display = 'table';
-    emptyState.style.display = 'none';
 
     filteredTowers.sort((a, b) => {
         return new Date(a.horarioFinalizacao) - new Date(b.horarioFinalizacao);
@@ -195,7 +192,10 @@ function renderTable() {
         const now = new Date();
         const vistoDate = new Date(torre.vistoHorario);
         const finalizacaoDate = new Date(torre.horarioFinalizacao);
+        
+        // Esta função já lida com torres expiradas (diff <= 0)
         const tempoRestante = calculateTempoRestante(finalizacaoDate, now);
+        // Esta função já lida com torres expiradas (diff <= 0)
         const statusInfo = getStatusInfo(finalizacaoDate, now);
 
         const tr = document.createElement('tr');
@@ -221,16 +221,15 @@ function renderTable() {
         td11.style.fontFamily = 'monospace';
         td11.title = 'Clique para copiar';
         td11.style.cursor = 'pointer';
+        
         td11.onclick = function() {
             navigator.clipboard.writeText(torre.id);
-            alert('ID copiado: ' + torre.id);
+            alert(getTranslation('alert_copy_id_success', { id: torre.id }));
         };
         tr.appendChild(td11);
 
         tableBody.appendChild(tr);
     });
-    
-    // console.log('✅ Tabela renderizada com', filteredTowers.length, 'torres');
 }
 
 
@@ -285,17 +284,16 @@ function refreshTable() {
     renderTable();
 }
 
-// ===== EXPORTAR PARA EXCEL =====
+// ===== EXPORTAR PARA EXCEL (MENSAGENS TRADUZIDAS) =====
 function exportToExcel() {
     if (!document.getElementById('towersTable')) return; 
 
     if (allTowers.length === 0) {
-        showExportMessage('❌ Nenhuma torre para exportar!', 'error');
+        showExportMessage(getTranslation('export_error_no_towers'), 'error');
         return;
     }
 
     try {
-        // Pega os filtros atuais para exportar apenas o que está visível
         const filterMapa = document.getElementById('filterMapa').value;
         const filterServidor = document.getElementById('filterServidor').value;
         const filterDono = document.getElementById('filterDono').value.trim().toLowerCase();
@@ -314,7 +312,7 @@ function exportToExcel() {
         }
 
         if (filteredTowers.length === 0) {
-            showExportMessage('❌ Nenhuma torre encontrada com os filtros aplicados!', 'error');
+            showExportMessage(getTranslation('export_error_no_filtered_towers'), 'error');
             return;
         }
 
@@ -327,7 +325,7 @@ function exportToExcel() {
             const vistoDate = new Date(torre.vistoHorario);
             const finalizacaoDate = new Date(torre.horarioFinalizacao);
             const tempoRestante = calculateTempoRestante(finalizacaoDate, now);
-            const status = getStatusInfo(finalizacaoDate, now).text;
+            const status = getStatusInfo(finalizacaoDate, now).text; 
 
             return {
                 'Mapa': torre.mapa,
@@ -370,7 +368,7 @@ function exportToExcel() {
         const fileName = `ANBU_Farm_Tower_${formatFileNameDate(now)}.xlsx`;
         XLSX.writeFile(wb, fileName);
 
-        showExportMessage('✅ Tabela exportada com sucesso!', 'success');
+        showExportMessage(getTranslation('export_success'), 'success');
         
         const btnExport = document.querySelector('.btn-export');
         if (btnExport) {
@@ -382,7 +380,7 @@ function exportToExcel() {
 
     } catch (error) {
         console.error('❌ Erro ao exportar:', error);
-        showExportMessage('❌ Erro ao exportar tabela!', 'error');
+        showExportMessage(getTranslation('export_error_generic'), 'error');
     }
 }
 
