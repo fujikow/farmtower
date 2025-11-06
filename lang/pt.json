@@ -100,5 +100,14 @@
   "export_error_generic": "❌ Erro ao exportar tabela!",
 
   "success_tower_registered": "✅ Torre cadastrada com sucesso!",
-  "success_tower_overwritten": "✅ Torre sobreescrita com sucesso!"
+  "success_tower_overwritten": "✅ Torre sobreescrita com sucesso!",
+
+  "form_alliance": "Aliança",
+  "form_alliance_ally": "Aliado",
+  "form_alliance_enemy": "Inimigo",
+  "table_header_alliance": "Aliança",
+  "stats_registered_towers": "Torres Cadastradas",
+  "stats_allied_towers": "Torres Aliadas",
+  "stats_enemy_towers": "Torres Inimigas"
+
 }

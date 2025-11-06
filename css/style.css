@@ -1521,3 +1521,90 @@ tr.row-loss {
     border-color: var(--gremio-preto);
     box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.2);
 }
+
+/* ===== ESTILOS PARA GRUPO DONO/ALIANÇA (NOVO) ===== */
+.owner-alliance-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.owner-input {
+    flex-grow: 1; /* Input de texto toma o espaço restante */
+}
+
+.alliance-toggle {
+    display: flex;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 2px solid var(--gremio-azul);
+    flex-shrink: 0; /* Não encolhe */
+}
+
+.alliance-toggle input[type="radio"] {
+    opacity: 0;
+    position: fixed;
+    width: 0;
+}
+
+.toggle-label {
+    padding: 12px 15px;
+    cursor: pointer;
+    background: var(--gremio-branco-suave);
+    color: var(--gremio-cinza-claro);
+    font-weight: 600;
+    transition: all 0.3s ease;
+    font-size: 0.95em;
+}
+
+.toggle-label.ally {
+    border-right: 1px solid var(--gremio-azul);
+}
+
+/* Estilo do 'Aliado' checado */
+#alliance_ally:checked + .toggle-label.ally {
+    background: var(--gremio-azul);
+    color: var(--gremio-branco);
+}
+
+/* Estilo do 'Inimigo' checado */
+#alliance_enemy:checked + .toggle-label.enemy {
+    background: var(--status-critico);
+    color: var(--gremio-branco);
+}
+
+/* Remove o estilo global de input 100% width de dentro deste grupo */
+.owner-alliance-group input[type="text"] {
+    width: auto; /* Permite que o flex-grow funcione */
+}
+
+/* Estilos para Células da Tabela (Aliado/Inimigo) */
+.cell-ally {
+    color: var(--gremio-azul-escuro) !important;
+    font-weight: 700;
+}
+.cell-enemy {
+    color: var(--status-critico) !important;
+    font-weight: 700;
+}
+
+/* Estilos para Cards de Stats (Aliado/Inimigo) */
+.stat-card.stat-ally {
+    border-top-color: var(--gremio-azul);
+}
+.stat-card.stat-ally .stat-number {
+    background: linear-gradient(135deg, var(--gremio-azul) 0%, var(--gremio-azul-escuro) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.stat-card.stat-enemy {
+    border-top-color: var(--status-critico);
+}
+.stat-card.stat-enemy .stat-number {
+    background: linear-gradient(135deg, var(--status-critico) 0%, #a02533 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}

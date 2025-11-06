@@ -252,7 +252,17 @@
 
                 <div class="form-group">
                     <label for="dono" data-i18n-key="form_owner">Dono *</label>
-                    <input type="text" id="dono" placeholder="Digite o nome do dono" data-i18n-key="form_owner_placeholder" required>
+                    <div class="owner-alliance-group">
+                        <input type="text" id="dono" class="owner-input" placeholder="Digite o nome do dono" data-i18n-key="form_owner_placeholder" required>
+                        
+                        <div class="alliance-toggle">
+                            <input type="radio" id="alliance_ally" name="alliance" value="Aliado" checked>
+                            <label for="alliance_ally" class="toggle-label ally" data-i18n-key="form_alliance_ally">Aliado</label>
+                            
+                            <input type="radio" id="alliance_enemy" name="alliance" value="Inimigo">
+                            <label for="alliance_enemy" class="toggle-label enemy" data-i18n-key="form_alliance_enemy">Inimigo</label>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="form-group">

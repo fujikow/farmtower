@@ -94,6 +94,7 @@ if (towerForm) {
         const servidor = document.getElementById('servidor').value;
         const dono = document.getElementById('dono').value.trim();
         const localizacao = document.getElementById('localizacao').value.trim();
+        const alianca = document.querySelector('input[name="alliance"]:checked').value;
         const horas = parseInt(document.getElementById('horas').value) || 0;
         const minutos = parseInt(document.getElementById('minutos').value) || 0;
         const segundos = parseInt(document.getElementById('segundos').value) || 0;
@@ -171,6 +172,7 @@ if (towerForm) {
             aleatoriedade: aleatoriedade,
             dono: dono,
             localizacao: localizacao,
+            alianca: alianca,
             vistoHorario: vistoHorario.toISOString(), // Salva em UTC
             horarioFinalizacao: horarioFinalizacao.toISOString(), // Salva em UTC
             duracaoSegundos: duracaoTotal,

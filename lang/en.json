@@ -106,5 +106,13 @@
   "ruud_col_cost_jewels": "Cost (Jewels) this Hour",
   "ruud_col_cost_mc": "Cost (MC) this Hour",
   "ruud_col_profit_mc": "Profit (MC) this Hour",
-  "ruud_col_profit_accum": "Accum. Profit (MC)"
+  "ruud_col_profit_accum": "Accum. Profit (MC)",
+  
+  "form_alliance": "Alliance",
+  "form_alliance_ally": "Ally",
+  "form_alliance_enemy": "Enemy",
+  "table_header_alliance": "Alliance",
+  "stats_registered_towers": "Registered Towers",
+  "stats_allied_towers": "Allied Towers",
+  "stats_enemy_towers": "Enemy Towers"
 }

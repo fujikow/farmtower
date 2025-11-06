@@ -132,14 +132,27 @@ function updateStats() {
             t.dono.toLowerCase().includes(filterDono)
         );
     }
+
+    const torresAleatorias = activeFilteredTowers.filter(t => 
+        servidoresAleatorios.includes(t.servidor)
+    ).length;
+
+    // NOVOS CÁLCULOS
+    const torresAliadas = activeFilteredTowers.filter(t => t.alianca === 'Aliado').length;
+    const torresInimigas = activeFilteredTowers.filter(t => t.alianca === 'Inimigo').length;
     
     // Atualiza estatísticas para incluir apenas as ativas (mesmo que expiradas estejam visíveis)
     const now = new Date().getTime();
     const activeFilteredTowers = filteredTowers.filter(t => new Date(t.horarioFinalizacao).getTime() > now);
 
-    const torresAleatorias = activeFilteredTowers.filter(t => 
-        servidoresAleatorios.includes(t.servidor)
-    ).length;
+    document.getElementById('torresAleatorias').textContent = torresAleatorias;
+
+    // ATUALIZAÇÃO DOS NOVOS ELEMENTOS
+    const torresAliadasEl = document.getElementById('torresAliadas');
+    if (torresAliadasEl) torresAliadasEl.textContent = torresAliadas;
+
+    const torresInimigasEl = document.getElementById('torresInimigas');
+    if (torresInimigasEl) torresInimigasEl.textContent = torresInimigas;
 
     totalTorresEl.textContent = activeFilteredTowers.length;
     document.getElementById('torresAtivas').textContent = activeFilteredTowers.length;
@@ -201,18 +214,21 @@ function renderTable() {
         const tr = document.createElement('tr');
         tr.classList.add(`row-${statusInfo.class}`);
         
-        tr.innerHTML = `
-            <td class="col-fix"></td>
-            <td style="font-size: 1.5em; text-align: center;">${statusInfo.icon}</td>
-            <td><strong>${torre.mapa}</strong></td>
-            <td>${torre.servidor}</td>
-            <td style="font-weight: 600; text-align: center;">${torre.aleatoriedade}</td>
-            <td>${torre.dono}</td>
-            <td>${torre.localizacao}</td>
-            <td>${formatDateTime(vistoDate)}</td>
-            <td>${formatDateTime(finalizacaoDate)}</td>
-            <td><strong>${tempoRestante}</strong></td>
-        `;
+// Adiciona classe CSS para a aliança
+    const aliancaClass = torre.alianca === 'Aliado' ? 'cell-ally' : (torre.alianca === 'Inimigo' ? 'cell-enemy' : '');
+
+    tr.innerHTML = `
+        <td class="col-fix"></td>
+        <td style="font-size: 1.5em; text-align: center;">${statusInfo.icon}</td>
+        <td><strong>${torre.mapa}</strong></td>
+        <td>${torre.servidor}</td>
+        <td style="font-weight: 600; text-align: center;">${torre.aleatoriedade}</td>
+        <td>${torre.dono}</td>
+        <td class="${aliancaClass}"><strong>${torre.alianca || 'N/A'}</strong></td> <td>${torre.localizacao}</td>
+        <td>${formatDateTime(vistoDate)}</td>
+        <td>${formatDateTime(finalizacaoDate)}</td>
+        <td><strong>${tempoRestante}</strong></td>
+    `;
         
         const td11 = document.createElement('td');
         td11.textContent = torre.id;
@@ -332,6 +348,7 @@ function exportToExcel() {
                 'Servidor': torre.servidor,
                 'Aleatoriedade': torre.aleatoriedade,
                 'Dono': torre.dono,
+                'Aliança': torre.alianca || 'N/A', // <-- LINHA ADICIONADA
                 'Localização': torre.localizacao,
                 'Visto Horário': formatDateTime(vistoDate),
                 'Horário Finalização': formatDateTime(finalizacaoDate),
@@ -345,10 +362,11 @@ function exportToExcel() {
         const ws = XLSX.utils.json_to_sheet(exportData);
 
         const colWidths = [
-            { wch: 15 }, { wch: 10 }, { wch: 15 }, { wch: 20 },
-            { wch: 25 }, { wch: 20 }, { wch: 20 }, { wch: 12 },
-            { wch: 15 }, { wch: 12 }
-        ];
+        { wch: 15 }, { wch: 10 }, { wch: 15 }, { wch: 20 },
+        { wch: 12 }, // <-- LARGURA PARA ALIANÇA (ADICIONADA)
+        { wch: 25 }, { wch: 20 }, { wch: 20 }, { wch: 12 },
+        { wch: 15 }, { wch: 12 }
+    ];
         ws['!cols'] = colWidths;
 
         XLSX.utils.book_append_sheet(wb, ws, 'Torres Ativas');
