@@ -109,17 +109,21 @@ function applyFilters() {
     renderTable();
 }
 
-// ===== ATUALIZAR ESTATÍSTICAS =====
+// ===== ATUALIZAR ESTATÍSTICAS (VERSÃO CORRIGIDA) =====
 function updateStats() {
     const totalTorresEl = document.getElementById('totalTorres');
+    // Verificação de segurança caso os elementos não existam na página
     if (!totalTorresEl) return; 
 
     const servidoresAleatorios = ['4', '5', '6', '11', '12', '14', '15'];
     
+    // 1. Ler os filtros da interface
     const filterMapa = document.getElementById('filterMapa').value;
     const filterServidor = document.getElementById('filterServidor').value;
     const filterDono = document.getElementById('filterDono').value.trim().toLowerCase();
 
+    // 2. Aplicar filtros de texto/select (Mapa, Servidor, Dono)
+    // Isso pega todas as torres (ativas E expiradas recentes) que passam nos filtros
     let filteredTowers = allTowers;
     if (filterMapa) {
         filteredTowers = filteredTowers.filter(t => t.mapa === filterMapa);
@@ -132,31 +136,41 @@ function updateStats() {
             t.dono.toLowerCase().includes(filterDono)
         );
     }
-
-    const torresAleatorias = activeFilteredTowers.filter(t => 
-        servidoresAleatorios.includes(t.servidor)
-    ).length;
-
-    // NOVOS CÁLCULOS
-    const torresAliadas = activeFilteredTowers.filter(t => t.alianca === 'Aliado').length;
-    const torresInimigas = activeFilteredTowers.filter(t => t.alianca === 'Inimigo').length;
     
-    // Atualiza estatísticas para incluir apenas as ativas (mesmo que expiradas estejam visíveis)
+    // 3. Aplicar filtro de tempo (APENAS ATIVAS)
+    // Isso pega a lista filtrada acima e remove as que já expiraram.
     const now = new Date().getTime();
     const activeFilteredTowers = filteredTowers.filter(t => new Date(t.horarioFinalizacao).getTime() > now);
 
-    document.getElementById('torresAleatorias').textContent = torresAleatorias;
+    // 4. Calcular estatísticas baseadas APENAS nas torres ATIVAS
+    const torresAleatorias = activeFilteredTowers.filter(t => 
+        servidoresAleatorios.includes(t.servidor)
+    ).length;
+    
+    const torresAliadas = activeFilteredTowers.filter(t => t.alianca === 'Aliado').length;
+    const torresInimigas = activeFilteredTowers.filter(t => t.alianca === 'Inimigo').length;
 
-    // ATUALIZAÇÃO DOS NOVOS ELEMENTOS
+
+    // 5. Atualizar os números na tela
+    
+    // "Total de Torres" mostra o total na tabela (ativas + expiradas recentes filtradas)
+    totalTorresEl.textContent = filteredTowers.length; 
+    
+    // "Torres Ativas" mostra apenas as ativas filtradas
+    const torresAtivasEl = document.getElementById('torresAtivas');
+    if (torresAtivasEl) torresAtivasEl.textContent = activeFilteredTowers.length;
+
+    // "Torres Aleatórias" (baseado nas ativas)
+    const torresAleatoriasEl = document.getElementById('torresAleatorias');
+    if (torresAleatoriasEl) torresAleatoriasEl.textContent = torresAleatorias;
+
+    // "Torres Aliadas" (baseado nas ativas)
     const torresAliadasEl = document.getElementById('torresAliadas');
     if (torresAliadasEl) torresAliadasEl.textContent = torresAliadas;
-
+    
+    // "Torres Inimigas" (baseado nas ativas)
     const torresInimigasEl = document.getElementById('torresInimigas');
     if (torresInimigasEl) torresInimigasEl.textContent = torresInimigas;
-
-    totalTorresEl.textContent = activeFilteredTowers.length;
-    document.getElementById('torresAtivas').textContent = activeFilteredTowers.length;
-    document.getElementById('torresAleatorias').textContent = torresAleatorias;
 }
 
 // ===== RENDERIZAR TABELA (SEM BADGES) =====
