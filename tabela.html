@@ -131,12 +131,12 @@
                                 <span class="tooltip-text" data-i18n-key="ruud_farm_tooltip">
                                     Estimativas Padrão:
                                     - Torre Ruim: 1000 Ruud/h
-                                    - Torre Média: 1400 Ruud/h
-                                    - Torre Boa: 1800 Ruud/h
+                                    - Torre Média: 1300 Ruud/h
+                                    - Torre Boa: 1500 Ruud/h
                                 </span>
                             </span>
                         </label>
-                        <input type="number" id="ruud_farm_rate" value="1400">
+                        <input type="number" id="ruud_farm_rate" value="1300">
                     </div>
 
                     <div class="ruud-input-group">
@@ -240,10 +240,10 @@
                 <div class="stat-number" id="totalTorres">0</div>
                 <div class="stat-label" data-i18n-key="stats_total_towers">Total de Torres</div>
             </div>
-            <div class="stat-card">
+            <!-- <div class="stat-card">
                 <div class="stat-number" id="torresAtivas">0</div>
                 <div class="stat-label" data-i18n-key="stats_active_towers">Torres Ativas</div>
-            </div>
+            </div> -->
             <div class="stat-card stat-ally">
                 <div class="stat-number" id="torresAliadas">0</div>
                 <div class="stat-label" data-i18n-key="stats_allied_towers">Torres Aliadas</div>
@@ -257,12 +257,9 @@
 
         <div class="controls-bar">
             <div class="controls-left">
-                <button class="btn btn-back" onclick="window.location.href='index.html'">
-                    <span>⬅️</span> <span data-i18n-key="btn_back">Voltar</span>
-                </button>
-                <button class="btn btn-refresh" onclick="refreshTable()">
-                    <span>🔄</span> <span data-i18n-key="btn_refresh">Atualizar</span>
-                </button>
+                <button class="btn btn-submit" onclick="window.location.href='index.html'">
+                    <span>📝</span> <span data-i18n-key="form_button_register">Cadastrar Torre</span>
+                </button>                
                 <button class="btn btn-missing" onclick="openMissingModal()">
                     <span>🚫</span> <span data-i18n-key="btn_missing_towers">Torres s/ Cadastro</span>
                 </button>

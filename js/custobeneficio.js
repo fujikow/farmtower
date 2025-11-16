@@ -56,8 +56,8 @@ function setDefaultRuudValues() {
     document.getElementById('price_bless').value = 600;
     document.getElementById('price_soul').value = 600;
     document.getElementById('price_chaos').value = 200;
-    document.getElementById('price_life').value = 100;
-    document.getElementById('price_harmony').value = 100;
+    document.getElementById('price_life').value = 150;
+    document.getElementById('price_harmony').value = 150;
     document.getElementById('price_creation').value = 150;
 }
 
