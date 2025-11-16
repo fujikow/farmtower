@@ -74,7 +74,7 @@
   "ruud_conversion": "Conversão (1 MC = ? Ruud)",
   "ruud_jewel_prices": "Preço das Joias (MC p/ 100)",
   "ruud_farm_rate": "Sua Taxa de Farm (Ruud / hora)",
-  "ruud_farm_tooltip": "Estimativas Padrão:\n- Torre Ruim: 1000 Ruud/h\n- Torre Média: 1400 Ruud/h\n- Torre Boa: 1800 Ruud/h",
+  "ruud_farm_tooltip": "Estimativas Padrão:\n- Torre Ruim: 1000 Ruud/h\n- Torre Média: 1300 Ruud/h\n- Torre Boa: 1500 Ruud/h",
   "ruud_btn_select_jewel": "Selecionar",
   "ruud_results_title": "Resultados Hora a Hora",
   "ruud_col_hour": "Hora Add.",

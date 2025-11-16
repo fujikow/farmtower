@@ -49,7 +49,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // Define os valores padrão
 function setDefaultRuudValues() {
     // Taxa de Farm
-    document.getElementById('ruud_farm_rate').value = 1400; // Padrão único
+    document.getElementById('ruud_farm_rate').value = 1300; // Padrão único
     // Conversão
     document.getElementById('ruud_conversion_rate').value = 5;
     // Preços de Joias
