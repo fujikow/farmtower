@@ -18,7 +18,7 @@ var MAPAS = [
     'Ferea'
 ];
 
-var SERVIDORES = [1, 2, 3, 4, 5, 6, 7, 11, 12, 14, 15, 16, 17, 19];
+var SERVIDORES = [1, 2, 3, 4, 5, 6, 7, 8, 11, 12, 14, 15, 16, 17, 19];
 
 // ===== INICIALIZAÇÃO =====
 document.addEventListener('DOMContentLoaded', function() {
@@ -162,7 +162,7 @@ if (towerForm) {
         // ===== FIM DA ALTERAÇÃO =====
 
         // Verificar aleatoriedade
-        const servidoresAleatorios = ['4', '5', '6', '11', '12', '14', '15'];
+        const servidoresAleatorios = ['4', '5', '6', '7', '8', '11', '12', '14', '15'];
         const aleatoriedade = servidoresAleatorios.includes(servidor) ? 'Sim' : 'Não';
 
         // Criar objeto da torre
