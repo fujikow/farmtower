@@ -219,16 +219,24 @@ function renderMissingList() {
 
     mapasOrdenados.forEach(mapa => {
         const tr = document.createElement('tr');
-        
-        // LÓGICA DE AGRUPAMENTO:
-        // Pega o array de servidores (ex: ['1', '2', '4'])
-        // e transforma em string (ex: "1, 2, 4")
-        const servidoresString = filteredData[mapa].join(', ');
 
-        tr.innerHTML = `
-            <td><strong>${mapa}</strong></td>
-            <td>${servidoresString}</td>
-        `;
+        const mapaCell = document.createElement('td');
+        const mapaLabel = document.createElement('strong');
+        mapaLabel.textContent = mapa;
+        mapaCell.appendChild(mapaLabel);
+
+        const serverCell = document.createElement('td');
+        serverCell.className = 'missing-servers';
+        filteredData[mapa].forEach((servidor) => {
+            const link = document.createElement('a');
+            link.className = 'missing-server-link';
+            link.href = `index.html?mapa=${encodeURIComponent(mapa)}&servidor=${encodeURIComponent(servidor)}`;
+            link.textContent = servidor;
+            link.title = getTranslation('missing_register_hint');
+            serverCell.appendChild(link);
+        });
+
+        tr.append(mapaCell, serverCell);
         tbody.appendChild(tr);
     });
 

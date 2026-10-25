@@ -1522,6 +1522,73 @@ tr.row-loss {
     box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.2);
 }
 
+.password-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.btn-toggle-password {
+    background: transparent;
+    border: none;
+    color: var(--gremio-azul);
+    font-weight: 700;
+    cursor: pointer;
+    align-self: center;
+}
+
+.btn-login:disabled {
+    opacity: 0.7;
+    cursor: wait;
+    transform: none;
+}
+
+.missing-servers {
+    line-height: 2;
+}
+
+.missing-server-link {
+    display: inline-block;
+    margin: 2px 4px 2px 0;
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: var(--gremio-azul);
+    color: var(--gremio-branco);
+    text-decoration: none;
+    font-weight: 700;
+}
+
+.missing-server-link:hover {
+    background: var(--gremio-preto);
+}
+
+.btn-delete-row {
+    background: transparent;
+    color: var(--status-critico);
+    border: 1px solid var(--status-critico);
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 0.75em;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.btn-delete-row:hover {
+    background: var(--status-critico);
+    color: var(--gremio-branco);
+}
+
+.critical-alert-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+}
+
+tr.row-best {
+    background-color: rgba(0, 126, 51, 0.12);
+}
+
 /* ===== ESTILOS PARA GRUPO DONO/ALIANÇA (NOVO) ===== */
 .owner-alliance-group {
     display: flex;

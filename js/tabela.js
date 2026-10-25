@@ -1,271 +1,368 @@
 // ===== VARIÁVEIS GLOBAIS =====
 let allTowers = [];
 let updateInterval;
+let filtersHydrated = false;
+let knownCriticalIds = null;
+let audioContext = null;
 
-// --- DADOS GERAIS DO JOGO ---
-if (typeof MAPAS === 'undefined') {
-  var MAPAS = [
-      'Lorencia', 'Dungeon', 'Devias', 'Noria', 'Lost Tower', 'Arena', 'Atlans', 
-      'Tarkan', 'Icarus', 'Aida', 'Kanturu', 'Elbeland', 'Raklion', 'Vulcanus', 'Ferea'
-  ];
+const FILTER_KEY = 'anbu_table_filters';
+const ALERT_KEY = 'anbu_critical_alert';
+
+function asText(value) {
+    if (typeof value === 'string') return value;
+    if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+    return '';
 }
-if (typeof SERVIDORES === 'undefined') {
- var SERVIDORES = [1, 2, 3, 4, 5, 6, 11, 12, 14, 15, 16, 17, 19];
+
+function readSavedFilters() {
+    try {
+        return JSON.parse(localStorage.getItem(FILTER_KEY) || '{}');
+    } catch (e) {
+        return {};
+    }
+}
+
+function writeSavedFilters() {
+    const filterMapa = document.getElementById('filterMapa');
+    const filterServidor = document.getElementById('filterServidor');
+    const filterDono = document.getElementById('filterDono');
+    if (!filterMapa || !filterServidor || !filterDono) return;
+    localStorage.setItem(FILTER_KEY, JSON.stringify({
+        mapa: filterMapa.value,
+        servidor: filterServidor.value,
+        dono: filterDono.value
+    }));
 }
 
 // ===== INICIALIZAÇÃO =====
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 Iniciando tabela.js...');
-    
-    // O loadTowersFromFirebase é chamado pelo auth.js após o login
-    
-    // O intervalo só roda na página da tabela
+    const alertToggle = document.getElementById('criticalAlertToggle');
+    if (alertToggle) {
+        alertToggle.checked = localStorage.getItem(ALERT_KEY) === '1';
+        alertToggle.addEventListener('change', function() {
+            localStorage.setItem(ALERT_KEY, this.checked ? '1' : '0');
+            if (this.checked) prepareAlertSound();
+        });
+    }
+
     if (document.getElementById('towersTable')) {
         updateInterval = setInterval(() => {
-            renderTable(); 
-            updateStats(); 
+            renderTable();
+            updateStats();
+            checkCriticalAlerts();
         }, 1000);
     }
 });
 
-// ===== CARREGAR TORRES DO FIREBASE (LÓGICA DE FILTRO ATUALIZADA) =====
+function prepareAlertSound() {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    if (!audioContext) audioContext = new AudioCtx();
+    if (audioContext.state === 'suspended') audioContext.resume();
+}
+
+function playCriticalBeep() {
+    prepareAlertSound();
+    if (!audioContext) return;
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    osc.frequency.value = 880;
+    gain.gain.value = 0.04;
+    osc.connect(gain);
+    gain.connect(audioContext.destination);
+    osc.start();
+    osc.stop(audioContext.currentTime + 0.18);
+}
+
+// ===== CARREGAR TORRES DO FIREBASE =====
 function loadTowersFromFirebase() {
-    console.log('📡 Conectando ao Firebase...');
-    
     towersRef.on('value', (snapshot) => {
         const towers = snapshot.val();
         allTowers = [];
-        
-        console.log('📦 Dados recebidos do Firebase:', towers);
-        
+
         if (towers) {
-            const now = new Date();
-            
-            // ===== MUDANÇA AQUI =====
-            // Definimos um "tempo de corte" 5 minutos ATRÁS de agora.
-            // (5 minutos * 60 segundos * 1000 milissegundos)
-            const cutoffTime = now.getTime() - (5 * 60 * 1000);
+            const cutoffTime = getEstimatedServerTime().getTime() - (5 * 60 * 1000);
 
             Object.keys(towers).forEach(key => {
                 const torre = towers[key];
+                if (!torre || typeof torre !== 'object') return;
                 const finalizacao = new Date(torre.horarioFinalizacao);
-                
-                // MUDANÇA: Incluir torres ativas E as que expiraram nos últimos 5 min
-                if (finalizacao.getTime() > cutoffTime) { 
+                if (Number.isNaN(finalizacao.getTime())) return;
+                if (finalizacao.getTime() > cutoffTime) {
                     allTowers.push({
                         id: key,
                         ...torre
                     });
                 }
             });
-            // ===== FIM DA MUDANÇA =====
-            
-            console.log('✅ Torres (ativas e expiradas recentes) carregadas:', allTowers.length);
-        } else {
-            console.log('⚠️ Nenhuma torre encontrada no Firebase');
         }
-        
+
         populateFilters();
         updateStats();
         renderTable();
-
     }, (error) => {
-        console.error('❌ Erro ao carregar torres do Firebase:', error);
+        console.error('❌ Erro ao carregar torres do Firebase:', error.code || error.message);
+    });
+}
+
+function currentFilters() {
+    return {
+        mapa: document.getElementById('filterMapa') ? document.getElementById('filterMapa').value : '',
+        servidor: document.getElementById('filterServidor') ? document.getElementById('filterServidor').value : '',
+        dono: document.getElementById('filterDono') ? document.getElementById('filterDono').value.trim().toLowerCase() : ''
+    };
+}
+
+function towerMatchesDono(torre, filterDono) {
+    if (!filterDono) return true;
+    return asText(torre.dono).toLowerCase().includes(filterDono);
+}
+
+function getFilteredTowers() {
+    const filters = currentFilters();
+    return allTowers.filter(torre => {
+        if (filters.mapa && asText(torre.mapa) !== filters.mapa) return false;
+        if (filters.servidor && asText(torre.servidor) !== filters.servidor) return false;
+        return towerMatchesDono(torre, filters.dono);
     });
 }
 
 // ===== POPULAR FILTROS =====
 function populateFilters() {
     const filterMapa = document.getElementById('filterMapa');
-    if (!filterMapa) return; 
-
-    const mapas = [...new Set(allTowers.map(t => t.mapa))].sort();
-    const servidores = [...new Set(allTowers.map(t => t.servidor))].sort((a, b) => {
-        return parseInt(a) - parseInt(b);
-    });
-
     const filterServidor = document.getElementById('filterServidor');
+    const filterDono = document.getElementById('filterDono');
+    if (!filterMapa || !filterServidor) return;
 
-    filterMapa.innerHTML = '<option value="">Todos</option>';
-    filterServidor.innerHTML = '<option value="">Todos</option>';
+    const saved = readSavedFilters();
+    const wantedMapa = filterMapa.value || (!filtersHydrated ? (saved.mapa || '') : '');
+    const wantedServidor = filterServidor.value || (!filtersHydrated ? (saved.servidor || '') : '');
+    if (!filtersHydrated && filterDono && saved.dono && !filterDono.value) {
+        filterDono.value = saved.dono;
+    }
+    filtersHydrated = true;
 
-    mapas.forEach(mapa => {
-        const option = document.createElement('option');
-        option.value = mapa;
-        option.textContent = mapa;
-        filterMapa.appendChild(option);
+    const mapas = [...new Set(allTowers.map(t => asText(t.mapa)).filter(Boolean))].sort();
+    const servidores = [...new Set(allTowers.map(t => asText(t.servidor)).filter(Boolean))].sort((a, b) => {
+        return parseInt(a, 10) - parseInt(b, 10);
     });
 
-    servidores.forEach(servidor => {
-        const option = document.createElement('option');
-        option.value = servidor;
-        option.textContent = servidor;
-        filterServidor.appendChild(option);
-    });
+    filterMapa.replaceChildren(new Option('Todos', ''));
+    filterServidor.replaceChildren(new Option('Todos', ''));
+
+    mapas.forEach(mapa => filterMapa.appendChild(new Option(mapa, mapa)));
+    servidores.forEach(servidor => filterServidor.appendChild(new Option(servidor, servidor)));
+
+    if ([...filterMapa.options].some(option => option.value === wantedMapa)) {
+        filterMapa.value = wantedMapa;
+    }
+    if ([...filterServidor.options].some(option => option.value === wantedServidor)) {
+        filterServidor.value = wantedServidor;
+    }
 }
 
-// ===== APLICAR FILTROS =====
 function applyFilters() {
+    writeSavedFilters();
     renderTable();
+    updateStats();
 }
 
-// ===== ATUALIZAR ESTATÍSTICAS (VERSÃO CORRIGIDA) =====
 function updateStats() {
     const totalTorresEl = document.getElementById('totalTorres');
-    // Verificação de segurança caso os elementos não existam na página
-    if (!totalTorresEl) return; 
+    if (!totalTorresEl) return;
 
-    const servidoresAleatorios = ['4', '5', '6', '11', '12', '14', '15'];
-    
-    // 1. Ler os filtros da interface
-    const filterMapa = document.getElementById('filterMapa').value;
-    const filterServidor = document.getElementById('filterServidor').value;
-    const filterDono = document.getElementById('filterDono').value.trim().toLowerCase();
-
-    // 2. Aplicar filtros de texto/select (Mapa, Servidor, Dono)
-    // Isso pega todas as torres (ativas E expiradas recentes) que passam nos filtros
-    let filteredTowers = allTowers;
-    if (filterMapa) {
-        filteredTowers = filteredTowers.filter(t => t.mapa === filterMapa);
-    }
-    if (filterServidor) {
-        filteredTowers = filteredTowers.filter(t => t.servidor === filterServidor);
-    }
-    if (filterDono) {
-        filteredTowers = filteredTowers.filter(t => 
-            t.dono.toLowerCase().includes(filterDono)
-        );
-    }
-    
-    // 3. Aplicar filtro de tempo (APENAS ATIVAS)
-    // Isso pega a lista filtrada acima e remove as que já expiraram.
-    const now = new Date().getTime();
+    const filteredTowers = getFilteredTowers();
+    const now = getEstimatedServerTime().getTime();
     const activeFilteredTowers = filteredTowers.filter(t => new Date(t.horarioFinalizacao).getTime() > now);
 
-    // 4. Calcular estatísticas baseadas APENAS nas torres ATIVAS
-    const torresAleatorias = activeFilteredTowers.filter(t => 
-        servidoresAleatorios.includes(t.servidor)
+    const torresAleatorias = activeFilteredTowers.filter(t =>
+        SERVIDORES_ALEATORIOS.includes(asText(t.servidor))
     ).length;
-    
     const torresAliadas = activeFilteredTowers.filter(t => t.alianca === 'Aliado').length;
     const torresInimigas = activeFilteredTowers.filter(t => t.alianca === 'Inimigo').length;
 
+    totalTorresEl.textContent = filteredTowers.length;
 
-    // 5. Atualizar os números na tela
-    
-    // "Total de Torres" mostra o total na tabela (ativas + expiradas recentes filtradas)
-    totalTorresEl.textContent = filteredTowers.length; 
-    
-    // "Torres Ativas" mostra apenas as ativas filtradas
     const torresAtivasEl = document.getElementById('torresAtivas');
     if (torresAtivasEl) torresAtivasEl.textContent = activeFilteredTowers.length;
 
-    // "Torres Aleatórias" (baseado nas ativas)
     const torresAleatoriasEl = document.getElementById('torresAleatorias');
     if (torresAleatoriasEl) torresAleatoriasEl.textContent = torresAleatorias;
 
-    // "Torres Aliadas" (baseado nas ativas)
     const torresAliadasEl = document.getElementById('torresAliadas');
     if (torresAliadasEl) torresAliadasEl.textContent = torresAliadas;
-    
-    // "Torres Inimigas" (baseado nas ativas)
+
     const torresInimigasEl = document.getElementById('torresInimigas');
     if (torresInimigasEl) torresInimigasEl.textContent = torresInimigas;
 }
 
-// ===== RENDERIZAR TABELA (SEM BADGES) =====
 function renderTable() {
     const tableBody = document.getElementById('tableBody');
-    if (!tableBody) return; 
-    
-    const filterMapa = document.getElementById('filterMapa').value;
-    const filterServidor = document.getElementById('filterServidor').value;
-    const filterDono = document.getElementById('filterDono').value.trim().toLowerCase();
-    
+    if (!tableBody) return;
+
     const emptyState = document.getElementById('emptyState');
     const table = document.getElementById('towersTable');
-
-    let filteredTowers = allTowers;
-
-    if (filterMapa) {
-        filteredTowers = filteredTowers.filter(t => t.mapa === filterMapa);
-    }
-
-    if (filterServidor) {
-        filteredTowers = filteredTowers.filter(t => t.servidor === filterServidor);
-    }
-
-    if (filterDono) {
-        filteredTowers = filteredTowers.filter(t => 
-            t.dono.toLowerCase().includes(filterDono)
-        );
-    }
+    const filteredTowers = getFilteredTowers();
 
     if (filteredTowers.length === 0) {
         table.style.display = 'none';
         emptyState.style.display = 'block';
-    } else {
-        table.style.display = 'table';
-        emptyState.style.display = 'none';
+        tableBody.replaceChildren();
+        tableBody.dataset.signature = '';
+        return;
     }
 
-    filteredTowers.sort((a, b) => {
-        return new Date(a.horarioFinalizacao) - new Date(b.horarioFinalizacao);
+    table.style.display = 'table';
+    emptyState.style.display = 'none';
+
+    filteredTowers.sort((a, b) => new Date(a.horarioFinalizacao) - new Date(b.horarioFinalizacao));
+
+    const signature = filteredTowers.map(torre => torre.id).join('|');
+    const canUpdateInPlace = tableBody.dataset.signature === signature
+        && tableBody.children.length === filteredTowers.length;
+
+    if (canUpdateInPlace) {
+        filteredTowers.forEach((torre, index) => paintRow(tableBody.children[index], torre));
+        return;
+    }
+
+    const fragment = document.createDocumentFragment();
+    filteredTowers.forEach(torre => fragment.appendChild(buildRow(torre)));
+    tableBody.replaceChildren(fragment);
+    tableBody.dataset.signature = signature;
+}
+
+function buildRow(torre) {
+    const tr = document.createElement('tr');
+
+    const deleteCell = document.createElement('td');
+    deleteCell.className = 'col-fix';
+    const deleteButton = document.createElement('button');
+    deleteButton.type = 'button';
+    deleteButton.className = 'btn-delete-row';
+    deleteButton.setAttribute('data-i18n-key', 'btn_delete');
+    deleteButton.textContent = getTranslation('btn_delete');
+    deleteButton.addEventListener('click', () => {
+        const current = allTowers.find((item) => item.id === torre.id) || torre;
+        deleteTower(current);
+    });
+    deleteCell.appendChild(deleteButton);
+
+    const cells = [
+        deleteCell,
+        document.createElement('td'),
+        document.createElement('td'),
+        document.createElement('td'),
+        document.createElement('td'),
+        document.createElement('td'),
+        document.createElement('td'),
+        document.createElement('td'),
+        document.createElement('td'),
+        document.createElement('td'),
+        document.createElement('td'),
+        document.createElement('td')
+    ];
+
+    cells[1].style.fontSize = '1.5em';
+    cells[1].style.textAlign = 'center';
+    cells[4].style.fontWeight = '600';
+    cells[4].style.textAlign = 'center';
+    cells[11].style.fontSize = '0.75em';
+    cells[11].style.color = '#6c757d';
+    cells[11].style.fontFamily = 'monospace';
+    cells[11].style.cursor = 'pointer';
+    cells[11].title = 'Clique para copiar';
+    cells[11].addEventListener('click', () => {
+        const id = asText(torre.id);
+        navigator.clipboard.writeText(id);
+        alert(getTranslation('alert_copy_id_success', { id: id }));
     });
 
-    tableBody.innerHTML = '';
+    cells.forEach(cell => tr.appendChild(cell));
+    paintRow(tr, torre);
+    return tr;
+}
 
-    filteredTowers.forEach(torre => {
-        const now = new Date();
-        const vistoDate = new Date(torre.vistoHorario);
-        const finalizacaoDate = new Date(torre.horarioFinalizacao);
-        
-        // Esta função já lida com torres expiradas (diff <= 0)
-        const tempoRestante = calculateTempoRestante(finalizacaoDate, now);
-        // Esta função já lida com torres expiradas (diff <= 0)
-        const statusInfo = getStatusInfo(finalizacaoDate, now);
+function setStrongText(td, text) {
+    let strong = td.querySelector('strong');
+    if (!strong) {
+        strong = document.createElement('strong');
+        td.replaceChildren(strong);
+    }
+    strong.textContent = text;
+}
 
-        const tr = document.createElement('tr');
-        tr.classList.add(`row-${statusInfo.class}`);
-        
-// Adiciona classe CSS para a aliança
-    const aliancaClass = torre.alianca === 'Aliado' ? 'cell-ally' : (torre.alianca === 'Inimigo' ? 'cell-enemy' : '');
+function paintRow(tr, torre) {
+    const now = getEstimatedServerTime();
+    const vistoDate = new Date(torre.vistoHorario);
+    const finalizacaoDate = new Date(torre.horarioFinalizacao);
+    const statusInfo = getStatusInfo(finalizacaoDate, now);
+    const cells = tr.children;
 
-    tr.innerHTML = `
-        <td class="col-fix"></td>
-        <td style="font-size: 1.5em; text-align: center;">${statusInfo.icon}</td>
-        <td><strong>${torre.mapa}</strong></td>
-        <td>${torre.servidor}</td>
-        <td style="font-weight: 600; text-align: center;">${torre.aleatoriedade}</td>
-        <td>${torre.dono}</td>
-        <td class="${aliancaClass}"><strong>${torre.alianca || 'N/A'}</strong></td> <td>${torre.localizacao}</td>
-        <td>${formatDateTime(vistoDate)}</td>
-        <td>${formatDateTime(finalizacaoDate)}</td>
-        <td><strong>${tempoRestante}</strong></td>
-    `;
-        
-        const td11 = document.createElement('td');
-        td11.textContent = torre.id;
-        td11.style.fontSize = '0.75em';
-        td11.style.color = '#6c757d';
-        td11.style.fontFamily = 'monospace';
-        td11.title = 'Clique para copiar';
-        td11.style.cursor = 'pointer';
-        
-        td11.onclick = function() {
-            navigator.clipboard.writeText(torre.id);
-            alert(getTranslation('alert_copy_id_success', { id: torre.id }));
-        };
-        tr.appendChild(td11);
+    tr.className = `row-${statusInfo.class}`;
+    cells[1].textContent = statusInfo.icon;
+    setStrongText(cells[2], asText(torre.mapa));
+    cells[3].textContent = asText(torre.servidor);
+    cells[4].textContent = asText(torre.aleatoriedade);
+    cells[5].textContent = asText(torre.dono);
 
-        tableBody.appendChild(tr);
+    const alianca = asText(torre.alianca) || 'N/A';
+    cells[6].className = torre.alianca === 'Aliado' ? 'cell-ally' : (torre.alianca === 'Inimigo' ? 'cell-enemy' : '');
+    setStrongText(cells[6], alianca);
+    cells[7].textContent = asText(torre.localizacao);
+    cells[8].textContent = formatDateTime(vistoDate);
+    cells[9].textContent = formatDateTime(finalizacaoDate);
+    setStrongText(cells[10], calculateTempoRestante(finalizacaoDate, now));
+    cells[11].textContent = asText(torre.id);
+}
+
+function deleteTower(torre) {
+    const id = asText(torre.id);
+    if (!id) return;
+    const confirmed = confirm(getTranslation('confirm_delete_tower', {
+        mapa: asText(torre.mapa),
+        servidor: asText(torre.servidor)
+    }));
+    if (!confirmed) return;
+    towersRef.child(id).remove().catch((error) => {
+        console.error('❌ Erro ao excluir torre:', error.code || error.message);
+        alert(getTranslation('error_save_tower'));
     });
 }
 
+function checkCriticalAlerts() {
+    if (!document.getElementById('towersTable')) return;
+    if (localStorage.getItem(ALERT_KEY) !== '1') return;
 
+    const now = getEstimatedServerTime().getTime();
+    const criticalIds = getFilteredTowers()
+        .filter(torre => {
+            const diff = new Date(torre.horarioFinalizacao).getTime() - now;
+            return diff > 0 && diff < 5 * 60 * 1000;
+        })
+        .map(torre => torre.id);
 
-// ===== OBTER INFORMAÇÕES DE STATUS (UNIFICADA) =====
+    if (knownCriticalIds === null) {
+        knownCriticalIds = new Set(criticalIds);
+        return;
+    }
+
+    const fresh = criticalIds.filter(id => !knownCriticalIds.has(id));
+    knownCriticalIds = new Set(criticalIds);
+
+    if (fresh.length > 0) {
+        playCriticalBeep();
+        document.title = `(${criticalIds.length}) ANBU Farm Tower`;
+    } else if (criticalIds.length === 0) {
+        document.title = 'ANBU Farm Tower - Tabela';
+    }
+}
+
 function getStatusInfo(finalizacao, now) {
+    if (!(finalizacao instanceof Date) || Number.isNaN(finalizacao.getTime())) {
+        return { class: 'status-expired', icon: '⚫', text: 'EXPIRADO' };
+    }
+
     const diff = finalizacao - now;
     const minutes = diff / (1000 * 60);
 
@@ -277,13 +374,12 @@ function getStatusInfo(finalizacao, now) {
         return { class: 'status-orange', icon: '🟠', text: 'ATENÇÃO (< 15 min)' };
     } else if (minutes < 30) {
         return { class: 'status-warning', icon: '🟡', text: 'ALERTA (< 30 min)' };
-    } else {
-        return { class: 'status-success', icon: '🔵', text: 'ATIVO' };
     }
+    return { class: 'status-success', icon: '🔵', text: 'ATIVO' };
 }
 
-// ===== CALCULAR TEMPO RESTANTE (APENAS HH:MM:SS) =====
 function calculateTempoRestante(finalizacao, now) {
+    if (!(finalizacao instanceof Date) || Number.isNaN(finalizacao.getTime())) return '--';
     const diff = finalizacao - now;
     if (diff <= 0) return '00:00:00';
 
@@ -295,28 +391,29 @@ function calculateTempoRestante(finalizacao, now) {
     return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
-// ===== FORMATAR DATA E HORA =====
 function formatDateTime(date) {
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    const seconds = String(date.getSeconds()).padStart(2, '0');
-
-    return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '--';
+    const parts = new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'America/Sao_Paulo',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hourCycle: 'h23'
+    }).formatToParts(date);
+    const pick = (type) => parts.find((part) => part.type === type).value;
+    return `${pick('day')}/${pick('month')}/${pick('year')} ${pick('hour')}:${pick('minute')}:${pick('second')}`;
 }
 
-// ===== ATUALIZAR TABELA =====
 function refreshTable() {
-    if (!document.getElementById('towersTable')) return; 
-    console.log('🔄 Atualizando tabela...');
+    if (!document.getElementById('towersTable')) return;
     renderTable();
 }
 
-// ===== EXPORTAR PARA EXCEL (MENSAGENS TRADUZIDAS) =====
 function exportToExcel() {
-    if (!document.getElementById('towersTable')) return; 
+    if (!document.getElementById('towersTable')) return;
 
     if (allTowers.length === 0) {
         showExportMessage(getTranslation('export_error_no_towers'), 'error');
@@ -324,92 +421,63 @@ function exportToExcel() {
     }
 
     try {
-        const filterMapa = document.getElementById('filterMapa').value;
-        const filterServidor = document.getElementById('filterServidor').value;
-        const filterDono = document.getElementById('filterDono').value.trim().toLowerCase();
-        
-        let filteredTowers = allTowers;
-        if (filterMapa) {
-            filteredTowers = filteredTowers.filter(t => t.mapa === filterMapa);
-        }
-        if (filterServidor) {
-            filteredTowers = filteredTowers.filter(t => t.servidor === filterServidor);
-        }
-        if (filterDono) {
-            filteredTowers = filteredTowers.filter(t => 
-                t.dono.toLowerCase().includes(filterDono)
-            );
-        }
+        const filteredTowers = getFilteredTowers();
 
         if (filteredTowers.length === 0) {
             showExportMessage(getTranslation('export_error_no_filtered_towers'), 'error');
             return;
         }
 
-        filteredTowers.sort((a, b) => {
-            return new Date(a.horarioFinalizacao) - new Date(b.horarioFinalizacao);
-        });
+        filteredTowers.sort((a, b) => new Date(a.horarioFinalizacao) - new Date(b.horarioFinalizacao));
 
-        const now = new Date();
+        const now = getEstimatedServerTime();
         const exportData = filteredTowers.map(torre => {
             const vistoDate = new Date(torre.vistoHorario);
             const finalizacaoDate = new Date(torre.horarioFinalizacao);
-            const tempoRestante = calculateTempoRestante(finalizacaoDate, now);
-            const status = getStatusInfo(finalizacaoDate, now).text; 
-
             return {
-                'Mapa': torre.mapa,
-                'Servidor': torre.servidor,
-                'Aleatoriedade': torre.aleatoriedade,
-                'Dono': torre.dono,
-                'Aliança': torre.alianca || 'N/A', // <-- LINHA ADICIONADA
-                'Localização': torre.localizacao,
+                'Mapa': asText(torre.mapa),
+                'Servidor': asText(torre.servidor),
+                'Aleatoriedade': asText(torre.aleatoriedade),
+                'Dono': asText(torre.dono),
+                'Aliança': asText(torre.alianca) || 'N/A',
+                'Localização': asText(torre.localizacao),
                 'Visto Horário': formatDateTime(vistoDate),
                 'Horário Finalização': formatDateTime(finalizacaoDate),
-                'Tempo Restante': tempoRestante,
-                'Status': status,
-                'Duração': torre.duracaoFormatada
+                'Tempo Restante': calculateTempoRestante(finalizacaoDate, now),
+                'Status': getStatusInfo(finalizacaoDate, now).text,
+                'Duração': asText(torre.duracaoFormatada)
             };
         });
 
         const wb = XLSX.utils.book_new();
         const ws = XLSX.utils.json_to_sheet(exportData);
-
-        const colWidths = [
-        { wch: 15 }, { wch: 10 }, { wch: 15 }, { wch: 20 },
-        { wch: 12 }, // <-- LARGURA PARA ALIANÇA (ADICIONADA)
-        { wch: 25 }, { wch: 20 }, { wch: 20 }, { wch: 12 },
-        { wch: 15 }, { wch: 12 }
-    ];
-        ws['!cols'] = colWidths;
-
+        ws['!cols'] = [
+            { wch: 15 }, { wch: 10 }, { wch: 15 }, { wch: 20 },
+            { wch: 12 }, { wch: 25 }, { wch: 20 }, { wch: 20 },
+            { wch: 12 }, { wch: 15 }, { wch: 12 }
+        ];
         XLSX.utils.book_append_sheet(wb, ws, 'Torres Ativas');
 
         const infoData = [
             { 'Informação': 'Total de Torres', 'Valor': filteredTowers.length },
             { 'Informação': 'Torres com Aleatoriedade', 'Valor': filteredTowers.filter(t => t.aleatoriedade === 'Sim').length },
             { 'Informação': 'Data/Hora da Exportação', 'Valor': formatDateTime(now) },
-            { 'Informação': 'Exportado por', 'Valor': 'ANBU Farm Tower - MEGAMU' },
-            { 'Informação': 'Criado por', 'Valor': 'fujikoftw - O MELHOR DL DO MEGAMU' }
+            { 'Informação': 'Fuso', 'Valor': 'America/Sao_Paulo' },
+            { 'Informação': 'Exportado por', 'Valor': 'ANBU Farm Tower - MEGAMU' }
         ];
 
         const wsInfo = XLSX.utils.json_to_sheet(infoData);
         wsInfo['!cols'] = [{ wch: 30 }, { wch: 40 }];
         XLSX.utils.book_append_sheet(wb, wsInfo, 'Informações');
 
-        const fileName = `ANBU_Farm_Tower_${formatFileNameDate(now)}.xlsx`;
-        XLSX.writeFile(wb, fileName);
-
+        XLSX.writeFile(wb, `ANBU_Farm_Tower_${formatFileNameDate(now)}.xlsx`);
         showExportMessage(getTranslation('export_success'), 'success');
-        
+
         const btnExport = document.querySelector('.btn-export');
         if (btnExport) {
             btnExport.classList.add('exporting');
-            setTimeout(() => {
-                btnExport.classList.remove('exporting');
-            }, 500);
+            setTimeout(() => btnExport.classList.remove('exporting'), 500);
         }
-
     } catch (error) {
         console.error('❌ Erro ao exportar:', error);
         showExportMessage(getTranslation('export_error_generic'), 'error');
@@ -417,13 +485,9 @@ function exportToExcel() {
 }
 
 function formatFileNameDate(date) {
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0'); 
-
-    return `${day}-${month}-${year}_${hours}h${minutes}m`;
+    const parts = formatDateTime(date).match(/(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2})/);
+    if (!parts) return 'export';
+    return `${parts[1]}-${parts[2]}-${parts[3]}_${parts[4]}h${parts[5]}m`;
 }
 
 function showExportMessage(message, type) {
@@ -434,21 +498,17 @@ function showExportMessage(message, type) {
         document.body.appendChild(tooltip);
     }
     tooltip.textContent = message;
-    tooltip.style.background = type === 'success' 
-        ? 'rgba(13, 110, 253, 0.95)' 
+    tooltip.style.background = type === 'success'
+        ? 'rgba(13, 110, 253, 0.95)'
         : 'rgba(0, 0, 0, 0.95)';
     tooltip.style.borderColor = type === 'success'
         ? 'var(--gremio-azul)'
         : 'var(--status-critico)';
     tooltip.classList.add('show');
-    setTimeout(() => {
-        tooltip.classList.remove('show');
-    }, 2000);
+    setTimeout(() => tooltip.classList.remove('show'), 2000);
 }
 
 window.addEventListener('beforeunload', function() {
-    if (updateInterval) {
-        clearInterval(updateInterval);
-    }
-    towersRef.off();
+    if (updateInterval) clearInterval(updateInterval);
+    if (typeof towersRef !== 'undefined') towersRef.off();
 });

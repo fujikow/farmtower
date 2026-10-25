@@ -2,9 +2,11 @@
 <html lang="pt"> <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="no-referrer">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://cdnjs.cloudflare.com https://*.firebaseio.com 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebaseapp.com; frame-src https://*.firebaseio.com https://*.firebaseapp.com; base-uri 'self'; form-action 'self'; object-src 'none'">
     <title>ANBU Farm Tower - Tabela</title>
     <link rel="stylesheet" href="css/style.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" integrity="sha384-vtjasyidUo0kW94K5MXDXntzOJpQgBKXmE7e2Ga4LG0skTTLeBi97eFAXsqewJjw" crossorigin="anonymous"></script>
 </head>
 <body>
     
@@ -21,19 +23,22 @@
                 <p data-i18n-key="login_subtitle">Digite a senha para acessar o sistema</p>
                 
                 <div class="login-form">
-                    <input 
-                        type="password" 
-                        id="passwordInput" 
-                        placeholder="Digite a senha" 
-                        data-i18n-key="login_placeholder_password"
-                        autocomplete="current-password"
-                    >
+                    <div class="password-field">
+                        <input 
+                            type="password" 
+                            id="passwordInput" 
+                            placeholder="Digite a senha" 
+                            data-i18n-key="login_placeholder_password"
+                            autocomplete="current-password"
+                        >
+                        <button type="button" id="togglePasswordBtn" class="btn-toggle-password" onclick="togglePasswordVisibility()" data-i18n-key="login_show_password">Mostrar senha</button>
+                    </div>
                     <button onclick="handleLogin()" class="btn-login">
                         <span>🔓</span> <span data-i18n-key="login_button">Entrar</span>
                     </button>
                 </div>
                 
-                <div id="errorMessage" class="error-message-login"></div>
+                <div id="loginErrorMessage" class="error-message-login"></div>
             </div>
             
             <div class="login-footer">
@@ -85,6 +90,7 @@
                 <p class="modal-subtitle" data-i18n-key="missing_modal_subtitle">
                     Exibindo todas as combinações de Mapa/Servidor que não possuem um cadastro ATIVO no momento.
                 </p>
+                <p class="modal-subtitle" data-i18n-key="missing_register_hint">Clique em um servidor para cadastrar essa torre.</p>
                 
                 <div class="expired-filters">
                     <div class="filter-group">
@@ -266,6 +272,10 @@
                 <button class="btn btn-export" onclick="exportToExcel()">
                     <span>📥</span> <span data-i18n-key="btn_export">Exportar Excel</span>
                 </button>
+                <label class="critical-alert-toggle">
+                    <input type="checkbox" id="criticalAlertToggle">
+                    <span data-i18n-key="alert_critical_label">Avisar quando faltar 5 min</span>
+                </label>
             </div>
             
             <div class="controls-right">
@@ -343,11 +353,12 @@
         </footer>
     </div>
 
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js" integrity="sha384-ViccRjS0k/lvYsrtaKXk+ES61/4PAZlFI/mPHmLC1YWzK0AIbXbI5ZXDzcm3F8gH" crossorigin="anonymous"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js" integrity="sha384-f6/UpzjTjIXASlp20cArQsaRh1EvHVJd5kegy/gYR9W2D0a32TnEqUEiW4Zm/5O0" crossorigin="anonymous"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js" integrity="sha384-+/4lqMnmLqwbdHXshvGDmBTeWlNoPRdjXi4ZsiBj10EhQXaTBe3RF5JZktdSjug6" crossorigin="anonymous"></script>
     
     <script src="js/firebase-config.js"></script>
+    <script src="js/game-data.js"></script>
 
     <script src="js/i18n.js"></script>
 

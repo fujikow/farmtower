@@ -2,6 +2,8 @@
 <html lang="pt"> <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="no-referrer">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://cdnjs.cloudflare.com https://*.firebaseio.com 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebaseapp.com; frame-src https://*.firebaseio.com https://*.firebaseapp.com; base-uri 'self'; form-action 'self'; object-src 'none'">
     <title>ANBU Farm Tower - Cadastro</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
@@ -51,6 +53,7 @@
                 <p class="modal-subtitle" data-i18n-key="missing_modal_subtitle">
                     Exibindo todas as combinações de Mapa/Servidor que não possuem um cadastro ATIVO no momento.
                 </p>
+                <p class="modal-subtitle" data-i18n-key="missing_register_hint">Clique em um servidor para cadastrar essa torre.</p>
                 
                 <div class="expired-filters">
                     <div class="filter-group">
@@ -186,19 +189,22 @@
                 <p data-i18n-key="login_subtitle">Digite a senha para acessar o sistema</p>
                 
                 <div class="login-form">
-                    <input 
-                        type="password" 
-                        id="passwordInput" 
-                        placeholder="Digite a senha" 
-                        data-i18n-key="login_placeholder_password"
-                        autocomplete="current-password"
-                    >
+                    <div class="password-field">
+                        <input 
+                            type="password" 
+                            id="passwordInput" 
+                            placeholder="Digite a senha" 
+                            data-i18n-key="login_placeholder_password"
+                            autocomplete="current-password"
+                        >
+                        <button type="button" id="togglePasswordBtn" class="btn-toggle-password" onclick="togglePasswordVisibility()" data-i18n-key="login_show_password">Mostrar senha</button>
+                    </div>
                     <button onclick="handleLogin()" class="btn-login">
                         <span>🔓</span> <span data-i18n-key="login_button">Entrar</span>
                     </button>
                 </div>
                 
-                <div id="errorMessage" class="error-message-login"></div>
+                <div id="loginErrorMessage" class="error-message-login"></div>
             </div>
             
             <div class="login-footer">
@@ -253,7 +259,7 @@
                 <div class="form-group">
                     <label for="dono" data-i18n-key="form_owner">Dono *</label>
                     <div class="owner-alliance-group">
-                        <input type="text" id="dono" class="owner-input" placeholder="Digite o nome do dono" data-i18n-key="form_owner_placeholder" required>
+                        <input type="text" id="dono" class="owner-input" placeholder="Digite o nome do dono" data-i18n-key="form_owner_placeholder" maxlength="40" required>
                         
                         <div class="alliance-toggle">
                             <input type="radio" id="alliance_ally" name="alliance" value="Aliado" checked>
@@ -267,7 +273,7 @@
 
                 <div class="form-group">
                     <label for="localizacao" data-i18n-key="form_location">Localização Específica *</label>
-                    <input type="text" id="localizacao" placeholder="Ex: X:123 Y:456 ou Hotspot Central" data-i18n-key="form_location_placeholder" required>
+                    <input type="text" id="localizacao" placeholder="Ex: X:123 Y:456 ou Hotspot Central" data-i18n-key="form_location_placeholder" maxlength="80" required>
                 </div>
 
                 <div class="form-group">
@@ -311,11 +317,12 @@
         </footer>
     </div>
 
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js" integrity="sha384-ViccRjS0k/lvYsrtaKXk+ES61/4PAZlFI/mPHmLC1YWzK0AIbXbI5ZXDzcm3F8gH" crossorigin="anonymous"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js" integrity="sha384-f6/UpzjTjIXASlp20cArQsaRh1EvHVJd5kegy/gYR9W2D0a32TnEqUEiW4Zm/5O0" crossorigin="anonymous"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js" integrity="sha384-+/4lqMnmLqwbdHXshvGDmBTeWlNoPRdjXi4ZsiBj10EhQXaTBe3RF5JZktdSjug6" crossorigin="anonymous"></script>
     
     <script src="js/firebase-config.js"></script>
+    <script src="js/game-data.js"></script>
 
     <script src="js/i18n.js"></script>
 

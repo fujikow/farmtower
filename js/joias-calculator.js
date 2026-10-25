@@ -95,14 +95,11 @@ function closeJoiasModal() {
 
 // ===== ATUALIZAR CALCULADORA (COM TRADUÇÃO) =====
 function updateJoiasCalculator() {
-    // Horário atual (GMT-3 / Brasília)
-    const now = new Date();
-    const brasilia = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
-    
-    // Atualizar horário atual
+    const now = typeof getEstimatedServerTime === 'function' ? getEstimatedServerTime() : new Date();
+
     const horarioAtualElement = document.getElementById('horarioAtual');
     if (horarioAtualElement) {
-        horarioAtualElement.textContent = formatModalDateTime(brasilia);
+        horarioAtualElement.textContent = formatModalDateTime(now);
     }
     
     // Pegar horas adicionais do slider
@@ -126,10 +123,8 @@ function updateJoiasCalculator() {
         }
     }
     
-    // Calcular hora de liberação
-    // Hora Atual + Horas Adicionais + 2h Grátis
     const totalHorasParaLiberar = horasAdicionais + 2;
-    const horaLiberacao = new Date(brasilia.getTime() + (totalHorasParaLiberar * 60 * 60 * 1000));
+    const horaLiberacao = new Date(now.getTime() + (totalHorasParaLiberar * 60 * 60 * 1000));
     
     // Atualizar hora de liberação
     const horaLiberacaoElement = document.getElementById('horaLiberacao');
@@ -150,12 +145,18 @@ function updateJoiasCalculator() {
 // ===== FORMATAR DATA E HORÁRIO =====
 // (Função ATUALIZADA para mostrar DD/MM HH:MM:SS)
 function formatModalDateTime(date) {
-    const dia = String(date.getDate()).padStart(2, '0');
-    const mes = String(date.getMonth() + 1).padStart(2, '0'); // Mês é base 0
-    const horas = String(date.getHours()).padStart(2, '0');
-    const minutos = String(date.getMinutes()).padStart(2, '0');
-    const segundos = String(date.getSeconds()).padStart(2, '0');
-    return `${dia}/${mes} ${horas}:${minutos}:${segundos}`;
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '--/-- --:--:--';
+    const parts = new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'America/Sao_Paulo',
+        day: '2-digit',
+        month: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hourCycle: 'h23'
+    }).formatToParts(date);
+    const pick = (type) => parts.find((part) => part.type === type).value;
+    return `${pick('day')}/${pick('month')} ${pick('hour')}:${pick('minute')}:${pick('second')}`;
 }
 
 // ===== FECHAR MODAL AO CLICAR FORA =====

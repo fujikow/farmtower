@@ -42,32 +42,42 @@ const connectedRef = database.ref('.info/connected');
 connectedRef.on('value', (snapshot) => {
     const statusElement = document.getElementById('connectionStatus');
     if (statusElement) {
+        statusElement.replaceChildren();
+        const dot = document.createElement('span');
+        dot.className = snapshot.val() === true ? 'status-dot connected' : 'status-dot disconnected';
+        const label = document.createElement('span');
+        label.className = 'status-text';
         if (snapshot.val() === true) {
-            statusElement.innerHTML = '<span class="status-dot connected"></span><span class="status-text" data-i18n-key="connection_status_connected">Conectado</span>'; // (Chave de tradução atualizada recomendada)
+            label.setAttribute('data-i18n-key', 'connection_status_connected');
+            label.textContent = 'Conectado';
         } else {
-            statusElement.innerHTML = '<span class="status-dot disconnected"></span><span class="status-text" data-i18n-key="connection_status_disconnected">Desconectado</span>'; // (Chave de tradução atualizada recomendada)
+            label.setAttribute('data-i18n-key', 'connection_status_disconnected');
+            label.textContent = 'Desconectado';
+        }
+        statusElement.append(dot, label);
+        if (typeof translatePage === 'function' && Object.keys(translations || {}).length > 0) {
+            translatePage();
         }
     }
 });
 
 
-// Função para limpar torres expiradas
+// Remove torres que expiraram há mais de 1 hora.
+// A consulta usa o índice horarioFinalizacao (veja database.rules.json).
 function cleanExpiredTowers() {
-    // Usamos a hora corrigida do servidor aqui também
-    const now = getEstimatedServerTime().getTime(); 
-    
-    towersRef.once('value', (snapshot) => {
-        const towers = snapshot.val();
-        if (towers) {
-            Object.keys(towers).forEach(key => {
-                const torre = towers[key];
-                const finalizacao = new Date(torre.horarioFinalizacao).getTime();
-                
-                // Remover se expirou há mais de 1 hora
-                if (now - finalizacao > 60 * 60 * 1000) {
-                    towersRef.child(key).remove();
-                    console.log('🗑️ Torre expirada removida:', key);
-                }
+    const cutoff = new Date(getEstimatedServerTime().getTime() - 60 * 60 * 1000).toISOString();
+
+    towersRef.orderByChild('horarioFinalizacao').endAt(cutoff).once('value', (snapshot) => {
+        const removals = [];
+        snapshot.forEach((child) => {
+            const finalizacao = child.child('horarioFinalizacao').val();
+            if (typeof finalizacao === 'string' && finalizacao <= cutoff) {
+                removals.push(child.ref.remove());
+            }
+        });
+        if (removals.length > 0) {
+            Promise.all(removals).then(() => {
+                console.log(`[Limpeza] ${removals.length} torres expiradas há mais de 1h removidas.`);
             });
         }
     });

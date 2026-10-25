@@ -1,36 +1,14 @@
-// ===== DADOS DE MAPAS E SERVIDORES =====
-// Alterado para 'var' para evitar conflito de script na index.html
-var MAPAS = [
-    'Lorencia',
-    'Dungeon',
-    'Devias',
-    'Noria',
-    'Lost Tower',
-    'Arena',
-    'Atlans',
-    'Tarkan',
-    'Icarus',
-    'Aida',
-    'Kanturu',
-    'Elbeland',
-    'Raklion',
-    'Vulcanus',
-    'Ferea'
-];
-
-var SERVIDORES = [1, 2, 3, 4, 5, 6, 7, 8, 11, 12, 14, 15, 16, 17, 19];
-
 // ===== INICIALIZAÇÃO =====
 document.addEventListener('DOMContentLoaded', function() {
     console.log('📝 Página de cadastro carregada');
     
-    // Carregar opções dinâmicas
     loadMapasOptions();
     loadServidoresOptions();
+    applyQueryPrefill();
+    restoreOwnerFields();
     
-    // Focar no primeiro campo
     const mapaSelect = document.getElementById('mapa');
-    if (mapaSelect) {
+    if (mapaSelect && !mapaSelect.value) {
         mapaSelect.focus();
     }
     
@@ -92,25 +70,41 @@ if (towerForm) {
         // Coletar dados do formulário
         const mapa = document.getElementById('mapa').value;
         const servidor = document.getElementById('servidor').value;
-        const dono = document.getElementById('dono').value.trim();
-        const localizacao = document.getElementById('localizacao').value.trim();
-        const alianca = document.querySelector('input[name="alliance"]:checked').value;
-        const horas = parseInt(document.getElementById('horas').value) || 0;
-        const minutos = parseInt(document.getElementById('minutos').value) || 0;
-        const segundos = parseInt(document.getElementById('segundos').value) || 0;
+        const dono = document.getElementById('dono').value.replace(/[\u0000-\u001F\u007F]/g, '').trim();
+        const localizacao = document.getElementById('localizacao').value.replace(/[\u0000-\u001F\u007F]/g, '').trim();
+        const allianceInput = document.querySelector('input[name="alliance"]:checked');
+        const alianca = allianceInput ? allianceInput.value : '';
+        const horas = parseInt(document.getElementById('horas').value, 10) || 0;
+        const minutos = parseInt(document.getElementById('minutos').value, 10) || 0;
+        const segundos = parseInt(document.getElementById('segundos').value, 10) || 0;
+        const duracaoTotal = (horas * 3600) + (minutos * 60) + segundos;
 
-        // Validação
         if (!mapa || !servidor || !dono || !localizacao) {
             showError(getTranslation('error_all_fields'));
             resetSubmitButton();
             return;
         }
-        if (horas === 0 && minutos === 0 && segundos === 0) {
+        if (!MAPAS.includes(mapa) || !SERVIDORES.map(String).includes(String(servidor))) {
+            showError(getTranslation('error_all_fields'));
+            resetSubmitButton();
+            return;
+        }
+        if (alianca !== 'Aliado' && alianca !== 'Inimigo') {
+            showError(getTranslation('error_all_fields'));
+            resetSubmitButton();
+            return;
+        }
+        if (dono.length > FIELD_LIMITS.dono || localizacao.length > FIELD_LIMITS.localizacao) {
+            showError(getTranslation('error_field_length'));
+            resetSubmitButton();
+            return;
+        }
+        if (duracaoTotal <= 0) {
             showError(getTranslation('error_duration_zero'));
             resetSubmitButton();
             return;
         }
-        if (horas > 48) {
+        if (duracaoTotal > FIELD_LIMITS.duracaoSegundos) {
             showError(getTranslation('error_duration_max'));
             resetSubmitButton();
             return;
@@ -150,9 +144,6 @@ if (towerForm) {
         // ===== FIM DA VALIDAÇÃO =====
 
 
-        // Calcular duração total em segundos
-        const duracaoTotal = (horas * 3600) + (minutos * 60) + segundos;
-
         // ===== ALTERAÇÃO DE TIMEZONE =====
         // Horário atual (visto) - USA A HORA CORRIGIDA DO SERVIDOR
         const vistoHorario = getEstimatedServerTime(); // Função do firebase-config.js
@@ -161,9 +152,7 @@ if (towerForm) {
         const horarioFinalizacao = new Date(vistoHorario.getTime() + (duracaoTotal * 1000));
         // ===== FIM DA ALTERAÇÃO =====
 
-        // Verificar aleatoriedade
-        const servidoresAleatorios = ['4', '5', '6', '7', '8', '11', '12', '14', '15'];
-        const aleatoriedade = servidoresAleatorios.includes(servidor) ? 'Sim' : 'Não';
+        const aleatoriedade = SERVIDORES_ALEATORIOS.includes(String(servidor)) ? 'Sim' : 'Não';
 
         // Criar objeto da torre
         const torre = {
@@ -180,9 +169,9 @@ if (towerForm) {
             cadastradoEm: vistoHorario.toISOString() // Atualiza usando a hora corrigida
         };
 
-        console.log('📤 Enviando torre para Firebase:', torre);
+        rememberOwner(dono, alianca);
+        console.log('📤 Enviando torre:', torre.mapa, torre.servidor);
 
-        // Salvar no Firebase
         saveTowerToFirebase(torre, duplicateTower ? duplicateTower.id : null);
     });
 }
@@ -281,7 +270,45 @@ function resetForm() {
     if(minutosInput) minutosInput.value = 0;
     if(segundosInput) segundosInput.value = 0;
     
-    if(mapaSelect) mapaSelect.focus();
+    restoreOwnerFields();
+    if(mapaSelect && !mapaSelect.value) mapaSelect.focus();
+}
+
+function rememberOwner(dono, alianca) {
+    localStorage.setItem('anbu_last_dono', dono);
+    localStorage.setItem('anbu_last_alianca', alianca);
+}
+
+function restoreOwnerFields() {
+    const donoInput = document.getElementById('dono');
+    if (!donoInput) return;
+
+    const savedOwner = localStorage.getItem('anbu_last_dono');
+    if (savedOwner) donoInput.value = savedOwner.slice(0, FIELD_LIMITS.dono);
+
+    const savedAlliance = localStorage.getItem('anbu_last_alianca');
+    if (savedAlliance === 'Inimigo') {
+        const enemy = document.getElementById('alliance_enemy');
+        if (enemy) enemy.checked = true;
+    } else if (savedAlliance === 'Aliado') {
+        const ally = document.getElementById('alliance_ally');
+        if (ally) ally.checked = true;
+    }
+}
+
+function applyQueryPrefill() {
+    const params = new URLSearchParams(window.location.search);
+    const mapa = params.get('mapa');
+    const servidor = params.get('servidor');
+    const mapaSelect = document.getElementById('mapa');
+    const servidorSelect = document.getElementById('servidor');
+
+    if (mapaSelect && mapa && MAPAS.includes(mapa)) {
+        mapaSelect.value = mapa;
+    }
+    if (servidorSelect && servidor && SERVIDORES.map(String).includes(servidor)) {
+        servidorSelect.value = servidor;
+    }
 }
 
 function resetSubmitButton() {
