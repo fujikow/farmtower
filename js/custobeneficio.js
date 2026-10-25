@@ -18,8 +18,11 @@ let selectedJewelForCalc = 'bless'; // Padrão
 
 // ===== INICIALIZAÇÃO =====
 document.addEventListener('DOMContentLoaded', function() {
-    // 1. Define os valores padrão dos inputs
+    if (!document.getElementById('ruud_farm_rate')) return;
+
+    // 1. Define os valores padrão dos inputs e restaura o último cenário salvo
     setDefaultRuudValues();
+    applyRuudSettings(readRuudSettings());
     
     // 2. Adiciona "ouvintes" a todos os inputs
     const inputs = document.querySelectorAll('#ruudModal .modal-body input');
@@ -47,18 +50,61 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Define os valores padrão
+const RUUD_FIELDS = [
+    'ruud_farm_rate',
+    'ruud_conversion_rate',
+    'price_bless',
+    'price_soul',
+    'price_chaos',
+    'price_life',
+    'price_harmony',
+    'price_creation'
+];
+
 function setDefaultRuudValues() {
-    // Taxa de Farm
-    document.getElementById('ruud_farm_rate').value = 1300; // Padrão único
-    // Conversão
-    document.getElementById('ruud_conversion_rate').value = 5;
-    // Preços de Joias
-    document.getElementById('price_bless').value = 600;
-    document.getElementById('price_soul').value = 600;
-    document.getElementById('price_chaos').value = 200;
-    document.getElementById('price_life').value = 150;
-    document.getElementById('price_harmony').value = 150;
-    document.getElementById('price_creation').value = 150;
+    const defaults = {
+        ruud_farm_rate: 1300,
+        ruud_conversion_rate: 5,
+        price_bless: 600,
+        price_soul: 600,
+        price_chaos: 200,
+        price_life: 150,
+        price_harmony: 150,
+        price_creation: 150
+    };
+    RUUD_FIELDS.forEach((id) => {
+        const input = document.getElementById(id);
+        if (input) input.value = defaults[id];
+    });
+}
+
+function readRuudSettings() {
+    try {
+        return JSON.parse(localStorage.getItem('anbu_ruud_settings') || '{}');
+    } catch (e) {
+        return {};
+    }
+}
+
+function applyRuudSettings(settings) {
+    RUUD_FIELDS.forEach((id) => {
+        const input = document.getElementById(id);
+        if (input && settings[id] != null && settings[id] !== '') input.value = settings[id];
+    });
+    if (!['bless', 'soul', 'chaos', 'life', 'harmony', 'creation'].includes(settings.selectedJewel)) return;
+    selectedJewelForCalc = settings.selectedJewel;
+    document.querySelectorAll('.btn-jewel-select').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.jewel === settings.selectedJewel);
+    });
+}
+
+function saveRuudSettings() {
+    const data = { selectedJewel: selectedJewelForCalc };
+    RUUD_FIELDS.forEach((id) => {
+        const input = document.getElementById(id);
+        if (input) data[id] = input.value;
+    });
+    localStorage.setItem('anbu_ruud_settings', JSON.stringify(data));
 }
 
 // ===== FUNÇÕES DO MODAL =====
@@ -84,7 +130,9 @@ function closeRuudModal() {
 // ===== O CÉREBRO: FUNÇÃO DE CÁLCULO =====
 function calculateCostBenefit() {
     // 1. LER VALORES DE MERCADO (INPUTS)
-    const conversionRate = parseFloat(document.getElementById('ruud_conversion_rate').value) || 5;
+    const conversionInput = document.getElementById('ruud_conversion_rate');
+    if (!conversionInput) return;
+    const conversionRate = parseFloat(conversionInput.value);
     
     const jewelPrices = {
         bless: parseFloat(document.getElementById('price_bless').value) || 0,
@@ -105,15 +153,16 @@ function calculateCostBenefit() {
     // Custo (MC) de 1 joia
     const unitJewelPrice = (jewelPrices[selectedJewelForCalc] || 0) / 100;
     // Ganho (MC) por hora
-    const farmRateInMc = farmRate / conversionRate;
+    const farmRateInMc = conversionRate > 0 ? farmRate / conversionRate : 0;
 
     // 4. PROCESSAR E RENDERIZAR TABELA
     const tableBody = document.getElementById('ruudResultsTableBody');
     if (!tableBody) return;
     
-    tableBody.innerHTML = ''; // Limpa a tabela
+    tableBody.replaceChildren();
     let accumulatedProfit = 0;
     let lastAccumulatedCost = 0;
+    let bestRow = null;
 
     RUUD_JEWEL_COST_TABLE.forEach(row => {
         const hour = row.h;
@@ -137,6 +186,7 @@ function calculateCostBenefit() {
         // Formatação condicional (Lucro/Prejuízo)
         if (hourlyProfit >= 0) {
             tr.classList.add('row-profit');
+            bestRow = tr;
         } else {
             tr.classList.add('row-loss');
         }
@@ -154,4 +204,7 @@ function calculateCostBenefit() {
         // Atualiza o custo anterior para o próximo loop
         lastAccumulatedCost = accumulatedJewelCost;
     });
+
+    if (bestRow) bestRow.classList.add('row-best');
+    saveRuudSettings();
 }

@@ -1,0 +1,14 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "towers": {
+      ".read": "auth != null && auth.token.email == 'fujikow.kontarski@gmail.com'",
+      ".indexOn": ["horarioFinalizacao"],
+      "$towerId": {
+        ".write": "auth != null && auth.token.email == 'fujikow.kontarski@gmail.com'",
+        ".validate": "newData.hasChildren(['mapa', 'servidor', 'dono', 'localizacao', 'alianca', 'vistoHorario', 'horarioFinalizacao', 'duracaoSegundos']) && newData.child('mapa').isString() && newData.child('mapa').val().length > 0 && newData.child('mapa').val().length <= 40 && newData.child('servidor').isString() && newData.child('servidor').val().matches(/^[0-9]{1,2}$/) && newData.child('dono').isString() && newData.child('dono').val().length > 0 && newData.child('dono').val().length <= 40 && newData.child('localizacao').isString() && newData.child('localizacao').val().length > 0 && newData.child('localizacao').val().length <= 80 && newData.child('alianca').val().matches(/^(Aliado|Inimigo)$/) && newData.child('vistoHorario').isString() && newData.child('horarioFinalizacao').isString() && newData.child('duracaoSegundos').isNumber() && newData.child('duracaoSegundos').val() > 0 && newData.child('duracaoSegundos').val() <= 172800"
+      }
+    }
+  }
+}
