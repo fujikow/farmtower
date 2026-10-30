@@ -41,8 +41,8 @@ function closeMissingModal() {
         const filterMapa = document.getElementById('filterMissingMapa');
         const filterServidor = document.getElementById('filterMissingServidor');
         
-        if(filterMapa) filterMapa.innerHTML = '<option value="">Todos</option>';
-        if(filterServidor) filterServidor.innerHTML = '<option value="">Todos</option>';
+        if(filterMapa) filterMapa.replaceChildren(new Option(getTranslation('filter_all'), ''));
+        if(filterServidor) filterServidor.replaceChildren(new Option(getTranslation('filter_all'), ''));
 
         allMissingTowers = {}; // Limpa cache (resetando para objeto)
     }
@@ -138,8 +138,9 @@ function populateMissingFilters() {
     const servidores = [...allServersSet].sort((a, b) => parseInt(a) - parseInt(b));
 
     // O resto da lógica é a mesma
-    filterMapa.innerHTML = '<option value="">Todos</option>';
-    filterServidor.innerHTML = '<option value="">Todos</option>';
+    const allLabel = getTranslation('filter_all');
+    filterMapa.replaceChildren(new Option(allLabel, ''));
+    filterServidor.replaceChildren(new Option(allLabel, ''));
 
     mapas.forEach(mapa => {
         filterMapa.appendChild(new Option(mapa, mapa));

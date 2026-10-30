@@ -20,6 +20,9 @@ document.addEventListener('DOMContentLoaded', function() {
     if(horasInput) horasInput.value = 0;
     if(minutosInput) minutosInput.value = 0;
     if(segundosInput) segundosInput.value = 0;
+
+    updateSchedulePreview();
+    setInterval(updateSchedulePreview, 1000);
 });
 
 // ===== CARREGAR OPÇÕES DE MAPAS =====
@@ -59,13 +62,13 @@ function loadServidoresOptions() {
 // ===== MANIPULAÇÃO DO FORMULÁRIO =====
 const towerForm = document.getElementById('towerForm');
 if (towerForm) {
-    towerForm.addEventListener('submit', function(e) {
+    towerForm.addEventListener('submit', async function(e) {
         e.preventDefault();
 
         // Desabilitar botão durante envio
         const submitBtn = document.getElementById('submitBtn');
         submitBtn.disabled = true;
-        submitBtn.innerHTML = '<span>⏳</span> Cadastrando...';
+        submitBtn.innerHTML = `<span>⏳</span> <span data-i18n-key="form_button_registering">${getTranslation('form_button_registering')}</span>`;
 
         // Coletar dados do formulário
         const mapa = document.getElementById('mapa').value;
@@ -144,17 +147,24 @@ if (towerForm) {
         // ===== FIM DA VALIDAÇÃO =====
 
 
-        // ===== ALTERAÇÃO DE TIMEZONE =====
-        // Horário atual (visto) - USA A HORA CORRIGIDA DO SERVIDOR
-        const vistoHorario = getEstimatedServerTime(); // Função do firebase-config.js
-
-        // Calcular horário de finalização
-        const horarioFinalizacao = new Date(vistoHorario.getTime() + (duracaoTotal * 1000));
-        // ===== FIM DA ALTERAÇÃO =====
+        // Espera o desvio do servidor antes de gravar. Sem isso, um relógio
+        // adiantado em outro fuso salvaria um término diferente para a mesma duração.
+        let schedule = null;
+        try {
+            await whenServerTimeReady();
+            schedule = buildScheduleFromInstant(getEstimatedServerTime(), duracaoTotal);
+        } catch (error) {
+            schedule = null;
+        }
+        if (!schedule) {
+            showError(getTranslation('error_time_sync'));
+            resetSubmitButton();
+            return;
+        }
 
         const aleatoriedade = SERVIDORES_ALEATORIOS.includes(String(servidor)) ? 'Sim' : 'Não';
 
-        // Criar objeto da torre
+        // Criar objeto da torre. Horários canônicos em UTC; a tela mostra o relógio local.
         const torre = {
             mapa: mapa,
             servidor: servidor,
@@ -162,11 +172,11 @@ if (towerForm) {
             dono: dono,
             localizacao: localizacao,
             alianca: alianca,
-            vistoHorario: vistoHorario.toISOString(), // Salva em UTC
-            horarioFinalizacao: horarioFinalizacao.toISOString(), // Salva em UTC
+            vistoHorario: schedule.vistoHorario,
+            horarioFinalizacao: schedule.horarioFinalizacao,
             duracaoSegundos: duracaoTotal,
             duracaoFormatada: formatDuration(horas, minutos, segundos),
-            cadastradoEm: vistoHorario.toISOString() // Atualiza usando a hora corrigida
+            cadastradoEm: schedule.cadastradoEm
         };
 
         rememberOwner(dono, alianca);
@@ -256,8 +266,8 @@ function resetForm() {
     const mapaSelect = document.getElementById('mapa');
     const servidorSelect = document.getElementById('servidor');
     
-    if(mapaSelect) mapaSelect.innerHTML = '<option value="">Selecione um mapa</option>';
-    if(servidorSelect) servidorSelect.innerHTML = '<option value="">Selecione um servidor</option>';
+    if(mapaSelect) mapaSelect.replaceChildren(new Option(getTranslation('form_map_placeholder'), ''));
+    if(servidorSelect) servidorSelect.replaceChildren(new Option(getTranslation('form_server_placeholder'), ''));
     
     loadMapasOptions();
     loadServidoresOptions();
@@ -317,7 +327,7 @@ function resetSubmitButton() {
         submitBtn.disabled = false;
         // Usa a tradução para resetar o botão
         const buttonText = getTranslation('form_button_register');
-        submitBtn.innerHTML = `<span>📝</span> ${buttonText}`;
+        submitBtn.innerHTML = `<span>📝</span> <span data-i18n-key="form_button_register">${buttonText}</span>`;
     }
 }
 
@@ -331,6 +341,7 @@ if (horasInput) {
         }
         if (this.value < 0) this.value = 0;
         updateDurationFeedback();
+        updateSchedulePreview();
     });
 }
 
@@ -339,6 +350,7 @@ if (minutosInput) {
     minutosInput.addEventListener('input', function() {
         if (this.value > 59) this.value = 59;
         if (this.value < 0) this.value = 0;
+        updateSchedulePreview();
     });
 }
 
@@ -347,6 +359,7 @@ if (segundosInput) {
     segundosInput.addEventListener('input', function() {
         if (this.value > 59) this.value = 59;
         if (this.value < 0) this.value = 0;
+        updateSchedulePreview();
     });
 }
 
@@ -368,6 +381,33 @@ document.addEventListener('keydown', function(e) {
 });
 
 // ===== FEEDBACK VISUAL PARA DURAÇÃO =====
+function updateSchedulePreview() {
+    const preview = document.getElementById('schedulePreview');
+    if (!preview || typeof getTranslation !== 'function') return;
+
+    const offset = typeof getWindowsClockOffsetLabel === 'function' ? getWindowsClockOffsetLabel() : '';
+    if (typeof isServerTimeReady === 'function' && !isServerTimeReady()) {
+        preview.textContent = getTranslation('schedule_preview_waiting');
+        return;
+    }
+
+    const horas = parseInt(document.getElementById('horas') ? document.getElementById('horas').value : '0', 10) || 0;
+    const minutos = parseInt(document.getElementById('minutos') ? document.getElementById('minutos').value : '0', 10) || 0;
+    const segundos = parseInt(document.getElementById('segundos') ? document.getElementById('segundos').value : '0', 10) || 0;
+    const duracaoTotal = (horas * 3600) + (minutos * 60) + segundos;
+    const now = typeof getEstimatedServerTime === 'function' ? getEstimatedServerTime() : new Date();
+    const seen = formatDateTime(now);
+
+    if (duracaoTotal <= 0) {
+        preview.textContent = getTranslation('schedule_preview_seen', { seen: seen, offset: offset });
+        return;
+    }
+
+    const schedule = buildScheduleFromInstant(now, duracaoTotal);
+    const end = schedule ? formatDateTime(parseUtcInstant(schedule.horarioFinalizacao)) : '--';
+    preview.textContent = getTranslation('schedule_preview', { seen: seen, end: end, offset: offset });
+}
+
 function updateDurationFeedback() {
     const horasInput = document.getElementById('horas');
     if(!horasInput) return;

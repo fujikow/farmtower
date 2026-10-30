@@ -2,6 +2,7 @@
   "lang_pt": "Português",
   "lang_en": "Inglês",
   "lang_es": "Espanhol",
+  "lang_vi": "Vietnamita",
 
   "login_title": "Acesso Protegido",
   "login_subtitle": "Digite a senha para acessar o sistema",
@@ -11,7 +12,10 @@
 
   "form_title": "Cadastro de Torre",
   "form_map": "Mapa *",
+  "form_map_placeholder": "Selecione um mapa",
   "form_server": "Servidor *",
+  "form_server_placeholder": "Selecione um servidor",
+  "filter_all": "Todos",
   "form_owner": "Dono *",
   "form_owner_placeholder": "Digite o nome do dono",
   "form_location": "Localização Específica *",
@@ -19,6 +23,7 @@
   "form_duration": "Duração da Torre *",
   "form_duration_hint": "(Máximo: 48 horas)",
   "form_button_register": "Cadastrar Torre",
+  "form_button_registering": "Cadastrando...",
   "form_button_view_table": "Ver Tabela",
   "form_button_missing": "Torres s/ Cadastro",
 
@@ -32,6 +37,7 @@
   "table_header_seen": "Visto Horário",
   "table_header_end": "Horário Finalização",
   "table_header_remaining": "Tempo Restante",
+  "table_local_clock": "Relógio do Windows ({offset}). O término da torre é o mesmo instante para todos.",
   
   "stats_total_towers": "Total de Torres",
   "stats_active_towers": "Torres Ativas",
@@ -54,7 +60,7 @@
   "connection_status": "Conectando...",
 
   "jewel_modal_title": "Cálculo de Joias Necessárias",
-  "jewel_modal_current_time": "Horário Atual (GMT -3):",
+  "jewel_modal_current_time": "Horário atual ({offset}):",
   "jewel_modal_additional_hours": "Horas Adicionais:",
   "jewel_modal_release_time": "Hora de Liberação:",
   "jewel_modal_jewels_needed": "Joias Necessárias:",
@@ -90,6 +96,7 @@
   "error_duplicate_overwrite_confirm": "❌ ERRO: Já existe uma torre ATIVA cadastrada em {mapa} (Servidor {servidor})!\n\nDeseja sobreescrever os dados antigos?",
   "error_duplicate_cancelled": "Cadastro cancelado pelo usuário.",
   "error_save_tower": "Erro ao salvar torre. Verifique sua conexão!",
+  "error_time_sync": "Não foi possível sincronizar o horário. Espere a conexão e tente de novo para não cadastrar um horário diferente dos outros.",
   "error_wrong_password": "❌ Senha incorreta! Tente novamente.",
   "error_user_not_found": "❌ Erro de configuração (Usuário fixo não encontrado).",
   "error_password_empty": "Por favor, digite a senha!",
@@ -106,6 +113,8 @@
   "connection_status_disconnected": "Desconectado",
 
   "alert_copy_id_success": "ID copiado: {id}",
+  "alert_copy_title": "Clique para copiar",
+  "confirm_logout": "Deseja realmente sair?",
   "export_error_no_towers": "❌ Nenhuma torre para exportar!",
   "export_error_no_filtered_towers": "❌ Nenhuma torre encontrada com os filtros aplicados!",
   "export_success": "✅ Tabela exportada com sucesso!",
@@ -113,6 +122,10 @@
 
   "success_tower_registered": "✅ Torre cadastrada com sucesso!",
   "success_tower_overwritten": "✅ Torre sobreescrita com sucesso!",
+
+  "schedule_preview_waiting": "Sincronizando o horário para o cadastro ficar igual para todo mundo...",
+  "schedule_preview_seen": "No seu relógio ({offset}) agora é {seen}.",
+  "schedule_preview": "No seu relógio ({offset}): visto {seen} e termina {end}. Esse término é o mesmo instante para todos.",
 
   "form_alliance": "Aliança",
   "form_alliance_ally": "Aliado",

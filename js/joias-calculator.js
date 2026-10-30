@@ -142,23 +142,6 @@ function updateJoiasCalculator() {
     }
 }
 
-// ===== FORMATAR DATA E HORÁRIO =====
-// (Função ATUALIZADA para mostrar DD/MM HH:MM:SS)
-function formatModalDateTime(date) {
-    if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '--/-- --:--:--';
-    const parts = new Intl.DateTimeFormat('en-GB', {
-        timeZone: 'America/Sao_Paulo',
-        day: '2-digit',
-        month: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hourCycle: 'h23'
-    }).formatToParts(date);
-    const pick = (type) => parts.find((part) => part.type === type).value;
-    return `${pick('day')}/${pick('month')} ${pick('hour')}:${pick('minute')}:${pick('second')}`;
-}
-
 // ===== FECHAR MODAL AO CLICAR FORA =====
 document.addEventListener('DOMContentLoaded', function() {
     const modal = document.getElementById('joiasModal');

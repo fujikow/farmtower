@@ -86,8 +86,8 @@ function loadTowersFromFirebase() {
             Object.keys(towers).forEach(key => {
                 const torre = towers[key];
                 if (!torre || typeof torre !== 'object') return;
-                const finalizacao = new Date(torre.horarioFinalizacao);
-                if (Number.isNaN(finalizacao.getTime())) return;
+                const finalizacao = parseUtcInstant(torre.horarioFinalizacao);
+                if (!finalizacao) return;
                 if (finalizacao.getTime() > cutoffTime) {
                     allTowers.push({
                         id: key,
@@ -147,8 +147,9 @@ function populateFilters() {
         return parseInt(a, 10) - parseInt(b, 10);
     });
 
-    filterMapa.replaceChildren(new Option('Todos', ''));
-    filterServidor.replaceChildren(new Option('Todos', ''));
+    const allLabel = getTranslation('filter_all');
+    filterMapa.replaceChildren(new Option(allLabel, ''));
+    filterServidor.replaceChildren(new Option(allLabel, ''));
 
     mapas.forEach(mapa => filterMapa.appendChild(new Option(mapa, mapa)));
     servidores.forEach(servidor => filterServidor.appendChild(new Option(servidor, servidor)));
@@ -173,7 +174,10 @@ function updateStats() {
 
     const filteredTowers = getFilteredTowers();
     const now = getEstimatedServerTime().getTime();
-    const activeFilteredTowers = filteredTowers.filter(t => new Date(t.horarioFinalizacao).getTime() > now);
+    const activeFilteredTowers = filteredTowers.filter(t => {
+        const end = parseUtcInstant(t.horarioFinalizacao);
+        return end && end.getTime() > now;
+    });
 
     const torresAleatorias = activeFilteredTowers.filter(t =>
         SERVIDORES_ALEATORIOS.includes(asText(t.servidor))
@@ -215,7 +219,7 @@ function renderTable() {
     table.style.display = 'table';
     emptyState.style.display = 'none';
 
-    filteredTowers.sort((a, b) => new Date(a.horarioFinalizacao) - new Date(b.horarioFinalizacao));
+    filteredTowers.sort((a, b) => towerEndMs(a) - towerEndMs(b));
 
     const signature = filteredTowers.map(torre => torre.id).join('|');
     const canUpdateInPlace = tableBody.dataset.signature === signature
@@ -271,7 +275,7 @@ function buildRow(torre) {
     cells[11].style.color = '#6c757d';
     cells[11].style.fontFamily = 'monospace';
     cells[11].style.cursor = 'pointer';
-    cells[11].title = 'Clique para copiar';
+    cells[11].title = getTranslation('alert_copy_title');
     cells[11].addEventListener('click', () => {
         const id = asText(torre.id);
         navigator.clipboard.writeText(id);
@@ -294,8 +298,8 @@ function setStrongText(td, text) {
 
 function paintRow(tr, torre) {
     const now = getEstimatedServerTime();
-    const vistoDate = new Date(torre.vistoHorario);
-    const finalizacaoDate = new Date(torre.horarioFinalizacao);
+    const vistoDate = parseUtcInstant(torre.vistoHorario);
+    const finalizacaoDate = parseUtcInstant(torre.horarioFinalizacao);
     const statusInfo = getStatusInfo(finalizacaoDate, now);
     const cells = tr.children;
 
@@ -314,6 +318,7 @@ function paintRow(tr, torre) {
     cells[9].textContent = formatDateTime(finalizacaoDate);
     setStrongText(cells[10], calculateTempoRestante(finalizacaoDate, now));
     cells[11].textContent = asText(torre.id);
+    cells[11].title = getTranslation('alert_copy_title');
 }
 
 function deleteTower(torre) {
@@ -337,7 +342,9 @@ function checkCriticalAlerts() {
     const now = getEstimatedServerTime().getTime();
     const criticalIds = getFilteredTowers()
         .filter(torre => {
-            const diff = new Date(torre.horarioFinalizacao).getTime() - now;
+            const end = parseUtcInstant(torre.horarioFinalizacao);
+            if (!end) return false;
+            const diff = end.getTime() - now;
             return diff > 0 && diff < 5 * 60 * 1000;
         })
         .map(torre => torre.id);
@@ -391,20 +398,9 @@ function calculateTempoRestante(finalizacao, now) {
     return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
-function formatDateTime(date) {
-    if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '--';
-    const parts = new Intl.DateTimeFormat('en-GB', {
-        timeZone: 'America/Sao_Paulo',
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hourCycle: 'h23'
-    }).formatToParts(date);
-    const pick = (type) => parts.find((part) => part.type === type).value;
-    return `${pick('day')}/${pick('month')}/${pick('year')} ${pick('hour')}:${pick('minute')}:${pick('second')}`;
+function towerEndMs(torre) {
+    const end = parseUtcInstant(torre.horarioFinalizacao);
+    return end ? end.getTime() : 0;
 }
 
 function refreshTable() {
@@ -428,12 +424,12 @@ function exportToExcel() {
             return;
         }
 
-        filteredTowers.sort((a, b) => new Date(a.horarioFinalizacao) - new Date(b.horarioFinalizacao));
+        filteredTowers.sort((a, b) => towerEndMs(a) - towerEndMs(b));
 
         const now = getEstimatedServerTime();
         const exportData = filteredTowers.map(torre => {
-            const vistoDate = new Date(torre.vistoHorario);
-            const finalizacaoDate = new Date(torre.horarioFinalizacao);
+            const vistoDate = parseUtcInstant(torre.vistoHorario);
+            const finalizacaoDate = parseUtcInstant(torre.horarioFinalizacao);
             return {
                 'Mapa': asText(torre.mapa),
                 'Servidor': asText(torre.servidor),
@@ -462,7 +458,7 @@ function exportToExcel() {
             { 'Informação': 'Total de Torres', 'Valor': filteredTowers.length },
             { 'Informação': 'Torres com Aleatoriedade', 'Valor': filteredTowers.filter(t => t.aleatoriedade === 'Sim').length },
             { 'Informação': 'Data/Hora da Exportação', 'Valor': formatDateTime(now) },
-            { 'Informação': 'Fuso', 'Valor': 'America/Sao_Paulo' },
+            { 'Informação': 'Fuso', 'Valor': `${getWindowsTimeZoneId()} (${getWindowsClockOffsetLabel()})` },
             { 'Informação': 'Exportado por', 'Valor': 'ANBU Farm Tower - MEGAMU' }
         ];
 

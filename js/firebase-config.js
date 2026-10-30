@@ -18,21 +18,55 @@ firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 const towersRef = database.ref('towers');
 
-// ===== NOVO: SINCRONIZADOR DE HORA DO SERVIDOR =====
-let serverTimeOffset = 0; // Armazena a diferença entre o cliente e o servidor
+// ===== SINCRONIZADOR DE HORA DO SERVIDOR =====
+// O relógio do Windows só define o fuso da tela. O "agora" compartilhado
+// vem do servidor, para um PC adiantado não gravar término diferente dos outros.
+let serverTimeOffset = 0;
+let serverTimeOffsetReady = false;
+const serverTimeWaiters = [];
 
 const offsetRef = database.ref('.info/serverTimeOffset');
 offsetRef.on('value', (snapshot) => {
-    serverTimeOffset = snapshot.val() || 0;
+    const value = snapshot.val();
+    serverTimeOffset = typeof value === 'number' && Number.isFinite(value) ? value : 0;
     console.log(`[Time Sync] Desvio do servidor: ${serverTimeOffset}ms`);
+    if (!serverTimeOffsetReady) {
+        serverTimeOffsetReady = true;
+        const waiters = serverTimeWaiters.splice(0);
+        waiters.forEach((resolve) => resolve());
+    }
+    if (typeof renderWindowsClock === 'function') renderWindowsClock();
+    if (typeof updateSchedulePreview === 'function') updateSchedulePreview();
 });
 
 /**
- * Retorna um objeto Date com a hora atual estimada do servidor (em UTC),
- * corrigindo qualquer erro no relógio local do usuário.
+ * Retorna um objeto Date com a hora atual estimada do servidor,
+ * corrigindo erro do relógio local sem mudar o fuso do Windows.
  */
 function getEstimatedServerTime() {
-    return new Date(new Date().getTime() + serverTimeOffset);
+    return new Date(Date.now() + serverTimeOffset);
+}
+
+function isServerTimeReady() {
+    return serverTimeOffsetReady === true;
+}
+
+function whenServerTimeReady(timeoutMs = 4000) {
+    if (serverTimeOffsetReady) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => {
+            const index = serverTimeWaiters.indexOf(onReady);
+            if (index >= 0) serverTimeWaiters.splice(index, 1);
+            reject(new Error('offset-timeout'));
+        }, timeoutMs);
+
+        function onReady() {
+            clearTimeout(timer);
+            resolve();
+        }
+
+        serverTimeWaiters.push(onReady);
+    });
 }
 // ===== FIM DO SINCRONIZADOR =====
 
@@ -65,13 +99,14 @@ connectedRef.on('value', (snapshot) => {
 // Remove torres que expiraram há mais de 1 hora.
 // A consulta usa o índice horarioFinalizacao (veja database.rules.json).
 function cleanExpiredTowers() {
-    const cutoff = new Date(getEstimatedServerTime().getTime() - 60 * 60 * 1000).toISOString();
+    const cutoffMs = getEstimatedServerTime().getTime() - (60 * 60 * 1000);
+    const cutoff = new Date(cutoffMs).toISOString();
 
     towersRef.orderByChild('horarioFinalizacao').endAt(cutoff).once('value', (snapshot) => {
         const removals = [];
         snapshot.forEach((child) => {
-            const finalizacao = child.child('horarioFinalizacao').val();
-            if (typeof finalizacao === 'string' && finalizacao <= cutoff) {
+            const finalizacao = parseUtcInstant(child.child('horarioFinalizacao').val());
+            if (finalizacao && finalizacao.getTime() <= cutoffMs) {
                 removals.push(child.ref.remove());
             }
         });

@@ -1259,9 +1259,47 @@ tbody tr:hover {
     padding: 0 5px;
 }
 
-.language-switcher button:hover {
+.language-switcher button:hover,
+.language-switcher button.is-selected {
     opacity: 1;
     transform: scale(1.1);
+}
+
+.language-switcher button.is-selected {
+    outline: 2px solid var(--gremio-branco);
+    border-radius: 8px;
+}
+
+.local-clock-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    background: rgba(255, 255, 255, 0.15);
+    padding: 8px 14px;
+    border-radius: 16px;
+    max-width: 280px;
+}
+
+.local-clock {
+    font-family: ui-monospace, Consolas, monospace;
+    font-size: 1.05em;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+.local-clock-note {
+    font-size: 0.75em;
+    line-height: 1.3;
+    opacity: 0.95;
+}
+
+.schedule-preview {
+    margin-top: 10px;
+    color: var(--gremio-azul-escuro);
+    font-size: 0.95em;
+    font-weight: 600;
+    line-height: 1.4;
 }
 
 /* ===== BOTÃO ANÁLISE RUUD (ARREDONDADO) ===== */
