@@ -2,6 +2,7 @@
   "lang_pt": "Portugués",
   "lang_en": "Inglés",
   "lang_es": "Español",
+  "lang_vi": "Vietnamita",
 
   "login_title": "Acceso Protegido",
   "login_subtitle": "Ingrese la contraseña para acceder al sistema",
@@ -11,7 +12,10 @@
   
   "form_title": "Registro de Torre",
   "form_map": "Mapa *",
+  "form_map_placeholder": "Seleccione un mapa",
   "form_server": "Servidor *",
+  "form_server_placeholder": "Seleccione un servidor",
+  "filter_all": "Todos",
   "form_owner": "Dueño *",
   "form_owner_placeholder": "Ingrese el nombre del dueño",
   "form_location": "Ubicación Específica *",
@@ -19,6 +23,7 @@
   "form_duration": "Duración de la Torre *",
   "form_duration_hint": "(Máximo: 48 horas)",
   "form_button_register": "Registrar Torre",
+  "form_button_registering": "Registrando...",
   "form_button_view_table": "Ver Tabla",
   "form_button_missing": "Torres Faltantes",
 
@@ -32,6 +37,7 @@
   "table_header_seen": "Visto en",
   "table_header_end": "Finalización",
   "table_header_remaining": "Tiempo Restante",
+  "table_local_clock": "Reloj de Windows ({offset}). La torre termina en el mismo instante para todos.",
   
   "stats_total_towers": "Total de Torres",
   "stats_active_towers": "Torres Activas",
@@ -53,7 +59,7 @@
   "connection_status": "Conectando...",
 
   "jewel_modal_title": "Cálculo de Joyas Necesarias",
-  "jewel_modal_current_time": "Hora Actual (GMT -3):",
+  "jewel_modal_current_time": "Hora actual ({offset}):",
   "jewel_modal_additional_hours": "Horas Adicionales:",
   "jewel_modal_release_time": "Hora de Liberación:",
   "jewel_modal_jewels_needed": "Joyas Necesarias:",
@@ -74,6 +80,7 @@
   "error_duplicate_overwrite_confirm": "❌ ERROR: ¡Ya existe una torre ACTIVA registrada en {mapa} (Servidor {servidor})!\n\n¿Desea sobrescribir los datos antiguos?",
   "error_duplicate_cancelled": "Registro cancelado por el usuario.",
   "error_save_tower": "Error al guardar la torre. ¡Verifique su conexión!",
+  "error_time_sync": "No se pudo sincronizar la hora. Espere la conexión e inténtelo de nuevo para no registrar un horario distinto al de los demás.",
   "error_wrong_password": "❌ ¡Contraseña incorrecta! Inténtalo de nuevo.",
   "error_user_not_found": "❌ Error de configuración (Usuario fijo no encontrado).",
   "error_password_empty": "¡Por favor, ingrese la contraseña!",
@@ -90,6 +97,8 @@
   "connection_status_disconnected": "Desconectado",
 
   "alert_copy_id_success": "ID copiado: {id}",
+  "alert_copy_title": "Haga clic para copiar",
+  "confirm_logout": "¿Realmente desea salir?",
   "export_error_no_towers": "❌ ¡No hay torres para exportar!",
   "export_error_no_filtered_towers": "❌ ¡No se encontraron torres con los filtros aplicados!",
   "export_success": "✅ ¡Tabla exportada con éxito!",
@@ -97,6 +106,10 @@
   
   "success_tower_registered": "✅ ¡Torre registrada con éxito!",
   "success_tower_overwritten": "✅ ¡Torre sobrescrita con éxito!",
+
+  "schedule_preview_waiting": "Sincronizando la hora para que el registro coincida con los demás...",
+  "schedule_preview_seen": "En tu reloj ({offset}) ahora son las {seen}.",
+  "schedule_preview": "En tu reloj ({offset}): visto {seen} y termina {end}. Ese fin es el mismo instante para todos.",
 
   "btn_ruud_calc": "Ruud C/B Analysis",
   "ruud_modal_title": "Cost-Benefit Analysis: Ruud Farm",

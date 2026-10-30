@@ -2,6 +2,7 @@
   "lang_pt": "Portuguese",
   "lang_en": "English",
   "lang_es": "Spanish",
+  "lang_vi": "Vietnamese",
 
   "login_title": "Protected Access",
   "login_subtitle": "Enter the password to access the system",
@@ -11,7 +12,10 @@
   
   "form_title": "Tower Registration",
   "form_map": "Map *",
+  "form_map_placeholder": "Select a map",
   "form_server": "Server *",
+  "form_server_placeholder": "Select a server",
+  "filter_all": "All",
   "form_owner": "Owner *",
   "form_owner_placeholder": "Enter owner's name",
   "form_location": "Specific Location *",
@@ -19,6 +23,7 @@
   "form_duration": "Tower Duration *",
   "form_duration_hint": "(Maximum: 48 hours)",
   "form_button_register": "Register Tower",
+  "form_button_registering": "Registering...",
   "form_button_view_table": "View Table",
   "form_button_missing": "Missing Towers",
 
@@ -32,6 +37,7 @@
   "table_header_seen": "Seen Time",
   "table_header_end": "End Time",
   "table_header_remaining": "Time Remaining",
+  "table_local_clock": "Windows clock ({offset}). A tower ends at the same instant for everyone.",
   
   "stats_total_towers": "Total Towers",
   "stats_active_towers": "Active Towers",
@@ -53,7 +59,7 @@
   "connection_status": "Connecting...",
 
   "jewel_modal_title": "Required Jewels Calculation",
-  "jewel_modal_current_time": "Current Time (GMT -3):",
+  "jewel_modal_current_time": "Current time ({offset}):",
   "jewel_modal_additional_hours": "Additional Hours:",
   "jewel_modal_release_time": "Release Time:",
   "jewel_modal_jewels_needed": "Jewels Needed:",
@@ -74,6 +80,7 @@
   "error_duplicate_overwrite_confirm": "❌ ERROR: There is already an ACTIVE tower registered in {mapa} (Server {servidor})!\n\nDo you want to overwrite the old data?",
   "error_duplicate_cancelled": "Registration cancelled by user.",
   "error_save_tower": "Error saving tower. Check your connection!",
+  "error_time_sync": "Could not sync the clock. Wait for the connection and try again so this tower does not get a different time from everyone else.",
   "error_wrong_password": "❌ Incorrect password! Try again.",
   "error_user_not_found": "❌ Configuration error (Fixed user not found).",
   "error_password_empty": "Please enter the password!",
@@ -90,6 +97,8 @@
   "connection_status_disconnected": "Disconnected",
 
   "alert_copy_id_success": "ID copied: {id}",
+  "alert_copy_title": "Click to copy",
+  "confirm_logout": "Do you really want to log out?",
   "export_error_no_towers": "❌ No towers to export!",
   "export_error_no_filtered_towers": "❌ No towers found with the applied filters!",
   "export_success": "✅ Table exported successfully!",
@@ -97,6 +106,10 @@
   
   "success_tower_registered": "✅ Tower registered successfully!",
   "success_tower_overwritten": "✅ Tower overwritten successfully!",
+
+  "schedule_preview_waiting": "Syncing the clock so registration matches everyone else...",
+  "schedule_preview_seen": "Your clock ({offset}) now shows {seen}.",
+  "schedule_preview": "Your clock ({offset}): seen {seen}, ends {end}. That end is the same instant for everyone.",
 
  
   "btn_ruud_calc": "Ruud C/B Analysis",

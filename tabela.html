@@ -15,6 +15,18 @@
             <div class="login-header">
                 <h1>🏰 ANBU FARM TOWER</h1>
                 <h2>MEGAMU - Área Restrita</h2>
+                <div class="header-buttons">
+                    <div class="language-switcher">
+                        <button type="button" data-lang="pt" onclick="setLanguage('pt')" title="Português">🇧🇷</button>
+                        <button type="button" data-lang="en" onclick="setLanguage('en')" title="English">🇺🇸</button>
+                        <button type="button" data-lang="es" onclick="setLanguage('es')" title="Español">🇪🇸</button>
+                        <button type="button" data-lang="vi" onclick="setLanguage('vi')" title="Tiếng Việt">🇻🇳</button>
+                    </div>
+                    <div class="local-clock-wrap">
+                        <time class="local-clock">--:--:--</time>
+                        <span class="local-clock-note" data-i18n-key="table_local_clock">Horários no relógio do Windows.</span>
+                    </div>
+                </div>
             </div>
             
             <div class="login-card">
@@ -55,7 +67,7 @@
             </div>
             <div class="modal-body">
                 <div class="joias-info-group">
-                    <label data-i18n-key="jewel_modal_current_time">🕐 Horário Atual (GMT -3):</label>
+                    <label data-i18n-key="jewel_modal_current_time">🕐 Horário atual:</label>
                     <div class="joias-value" id="horarioAtual">--/-- --:--:--</div>
                 </div>
 
@@ -96,13 +108,13 @@
                     <div class="filter-group">
                         <label for="filterMissingMapa" data-i18n-key="form_map">🗺️ Mapa:</label>
                         <select id="filterMissingMapa" onchange="renderMissingList()">
-                            <option value="">Todos</option>
+                            <option value="" data-i18n-key="filter_all">Todos</option>
                         </select>
                     </div>
                     <div class="filter-group">
                         <label for="filterMissingServidor" data-i18n-key="form_server">🖥️ Servidor:</label>
                         <select id="filterMissingServidor" onchange="renderMissingList()">
-                            <option value="">Todos</option>
+                            <option value="" data-i18n-key="filter_all">Todos</option>
                         </select>
                     </div>
                 </div>
@@ -226,8 +238,14 @@
                 </button>
                 
                 <div class="language-switcher">
-                    <button onclick="setLanguage('pt')" title="Português">🇧🇷</button>
-                    <button onclick="setLanguage('en')" title="English">🇺🇸</button> <button onclick="setLanguage('es')" title="Español">🇪🇸</button>
+                    <button type="button" data-lang="pt" onclick="setLanguage('pt')" title="Português">🇧🇷</button>
+                    <button type="button" data-lang="en" onclick="setLanguage('en')" title="English">🇺🇸</button>
+                    <button type="button" data-lang="es" onclick="setLanguage('es')" title="Español">🇪🇸</button>
+                    <button type="button" data-lang="vi" onclick="setLanguage('vi')" title="Tiếng Việt">🇻🇳</button>
+                </div>
+                <div class="local-clock-wrap">
+                    <time class="local-clock">--:--:--</time>
+                    <span class="local-clock-note" data-i18n-key="table_local_clock">Horários no relógio do Windows.</span>
                 </div>
 
                 <button class="btn-logout" onclick="logout()">
@@ -286,13 +304,13 @@
                 <div class="filter-group">
                     <label for="filterMapa" data-i18n-key="form_map">🗺️ Mapa:</label>
                     <select id="filterMapa" onchange="applyFilters()">
-                        <option value="">Todos</option>
+                        <option value="" data-i18n-key="filter_all">Todos</option>
                     </select>
                 </div>
                 <div class="filter-group">
                     <label for="filterServidor" data-i18n-key="form_server">🖥️ Servidor:</label>
                     <select id="filterServidor" onchange="applyFilters()">
-                        <option value="">Todos</option>
+                        <option value="" data-i18n-key="filter_all">Todos</option>
                     </select>
                 </div>
             </div>
@@ -357,6 +375,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js" integrity="sha384-f6/UpzjTjIXASlp20cArQsaRh1EvHVJd5kegy/gYR9W2D0a32TnEqUEiW4Zm/5O0" crossorigin="anonymous"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js" integrity="sha384-+/4lqMnmLqwbdHXshvGDmBTeWlNoPRdjXi4ZsiBj10EhQXaTBe3RF5JZktdSjug6" crossorigin="anonymous"></script>
     
+    <script src="js/time.js"></script>
     <script src="js/firebase-config.js"></script>
     <script src="js/game-data.js"></script>
 

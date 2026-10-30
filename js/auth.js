@@ -75,7 +75,7 @@ function handleLogin() {
 function logout() {
     console.log('🚪 Fazendo logout...');
     
-    if (confirm('Deseja realmente sair?')) {
+        if (confirm(getTranslation('confirm_logout'))) {
         auth.signOut(); // O onAuthStateChanged cuidará de mostrar a tela de login
     }
 }
