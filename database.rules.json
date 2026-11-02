@@ -23,7 +23,7 @@
         ".write": "auth != null && (auth.token.email == 'fujikow.kontarski@gmail.com' || auth.token.email == 'admin@anbu-farm-tower.firebaseapp.com')",
         ".validate": "newData.hasChildren()",
         "$id": {
-          ".validate": "$id.matches(/^[1-9][0-9]?$/) && newData.isBoolean()"
+          ".validate": "$id.matches(/^(1[0-9]|[1-9])$/) && newData.isBoolean()"
         }
       }
     },

@@ -24,7 +24,9 @@ var SERVIDORES_ALEATORIOS = ['4', '5', '6', '7', '8', '11', '12', '14', '15'];
 
 function normalizeServerId(value) {
     const id = String(value || '').trim();
-    return /^[1-9][0-9]?$/.test(id) ? id : '';
+    const number = Number(id);
+    if (!/^(1[0-9]|[1-9])$/.test(id) || number < 1 || number > 19) return '';
+    return String(number);
 }
 
 function serverCatalogFromLists(numeros, aleatorios) {

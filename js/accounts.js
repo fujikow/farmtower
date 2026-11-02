@@ -331,14 +331,6 @@ function buildAccountModal() {
                     <summary id="accountServersTitle"></summary>
                     <p class="account-servers-hint" id="accountServersHint"></p>
                     <div id="accountServerList" class="account-server-list"></div>
-                    <div class="account-server-add">
-                        <input type="text" id="accountServerNumber" inputmode="numeric" maxlength="2" autocomplete="off">
-                        <label class="account-server-random">
-                            <input type="checkbox" id="accountServerRandom">
-                            <span id="accountServerRandomLabel"></span>
-                        </label>
-                        <button type="button" class="btn-account" id="accountServerAdd"></button>
-                    </div>
                     <button type="button" class="btn btn-submit" id="accountServerSave"></button>
                 </details>
                 <div class="account-list-head">
@@ -406,10 +398,7 @@ function labelAccountModal() {
     setText('accountCreateBtn', 'account_create_button');
     setText('accountServersTitle', 'servers_title');
     setText('accountServersHint', 'servers_hint');
-    setText('accountServerRandomLabel', 'servers_random');
-    setText('accountServerAdd', 'servers_add');
     setText('accountServerSave', 'servers_save');
-    setPlaceholder('accountServerNumber', 'servers_number');
     renderServerEditor();
     setText('accountPasswordBtn', 'btn_change_password');
     setPlaceholder('accountUsername', 'account_username');
@@ -514,25 +503,27 @@ function wireAccountModal() {
     }
     const serverList = document.getElementById('accountServerList');
     if (serverList) {
-        serverList.addEventListener('click', (event) => {
-            const button = event.target.closest('[data-remove-server]');
-            if (!button) return;
-            const id = button.getAttribute('data-remove-server');
-            serverDraft = (serverDraft || []).filter((entry) => entry.id !== id);
-            serverDraftDirty = true;
-            renderServerEditor();
-        });
         serverList.addEventListener('change', (event) => {
-            const input = event.target.closest('[data-random-server]');
-            if (!input) return;
-            const entry = (serverDraft || []).find((item) => item.id === input.getAttribute('data-random-server'));
-            if (!entry) return;
-            entry.aleatorio = input.checked;
-            serverDraftDirty = true;
+            const input = event.target;
+            if (!(input instanceof HTMLInputElement)) return;
+            const id = input.getAttribute('data-server-id');
+            if (!normalizeServerId(id)) return;
+            const draft = currentServerDraft();
+            const index = draft.findIndex((entry) => entry.id === id);
+            if (input.hasAttribute('data-use-server')) {
+                if (input.checked && index < 0) draft.push({ id: id, aleatorio: false });
+                if (!input.checked && index >= 0) draft.splice(index, 1);
+                draft.sort((a, b) => Number(a.id) - Number(b.id));
+                serverDraftDirty = true;
+                renderServerEditor();
+                return;
+            }
+            if (input.hasAttribute('data-random-server') && index >= 0) {
+                draft[index].aleatorio = input.checked;
+                serverDraftDirty = true;
+            }
         });
     }
-    const addServer = document.getElementById('accountServerAdd');
-    if (addServer) addServer.addEventListener('click', addServerToDraft);
     const saveServers = document.getElementById('accountServerSave');
     if (saveServers) saveServers.addEventListener('click', saveServerDraft);
 }
@@ -550,56 +541,43 @@ function currentServerDraft() {
 function renderServerEditor() {
     const list = document.getElementById('accountServerList');
     if (!list || typeof getTranslation !== 'function') return;
-    list.replaceChildren();
-    currentServerDraft().forEach((entry) => {
-        const row = document.createElement('div');
-        row.className = 'account-server-row';
-        const number = document.createElement('strong');
-        number.textContent = entry.id;
-        const label = document.createElement('label');
-        label.className = 'account-server-random';
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.checked = entry.aleatorio === true;
-        checkbox.setAttribute('data-random-server', entry.id);
-        const caption = document.createElement('span');
-        caption.textContent = getTranslation('servers_random');
-        label.append(checkbox, caption);
-        const remove = document.createElement('button');
-        remove.type = 'button';
-        remove.className = 'btn-account is-blocked';
-        remove.textContent = getTranslation('servers_remove');
-        remove.setAttribute('data-remove-server', entry.id);
-        row.append(number, label, remove);
-        list.appendChild(row);
-    });
-}
-
-function addServerToDraft() {
-    if (!isAdminUser(firebase.auth().currentUser)) return;
-    const input = document.getElementById('accountServerNumber');
-    const random = document.getElementById('accountServerRandom');
-    const id = typeof normalizeServerId === 'function' ? normalizeServerId(input && input.value) : '';
-    if (!id) {
-        showAccountMessage(getTranslation('servers_invalid'), false);
-        return;
-    }
     const draft = currentServerDraft();
-    if (draft.some((entry) => entry.id === id)) {
-        showAccountMessage(getTranslation('servers_exists'), false);
-        return;
+    list.replaceChildren();
+    for (let number = 1; number <= 19; number += 1) {
+        const id = String(number);
+        const entry = draft.find((item) => item.id === id);
+        const row = document.createElement('div');
+        row.className = entry ? 'account-server-row is-on' : 'account-server-row is-off';
+
+        const title = document.createElement('strong');
+        title.textContent = id;
+
+        const useLabel = document.createElement('label');
+        useLabel.className = 'account-server-random';
+        const use = document.createElement('input');
+        use.type = 'checkbox';
+        use.checked = !!entry;
+        use.setAttribute('data-server-id', id);
+        use.setAttribute('data-use-server', '');
+        const useCaption = document.createElement('span');
+        useCaption.textContent = getTranslation('servers_available');
+        useLabel.append(use, useCaption);
+
+        const randomLabel = document.createElement('label');
+        randomLabel.className = 'account-server-random';
+        const random = document.createElement('input');
+        random.type = 'checkbox';
+        random.checked = !!(entry && entry.aleatorio);
+        random.disabled = !entry;
+        random.setAttribute('data-server-id', id);
+        random.setAttribute('data-random-server', '');
+        const randomCaption = document.createElement('span');
+        randomCaption.textContent = getTranslation('servers_random');
+        randomLabel.append(random, randomCaption);
+
+        row.append(title, useLabel, randomLabel);
+        list.appendChild(row);
     }
-    if (draft.length >= 30) {
-        showAccountMessage(getTranslation('servers_limit'), false);
-        return;
-    }
-    draft.push({ id: id, aleatorio: !!(random && random.checked) });
-    draft.sort((a, b) => Number(a.id) - Number(b.id));
-    serverDraftDirty = true;
-    if (input) input.value = '';
-    if (random) random.checked = false;
-    renderServerEditor();
-    showAccountMessage('', true);
 }
 
 async function saveServerDraft() {
