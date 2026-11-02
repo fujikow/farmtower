@@ -53,8 +53,20 @@ function usernameToEmail(username) {
     return `${username}@${USER_EMAIL_DOMAIN}`;
 }
 
+function isAdminEmail(email) {
+    const value = String(email || '').trim().toLowerCase();
+    return value === ADMIN_EMAIL || value === SHARED_ADMIN_EMAIL;
+}
+
 function isAdminUser(user) {
-    return !!(user && (user.email === ADMIN_EMAIL || user.email === SHARED_ADMIN_EMAIL));
+    if (!user) return false;
+    if (isAdminEmail(user.email)) return true;
+    const providers = user.providerData || [];
+    for (let i = 0; i < providers.length; i += 1) {
+        if (isAdminEmail(providers[i] && providers[i].email)) return true;
+    }
+    const profile = profilesByUid[user.uid];
+    return !!(profile && isAdminEmail(profile.email));
 }
 
 function adminProfileSeed(user) {
@@ -100,6 +112,7 @@ async function ensureSessionProfile(user) {
     try {
         const snapshot = await ref.once('value');
         const profile = snapshot.val();
+        if (profile) profilesByUid[user.uid] = profile;
         if (isAdminUser(user) && (!profile || accountSituacao(profile) !== 'ativo' || profile.ativo !== true)) {
             const created = adminProfileSeed(user);
             if (profile && profile.criadoEm) created.criadoEm = profile.criadoEm;
