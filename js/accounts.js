@@ -100,8 +100,10 @@ async function ensureSessionProfile(user) {
     try {
         const snapshot = await ref.once('value');
         const profile = snapshot.val();
-        if (isAdminUser(user) && !profile) {
+        if (isAdminUser(user) && (!profile || accountSituacao(profile) !== 'ativo' || profile.ativo !== true)) {
             const created = adminProfileSeed(user);
+            if (profile && profile.criadoEm) created.criadoEm = profile.criadoEm;
+            if (profile && profile.criadoPor) created.criadoPor = profile.criadoPor;
             await ref.set(created);
             profilesByUid[user.uid] = created;
             return created;
