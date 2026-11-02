@@ -309,17 +309,29 @@ function buildAccountModal() {
         <div class="modal-body">
             <p class="account-warning" id="accountSharedWarning"></p>
             <section id="accountAdminSection">
-                <h3 id="accountCreateTitle"></h3>
-                <div class="account-form">
-                    <input type="text" id="accountUsername" maxlength="24" autocomplete="off">
-                    <input type="text" id="accountNome" maxlength="40" autocomplete="off">
-                    <input type="password" id="accountPassword" maxlength="64" autocomplete="new-password">
-                    <button type="button" class="btn btn-submit" id="accountCreateBtn"></button>
+                <details class="account-create" id="accountCreateDetails">
+                    <summary id="accountCreateTitle"></summary>
+                    <div class="account-form">
+                        <input type="text" id="accountUsername" maxlength="24" autocomplete="off">
+                        <input type="text" id="accountNome" maxlength="40" autocomplete="off">
+                        <input type="password" id="accountPassword" maxlength="64" autocomplete="new-password">
+                        <button type="button" class="btn btn-submit" id="accountCreateBtn"></button>
+                    </div>
+                </details>
+                <div class="account-list-head">
+                    <h3 id="accountListTitle"></h3>
+                    <span id="accountListCount" class="account-list-count"></span>
                 </div>
-                <h3 id="accountListTitle"></h3>
+                <input type="search" id="accountSearch" class="account-search" autocomplete="off">
+                <div class="account-filters" id="accountFilters">
+                    <button type="button" data-account-filter="all"></button>
+                    <button type="button" data-account-filter="pendente"></button>
+                    <button type="button" data-account-filter="ativo"></button>
+                    <button type="button" data-account-filter="bloqueado"></button>
+                </div>
                 <div id="accountUserList" class="account-list"></div>
             </section>
-            <section>
+            <section class="account-password-section">
                 <h3 id="accountPasswordTitle"></h3>
                 <div class="account-form">
                     <input type="password" id="accountNewPassword" maxlength="64" autocomplete="new-password">
@@ -364,7 +376,7 @@ function labelAccountModal() {
         warning.textContent = admin ? getTranslation('account_shared_warning') : '';
         warning.style.display = admin ? 'block' : 'none';
     }
-    if (adminSection) adminSection.style.display = admin ? 'block' : 'none';
+    if (adminSection) adminSection.style.display = admin ? 'flex' : 'none';
     setText('accountCreateTitle', 'account_create_title');
     setText('accountListTitle', 'account_list_title');
     setText('accountPasswordTitle', 'account_password_title');
@@ -374,6 +386,20 @@ function labelAccountModal() {
     setPlaceholder('accountNome', 'account_name');
     setPlaceholder('accountPassword', 'account_password');
     setPlaceholder('accountNewPassword', 'account_new_password');
+    setPlaceholder('accountSearch', 'account_search');
+    const filterLabels = {
+        all: 'account_filter_all',
+        pendente: 'account_filter_pending',
+        ativo: 'account_filter_active',
+        bloqueado: 'account_filter_blocked'
+    };
+    document.querySelectorAll('[data-account-filter]').forEach((button) => {
+        const filter = button.getAttribute('data-account-filter');
+        button.textContent = getTranslation(filterLabels[filter] || 'account_filter_all');
+        const selected = filter === accountListFilter;
+        button.classList.toggle('is-selected', selected);
+        button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+    });
     const auditTitle = document.getElementById('auditModalTitle');
     if (auditTitle) auditTitle.textContent = getTranslation('audit_modal_title');
 }
@@ -432,6 +458,7 @@ function closeAuditModal() {
 }
 
 let accountModalWired = false;
+let accountListFilter = 'all';
 
 function wireAccountModal() {
     if (accountModalWired) return;
@@ -440,6 +467,18 @@ function wireAccountModal() {
     document.getElementById('auditModalClose').addEventListener('click', closeAuditModal);
     document.getElementById('accountCreateBtn').addEventListener('click', submitNewAccount);
     document.getElementById('accountPasswordBtn').addEventListener('click', submitPasswordChange);
+    const search = document.getElementById('accountSearch');
+    if (search) search.addEventListener('input', renderUserList);
+    const filters = document.getElementById('accountFilters');
+    if (filters) {
+        filters.addEventListener('click', (event) => {
+            const button = event.target.closest('[data-account-filter]');
+            if (!button) return;
+            accountListFilter = button.getAttribute('data-account-filter') || 'all';
+            labelAccountModal();
+            renderUserList();
+        });
+    }
 }
 
 function renderUserList() {
@@ -453,19 +492,49 @@ function renderUserList() {
         if (byStatus) return byStatus;
         return String(a[1].username || '').localeCompare(String(b[1].username || ''));
     });
-    rows.forEach(([uid, profile]) => {
+    const query = String((document.getElementById('accountSearch') || {}).value || '').trim().toLowerCase();
+    const visible = rows.filter(([, profile]) => {
+        const situacao = accountSituacao(profile);
+        if (accountListFilter !== 'all' && situacao !== accountListFilter) return false;
+        if (!query) return true;
+        return `${profile.nome || ''} ${profile.username || ''}`.toLowerCase().includes(query);
+    });
+    const count = document.getElementById('accountListCount');
+    if (count) {
+        count.textContent = getTranslation('account_list_count', { shown: visible.length, total: rows.length });
+    }
+    if (!visible.length) {
+        const empty = document.createElement('p');
+        empty.className = 'account-list-empty';
+        empty.textContent = getTranslation('account_list_empty');
+        list.appendChild(empty);
+        return;
+    }
+    visible.forEach(([uid, profile]) => {
         const situacao = accountSituacao(profile);
         const row = document.createElement('div');
         row.className = situacao === 'pendente' ? 'account-row is-pending' : 'account-row';
         const main = document.createElement('span');
         main.className = 'account-row-main';
+        const name = document.createElement('span');
+        name.className = 'account-row-name';
         const label = document.createElement('span');
-        label.textContent = `${profile.nome || ''} (${profile.username || ''})`;
+        label.className = 'account-row-label';
+        const fullName = `${profile.nome || ''} (${profile.username || ''})`;
+        label.textContent = fullName;
+        label.title = fullName;
+        name.appendChild(label);
+        if (current && current.uid === uid) {
+            const you = document.createElement('span');
+            you.className = 'account-you';
+            you.textContent = getTranslation('account_you');
+            name.appendChild(you);
+        }
         const status = document.createElement('span');
         const statusKey = situacao === 'pendente' ? 'account_pending' : (situacao === 'bloqueado' ? 'account_inactive' : 'account_active');
         status.className = `account-status is-${situacao}`;
         status.textContent = getTranslation(statusKey);
-        main.append(label, status);
+        main.append(name, status);
         const button = document.createElement('button');
         button.type = 'button';
         const actionKey = situacao === 'pendente' ? 'account_approve' : (situacao === 'bloqueado' ? 'account_reactivate' : 'account_block');
