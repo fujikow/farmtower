@@ -103,16 +103,32 @@ function cleanExpiredTowers() {
     const cutoff = new Date(cutoffMs).toISOString();
 
     towersRef.orderByChild('horarioFinalizacao').endAt(cutoff).once('value', (snapshot) => {
-        const removals = [];
+        const updates = {};
+        let removed = 0;
+        const nowMs = getEstimatedServerTime().getTime();
+        const admin = typeof isAdminUser === 'function' && isAdminUser(firebase.auth().currentUser);
         snapshot.forEach((child) => {
-            const finalizacao = parseUtcInstant(child.child('horarioFinalizacao').val());
-            if (finalizacao && finalizacao.getTime() <= cutoffMs) {
-                removals.push(child.ref.remove());
+            const value = child.val() || {};
+            const finalizacao = parseUtcInstant(value.horarioFinalizacao);
+            if (!finalizacao || finalizacao.getTime() > cutoffMs) return;
+            const expiredMs = typeof value.horarioFinalizacaoMs === 'number' && value.horarioFinalizacaoMs + 3600000 < nowMs;
+            if (!admin && value.removida !== true && !expiredMs) return;
+            updates[`towers/${child.key}`] = null;
+            removed += 1;
+            if (typeof editorIdentity === 'function' && typeof auditPayload === 'function') {
+                const identity = editorIdentity();
+                if (identity) {
+                    const auditKey = database.ref('audit').push().key;
+                    const em = new Date(nowMs).toISOString();
+                    updates[`audit/${auditKey}`] = auditPayload('expiracao', value, child.key, identity, em);
+                }
             }
         });
-        if (removals.length > 0) {
-            Promise.all(removals).then(() => {
-                console.log(`[Limpeza] ${removals.length} torres expiradas há mais de 1h removidas.`);
+        if (removed > 0) {
+            database.ref().update(updates).then(() => {
+                console.log(`[Limpeza] ${removed} torres expiradas há mais de 1h removidas.`);
+            }).catch((error) => {
+                console.error('[Limpeza] Não foi possível apagar torres expiradas:', error.code || error.message);
             });
         }
     });

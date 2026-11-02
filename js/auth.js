@@ -9,14 +9,27 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('🔒 Verificando autenticação via Firebase...');
     
     // O Firebase nos diz se o usuário está logado ou não
-    auth.onAuthStateChanged(user => {
-        if (user) {
-            console.log('✅ Usuário autenticado.');
+    auth.onAuthStateChanged(async (user) => {
+        if (!user) {
+            if (typeof stopAccountWatchers === 'function') stopAccountWatchers();
+            showLoginScreen();
+            return;
+        }
+
+        try {
+            const profile = await ensureSessionProfile(user);
+            if (!profile) {
+                showLoginError(getTranslation('error_user_inactive'));
+                await auth.signOut();
+                return;
+            }
+            startAccountWatchers();
             showContent();
-        } else {
-            // Se 'user' for nulo, ele está deslogado
-            console.log('🔐 Usuário deslogado.');
-            showLoginScreen(); // Mostra a tela de login
+            renderSessionChrome();
+        } catch (error) {
+            console.error('❌ Falha ao carregar o perfil:', error.code || error.message);
+            showLoginError(getTranslation('error_login_generic'));
+            await auth.signOut();
         }
     });
 });
@@ -27,14 +40,17 @@ let loginInFlight = false;
 function handleLogin() {
     if (loginInFlight) return;
 
-    // O e-mail fica no cliente de propósito: a proteção real é a regra do
-    // Realtime Database, que só aceita este usuário. Publique database.rules.json.
-    const EMAIL_FIXO = "fujikow.kontarski@gmail.com";
-
+    const usernameInput = document.getElementById('usernameInput');
     const passwordInput = document.getElementById('passwordInput');
     const loginButton = document.querySelector('.btn-login');
+    const email = loginEmailFromInput(usernameInput ? usernameInput.value : '');
     const senha = passwordInput.value;
 
+    if (!email) {
+        const typed = usernameInput && usernameInput.value.trim();
+        showLoginError(getTranslation(typed ? 'error_username_invalid' : 'error_username_required'));
+        return;
+    }
     if (senha === '') {
         showLoginError(getTranslation('error_password_empty'));
         return;
@@ -43,7 +59,7 @@ function handleLogin() {
     loginInFlight = true;
     if (loginButton) loginButton.disabled = true;
 
-    auth.signInWithEmailAndPassword(EMAIL_FIXO, senha)
+    auth.signInWithEmailAndPassword(email, senha)
         .then(() => {
             passwordInput.value = '';
         })
@@ -99,11 +115,8 @@ function showLoginScreen() {
     if (loginButton) loginButton.disabled = false;
     
     setTimeout(() => {
-        // Foca no campo de senha, já que não há e-mail
-        const passwordInput = document.getElementById('passwordInput');
-        if (passwordInput) {
-            passwordInput.focus();
-        }
+        const usernameInput = document.getElementById('usernameInput');
+        if (usernameInput) usernameInput.focus();
     }, 100);
 }
 
@@ -158,19 +171,20 @@ document.addEventListener('keydown', function(e) {
     if (typeof closeJoiasModal === 'function') closeJoiasModal();
     if (typeof closeMissingModal === 'function') closeMissingModal();
     if (typeof closeRuudModal === 'function') closeRuudModal();
+    if (typeof closeAccountModal === 'function') closeAccountModal();
+    if (typeof closeAuditModal === 'function') closeAuditModal();
 });
 
 // ===== PERMITIR ENTER PARA ENVIAR =====
 document.addEventListener('DOMContentLoaded', function() {
-    const passwordInput = document.getElementById('passwordInput');
-    
     const handleKeypress = function(e) {
         if (e.key === 'Enter') {
             handleLogin();
         }
     };
 
-    if (passwordInput) {
-        passwordInput.addEventListener('keypress', handleKeypress);
-    }
+    ['usernameInput', 'passwordInput'].forEach((id) => {
+        const field = document.getElementById(id);
+        if (field) field.addEventListener('keypress', handleKeypress);
+    });
 });

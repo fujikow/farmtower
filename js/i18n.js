@@ -63,6 +63,10 @@ function translatePage() {
     localizeSelectPrompt('filterMissingServidor', 'filter_all');
     if (typeof updateSchedulePreview === 'function') updateSchedulePreview();
     if (typeof renderWindowsClock === 'function') renderWindowsClock();
+    if (typeof renderSessionChrome === 'function') renderSessionChrome();
+    if (typeof renderAuditList === 'function') renderAuditList();
+    if (typeof renderUserList === 'function') renderUserList();
+    if (typeof labelAccountModal === 'function') labelAccountModal();
 }
 
 function localizeSelectPrompt(id, key) {
@@ -79,7 +83,7 @@ function getTranslation(key, replacements = {}) {
     
     // Substitui placeholders (ex: {mapa} e {servidor})
     for (const placeholder in replacements) {
-        translation = translation.replace(`{${placeholder}}`, replacements[placeholder]);
+        translation = translation.split(`{${placeholder}}`).join(String(replacements[placeholder]));
     }
     
     return translation;

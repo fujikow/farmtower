@@ -3,13 +3,11 @@
   "lang_en": "Inglês",
   "lang_es": "Espanhol",
   "lang_vi": "Vietnamita",
-
   "login_title": "Acesso Protegido",
-  "login_subtitle": "Digite a senha para acessar o sistema",
+  "login_subtitle": "Entre com seu usuário e senha",
   "login_placeholder_password": "Digite a senha",
   "login_button": "Entrar",
   "footer_credit": "Criado por <strong>fujikoftw</strong> - O MELHOR DL DO MEGAMU",
-
   "form_title": "Cadastro de Torre",
   "form_map": "Mapa *",
   "form_map_placeholder": "Selecione um mapa",
@@ -26,7 +24,6 @@
   "form_button_registering": "Cadastrando...",
   "form_button_view_table": "Ver Tabela",
   "form_button_missing": "Torres s/ Cadastro",
-
   "table_title": "Controle de Torres",
   "table_header_status": "Status",
   "table_header_map": "Mapa",
@@ -38,18 +35,14 @@
   "table_header_end": "Horário Finalização",
   "table_header_remaining": "Tempo Restante",
   "table_local_clock": "Relógio do Windows ({offset}). O término da torre é o mesmo instante para todos.",
-  
   "stats_total_towers": "Total de Torres",
   "stats_active_towers": "Torres Ativas",
-
   "legend_critical": "Menos de 5 minutos (CRÍTICO)",
   "legend_attention": "Menos de 15 minutos (ATENÇÃO)",
   "legend_alert": "Menos de 30 minutos (ALERTA)",
   "legend_active": "Mais de 30 minutos (ATIVO)",
-
   "empty_table_title": "Nenhuma torre ativa",
   "empty_table_subtitle": "Todas as torres expiraram ou nenhuma foi cadastrada ainda.",
-
   "btn_back": "Voltar",
   "btn_refresh": "Atualizar",
   "btn_missing_towers": "Torres s/ Cadastro",
@@ -58,14 +51,12 @@
   "btn_logout": "Sair",
   "btn_ruud_calc": "Análise C/B Ruud",
   "connection_status": "Conectando...",
-
   "jewel_modal_title": "Cálculo de Joias Necessárias",
   "jewel_modal_current_time": "Horário atual ({offset}):",
   "jewel_modal_additional_hours": "Horas Adicionais:",
   "jewel_modal_release_time": "Hora de Liberação:",
   "jewel_modal_jewels_needed": "Joias Necessárias:",
   "jewel_modal_free": "(Grátis)",
-  
   "missing_modal_title": "Torres sem cadastro",
   "missing_modal_subtitle": "Exibindo todas as combinações de Mapa/Servidor que não possuem um cadastro ATIVO no momento.",
   "missing_modal_header_server": "Servidores sem Cadastro",
@@ -73,7 +64,6 @@
   "missing_modal_empty_subtitle": "Todas as torres possíveis estão ativas no momento.",
   "missing_modal_empty_filter_title": "Nenhum resultado",
   "missing_modal_empty_filter_subtitle": "Nenhuma torre sem cadastro encontrada com os filtros aplicados.",
-
   "ruud_modal_title": "Análise Custo-Benefício: Farm de Ruud",
   "ruud_modal_subtitle": "Calcule o lucro (em MC) ao farmar Ruud, com base no preço das joias e na sua taxa de farm.",
   "ruud_settings_title": "Cenário de Mercado",
@@ -88,7 +78,6 @@
   "ruud_col_cost_mc": "Custo (MC) da Hora",
   "ruud_col_profit_mc": "Lucro (MC) da Hora",
   "ruud_col_profit_accum": "Lucro Acum. (MC)",
-
   "error_all_fields": "Por favor, preencha todos os campos obrigatórios!",
   "error_duration_zero": "A duração da torre deve ser maior que zero!",
   "error_duration_max": "A duração máxima é de 48 horas!",
@@ -111,7 +100,6 @@
   "missing_register_hint": "Clique em um servidor para cadastrar essa torre.",
   "connection_status_connected": "Conectado",
   "connection_status_disconnected": "Desconectado",
-
   "alert_copy_id_success": "ID copiado: {id}",
   "alert_copy_title": "Clique para copiar",
   "confirm_logout": "Deseja realmente sair?",
@@ -119,20 +107,52 @@
   "export_error_no_filtered_towers": "❌ Nenhuma torre encontrada com os filtros aplicados!",
   "export_success": "✅ Tabela exportada com sucesso!",
   "export_error_generic": "❌ Erro ao exportar tabela!",
-
   "success_tower_registered": "✅ Torre cadastrada com sucesso!",
   "success_tower_overwritten": "✅ Torre sobreescrita com sucesso!",
-
   "schedule_preview_waiting": "Sincronizando o horário para o cadastro ficar igual para todo mundo...",
   "schedule_preview_seen": "No seu relógio ({offset}) agora é {seen}.",
   "schedule_preview": "No seu relógio ({offset}): visto {seen} e termina {end}. Esse término é o mesmo instante para todos.",
-
   "form_alliance": "Aliança",
   "form_alliance_ally": "Aliado",
   "form_alliance_enemy": "Inimigo",
   "table_header_alliance": "Aliança",
   "stats_registered_towers": "Torres Cadastradas",
   "stats_allied_towers": "Torres Aliadas",
-  "stats_enemy_towers": "Torres Inimigas"
-
+  "stats_enemy_towers": "Torres Inimigas",
+  "login_placeholder_username": "Usuário ou e-mail",
+  "error_username_required": "Informe o usuário ou o e-mail.",
+  "error_username_invalid": "Usuário: 3 a 24 caracteres, com letras minúsculas, números, ponto, _ ou -.",
+  "error_name_invalid": "Informe o nome que deve aparecer na planilha.",
+  "error_password_short": "A senha precisa ter pelo menos 6 caracteres.",
+  "error_user_exists": "Esse usuário já existe.",
+  "error_user_inactive": "Esta conta está bloqueada.",
+  "error_not_admin": "Só o administrador cria contas.",
+  "error_profile": "Não foi possível identificar quem está editando. Entre de novo.",
+  "error_recent_login": "Entre de novo e então troque a senha.",
+  "current_user": "Conectado: {nome}",
+  "btn_users": "Usuários",
+  "btn_audit": "Histórico",
+  "btn_change_password": "Trocar senha",
+  "account_modal_title": "Contas",
+  "account_create_title": "Nova conta",
+  "account_username": "Usuário",
+  "account_name": "Nome que aparece na planilha",
+  "account_password": "Senha inicial",
+  "account_new_password": "Nova senha",
+  "account_create_button": "Criar conta",
+  "account_list_title": "Quem pode editar",
+  "account_active": "Ativo",
+  "account_inactive": "Bloqueado",
+  "account_password_title": "Trocar minha senha",
+  "account_shared_warning": "A senha antiga, compartilhada por todo mundo, ainda entra como administrador. Troque essa senha depois de criar as contas.",
+  "audit_modal_title": "Histórico de edições",
+  "audit_empty": "Nenhuma edição registrada ainda.",
+  "table_header_editor": "Editado por",
+  "audit_action_cadastro": "Cadastrou",
+  "audit_action_sobrescrita": "Sobrescreveu",
+  "audit_action_exclusao": "Excluiu",
+  "audit_action_expiracao": "Expirou",
+  "success_user_created": "Conta criada: {username}",
+  "success_password_changed": "Senha alterada. A senha antiga não entra mais.",
+  "success_user_updated": "Conta atualizada."
 }

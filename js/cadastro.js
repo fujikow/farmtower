@@ -179,6 +179,11 @@ if (towerForm) {
             cadastradoEm: schedule.cadastradoEm
         };
 
+        if (duplicateTower && duplicateTower.cadastradoPorUid) {
+            torre.cadastradoPor = duplicateTower.cadastradoPor;
+            torre.cadastradoPorUid = duplicateTower.cadastradoPorUid;
+        }
+
         rememberOwner(dono, alianca);
         console.log('📤 Enviando torre:', torre.mapa, torre.servidor);
 
@@ -188,15 +193,8 @@ if (towerForm) {
 
 // ===== SALVAR NO FIREBASE (MODIFICADO) =====
 function saveTowerToFirebase(torre, existingId) {
-    let promise;
-    
-    if (existingId) {
-        console.log(`...Sobreescrevendo torre no ID: ${existingId}`);
-        promise = towersRef.child(existingId).set(torre);
-    } else {
-        console.log('...Criando novo registro de torre...');
-        promise = towersRef.push(torre);
-    }
+    const acao = existingId ? 'sobrescrita' : 'cadastro';
+    const promise = commitTowerWrite(torre, existingId, acao);
 
     promise
         .then(() => {
@@ -210,7 +208,8 @@ function saveTowerToFirebase(torre, existingId) {
         })
         .catch((error) => {
             console.error('❌ Erro ao salvar torre:', error);
-            showError(getTranslation('error_save_tower'));
+            const key = error && error.message === 'profile' ? 'error_profile' : 'error_save_tower';
+            showError(getTranslation(key));
             resetSubmitButton();
         });
 }

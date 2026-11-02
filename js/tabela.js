@@ -85,7 +85,7 @@ function loadTowersFromFirebase() {
 
             Object.keys(towers).forEach(key => {
                 const torre = towers[key];
-                if (!torre || typeof torre !== 'object') return;
+                if (!torre || typeof torre !== 'object' || torre.removida === true) return;
                 const finalizacao = parseUtcInstant(torre.horarioFinalizacao);
                 if (!finalizacao) return;
                 if (finalizacao.getTime() > cutoffTime) {
@@ -264,6 +264,7 @@ function buildRow(torre) {
         document.createElement('td'),
         document.createElement('td'),
         document.createElement('td'),
+        document.createElement('td'),
         document.createElement('td')
     ];
 
@@ -271,12 +272,12 @@ function buildRow(torre) {
     cells[1].style.textAlign = 'center';
     cells[4].style.fontWeight = '600';
     cells[4].style.textAlign = 'center';
-    cells[11].style.fontSize = '0.75em';
-    cells[11].style.color = '#6c757d';
-    cells[11].style.fontFamily = 'monospace';
-    cells[11].style.cursor = 'pointer';
-    cells[11].title = getTranslation('alert_copy_title');
-    cells[11].addEventListener('click', () => {
+    cells[12].style.fontSize = '0.75em';
+    cells[12].style.color = '#6c757d';
+    cells[12].style.fontFamily = 'monospace';
+    cells[12].style.cursor = 'pointer';
+    cells[12].title = getTranslation('alert_copy_title');
+    cells[12].addEventListener('click', () => {
         const id = asText(torre.id);
         navigator.clipboard.writeText(id);
         alert(getTranslation('alert_copy_id_success', { id: id }));
@@ -317,8 +318,9 @@ function paintRow(tr, torre) {
     cells[8].textContent = formatDateTime(vistoDate);
     cells[9].textContent = formatDateTime(finalizacaoDate);
     setStrongText(cells[10], calculateTempoRestante(finalizacaoDate, now));
-    cells[11].textContent = asText(torre.id);
-    cells[11].title = getTranslation('alert_copy_title');
+    cells[11].textContent = asText(torre.editadoPor) || '—';
+    cells[12].textContent = asText(torre.id);
+    cells[12].title = getTranslation('alert_copy_title');
 }
 
 function deleteTower(torre) {
@@ -329,9 +331,10 @@ function deleteTower(torre) {
         servidor: asText(torre.servidor)
     }));
     if (!confirmed) return;
-    towersRef.child(id).remove().catch((error) => {
+    commitTowerHide(torre).catch((error) => {
         console.error('❌ Erro ao excluir torre:', error.code || error.message);
-        alert(getTranslation('error_save_tower'));
+        const key = error && error.message === 'profile' ? 'error_profile' : 'error_save_tower';
+        alert(getTranslation(key));
     });
 }
 
@@ -440,6 +443,7 @@ function exportToExcel() {
                 'Visto Horário': formatDateTime(vistoDate),
                 'Horário Finalização': formatDateTime(finalizacaoDate),
                 'Tempo Restante': calculateTempoRestante(finalizacaoDate, now),
+                'Editado por': asText(torre.editadoPor) || '—',
                 'Status': getStatusInfo(finalizacaoDate, now).text,
                 'Duração': asText(torre.duracaoFormatada)
             };
@@ -450,7 +454,7 @@ function exportToExcel() {
         ws['!cols'] = [
             { wch: 15 }, { wch: 10 }, { wch: 15 }, { wch: 20 },
             { wch: 12 }, { wch: 25 }, { wch: 20 }, { wch: 20 },
-            { wch: 12 }, { wch: 15 }, { wch: 12 }
+            { wch: 12 }, { wch: 18 }, { wch: 15 }, { wch: 12 }
         ];
         XLSX.utils.book_append_sheet(wb, ws, 'Torres Ativas');
 

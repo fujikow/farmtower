@@ -35,6 +35,13 @@
                 <p data-i18n-key="login_subtitle">Digite a senha para acessar o sistema</p>
                 
                 <div class="login-form">
+                    <input
+                        type="text"
+                        id="usernameInput"
+                        placeholder="Usuário ou e-mail"
+                        data-i18n-key="login_placeholder_username"
+                        autocomplete="username"
+                    >
                     <div class="password-field">
                         <input 
                             type="password" 
@@ -248,6 +255,7 @@
                     <span class="local-clock-note" data-i18n-key="table_local_clock">Horários no relógio do Windows.</span>
                 </div>
 
+                <div id="accountTools" class="account-tools"></div>
                 <button class="btn-logout" onclick="logout()">
                     <span>🚪</span> <span data-i18n-key="btn_logout">Sair</span>
                 </button>
@@ -349,6 +357,7 @@
                         <th data-i18n-key="table_header_seen">Visto Horário</th>
                         <th data-i18n-key="table_header_end">Horário Finalização</th>
                         <th data-i18n-key="table_header_remaining">Tempo Restante</th>
+                        <th data-i18n-key="table_header_editor">Editado por</th>
                         <th>ID</th>
                     </tr>
                 </thead>
@@ -380,6 +389,7 @@
     <script src="js/game-data.js"></script>
 
     <script src="js/i18n.js"></script>
+    <script src="js/accounts.js"></script>
 
     <script src="js/auth.js"></script>
     <script src="js/joias-calculator.js"></script>
