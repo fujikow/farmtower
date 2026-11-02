@@ -4,7 +4,8 @@
   "lang_es": "Espanhol",
 
   "login_title": "Acesso Protegido",
-  "login_subtitle": "Digite a senha para acessar o sistema",
+  "login_subtitle": "Entre com o usuário e a senha de um administrador",
+  "login_placeholder_user": "Usuário ou e-mail",
   "login_placeholder_password": "Digite a senha",
   "login_button": "Entrar",
   "footer_credit": "Criado por <strong>fujikoftw</strong> - O MELHOR DL DO MEGAMU",
@@ -92,6 +93,8 @@
   "error_save_tower": "Erro ao salvar torre. Verifique sua conexão!",
   "error_wrong_password": "❌ Senha incorreta! Tente novamente.",
   "error_user_not_found": "❌ Erro de configuração (Usuário fixo não encontrado).",
+  "error_user_empty": "Digite o usuário.",
+  "error_not_admin": "Este usuário não é administrador.",
   "error_password_empty": "Por favor, digite a senha!",
   "error_login_generic": "Não foi possível entrar. Tente novamente.",
   "error_too_many_requests": "Muitas tentativas. Aguarde um pouco e tente de novo.",

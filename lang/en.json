@@ -4,7 +4,8 @@
   "lang_es": "Spanish",
 
   "login_title": "Protected Access",
-  "login_subtitle": "Enter the password to access the system",
+  "login_subtitle": "Sign in with an administrator username and password",
+  "login_placeholder_user": "Username or email",
   "login_placeholder_password": "Enter password",
   "login_button": "Login",
   "footer_credit": "Created by <strong>fujikoftw</strong> - THE BEST DL IN MEGAMU",
@@ -76,6 +77,8 @@
   "error_save_tower": "Error saving tower. Check your connection!",
   "error_wrong_password": "❌ Incorrect password! Try again.",
   "error_user_not_found": "❌ Configuration error (Fixed user not found).",
+  "error_user_empty": "Enter the username.",
+  "error_not_admin": "This user is not an administrator.",
   "error_password_empty": "Please enter the password!",
   "error_login_generic": "Could not sign in. Try again.",
   "error_too_many_requests": "Too many attempts. Wait a moment and try again.",

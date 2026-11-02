@@ -21,20 +21,38 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// ===== TENTAR FAZER LOGIN (Versão com E-mail Fixo) =====
+// Usuário digitado -> e-mail do Firebase. A regra do banco repete esta lista.
+const ADMIN_ACCOUNTS = {
+    "admin": "anbu-admin@anbu-farm-tower.firebaseapp.com",
+    "anbu-admin@anbu-farm-tower.firebaseapp.com": "anbu-admin@anbu-farm-tower.firebaseapp.com",
+    "fujikow.kontarski@gmail.com": "fujikow.kontarski@gmail.com"
+};
+
+function resolveAdminEmail(loginName) {
+    return ADMIN_ACCOUNTS[loginName.trim().toLowerCase()] || null;
+}
+
+// ===== TENTAR FAZER LOGIN =====
 let loginInFlight = false;
 
 function handleLogin() {
     if (loginInFlight) return;
 
-    // O e-mail fica no cliente de propósito: a proteção real é a regra do
-    // Realtime Database, que só aceita este usuário. Publique database.rules.json.
-    const EMAIL_FIXO = "fujikow.kontarski@gmail.com";
-
+    const userInput = document.getElementById('userInput');
     const passwordInput = document.getElementById('passwordInput');
     const loginButton = document.querySelector('.btn-login');
+    const loginName = userInput ? userInput.value : '';
     const senha = passwordInput.value;
+    const email = resolveAdminEmail(loginName);
 
+    if (loginName.trim() === '') {
+        showLoginError(getTranslation('error_user_empty'));
+        return;
+    }
+    if (!email) {
+        showLoginError(getTranslation('error_not_admin'));
+        return;
+    }
     if (senha === '') {
         showLoginError(getTranslation('error_password_empty'));
         return;
@@ -43,15 +61,16 @@ function handleLogin() {
     loginInFlight = true;
     if (loginButton) loginButton.disabled = true;
 
-    auth.signInWithEmailAndPassword(EMAIL_FIXO, senha)
+    auth.signInWithEmailAndPassword(email, senha)
         .then(() => {
+            localStorage.setItem('anbu_last_user', loginName.trim());
             passwordInput.value = '';
         })
         .catch(error => {
             console.error('❌ Falha no login:', error.code);
 
             let mensagemErro = getTranslation('error_login_generic');
-            if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+            if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential' || error.code === 'auth/invalid-login-credentials') {
                 mensagemErro = getTranslation('error_wrong_password');
             } else if (error.code === 'auth/user-not-found') {
                 mensagemErro = getTranslation('error_user_not_found');
@@ -99,9 +118,15 @@ function showLoginScreen() {
     if (loginButton) loginButton.disabled = false;
     
     setTimeout(() => {
-        // Foca no campo de senha, já que não há e-mail
+        const userInput = document.getElementById('userInput');
         const passwordInput = document.getElementById('passwordInput');
-        if (passwordInput) {
+        const savedUser = localStorage.getItem('anbu_last_user');
+        if (userInput && savedUser && !userInput.value) {
+            userInput.value = savedUser;
+        }
+        if (userInput && !userInput.value) {
+            userInput.focus();
+        } else if (passwordInput) {
             passwordInput.focus();
         }
     }, 100);
@@ -162,15 +187,14 @@ document.addEventListener('keydown', function(e) {
 
 // ===== PERMITIR ENTER PARA ENVIAR =====
 document.addEventListener('DOMContentLoaded', function() {
-    const passwordInput = document.getElementById('passwordInput');
-    
     const handleKeypress = function(e) {
         if (e.key === 'Enter') {
             handleLogin();
         }
     };
 
-    if (passwordInput) {
-        passwordInput.addEventListener('keypress', handleKeypress);
-    }
+    ['userInput', 'passwordInput'].forEach((id) => {
+        const field = document.getElementById(id);
+        if (field) field.addEventListener('keypress', handleKeypress);
+    });
 });

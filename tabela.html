@@ -20,9 +20,18 @@
             <div class="login-card">
                 <div class="lock-icon">🔒</div>
                 <h3 data-i18n-key="login_title">Acesso Protegido</h3>
-                <p data-i18n-key="login_subtitle">Digite a senha para acessar o sistema</p>
+                <p data-i18n-key="login_subtitle">Entre com o usuário e a senha de um administrador</p>
                 
                 <div class="login-form">
+                    <input
+                        type="text"
+                        id="userInput"
+                        placeholder="Usuário ou e-mail"
+                        data-i18n-key="login_placeholder_user"
+                        autocomplete="username"
+                        autocapitalize="none"
+                        spellcheck="false"
+                    >
                     <div class="password-field">
                         <input 
                             type="password" 
