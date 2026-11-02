@@ -45,17 +45,20 @@ function loadMapasOptions() {
 // ===== CARREGAR OPÇÕES DE SERVIDORES =====
 function loadServidoresOptions() {
     const servidorSelect = document.getElementById('servidor');
-    
-    // Proteção: só executa se o elemento existir
-    if (!servidorSelect) return; 
-    
+    if (!servidorSelect) return;
+
+    const selected = servidorSelect.value;
+    const placeholder = servidorSelect.querySelector('option[value=""]');
+    const placeholderText = placeholder ? placeholder.textContent : (typeof getTranslation === 'function' ? getTranslation('form_server_placeholder') : '');
+    servidorSelect.replaceChildren(new Option(placeholderText, ''));
     SERVIDORES.forEach(servidor => {
         const option = document.createElement('option');
-        option.value = servidor;
-        option.textContent = servidor;
+        option.value = String(servidor);
+        option.textContent = String(servidor);
         servidorSelect.appendChild(option);
     });
-    
+    if (SERVIDORES.map(String).includes(selected)) servidorSelect.value = selected;
+
     console.log('✅ Servidores carregados:', SERVIDORES.length);
 }
 

@@ -17,6 +17,16 @@
         ".validate": "newData.hasChildren(['acao', 'uid', 'nome', 'em', 'mapa', 'servidor', 'torreId']) && newData.child('acao').val().matches(/^(cadastro|sobrescrita|exclusao|expiracao)$/) && newData.child('uid').val() == auth.uid && newData.child('nome').val() == root.child('users').child(auth.uid).child('nome').val() && newData.child('nome').isString() && newData.child('nome').val().length > 0 && newData.child('nome').val().length <= 40 && newData.child('em').isString() && newData.child('em').val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$/) && newData.child('mapa').isString() && newData.child('mapa').val().length <= 40 && newData.child('servidor').isString() && newData.child('servidor').val().length <= 2 && newData.child('torreId').isString() && newData.child('torreId').val().length <= 40"
       }
     },
+    "config": {
+      "servidores": {
+        ".read": "auth != null && ((auth.token.email == 'fujikow.kontarski@gmail.com' || auth.token.email == 'admin@anbu-farm-tower.firebaseapp.com') || root.child('users').child(auth.uid).child('ativo').val() == true)",
+        ".write": "auth != null && (auth.token.email == 'fujikow.kontarski@gmail.com' || auth.token.email == 'admin@anbu-farm-tower.firebaseapp.com')",
+        ".validate": "newData.hasChildren()",
+        "$id": {
+          ".validate": "$id.matches(/^[1-9][0-9]?$/) && newData.isBoolean()"
+        }
+      }
+    },
     "towers": {
       ".read": "auth != null && ((auth.token.email == 'fujikow.kontarski@gmail.com' || auth.token.email == 'admin@anbu-farm-tower.firebaseapp.com') || root.child('users').child(auth.uid).child('ativo').val() == true)",
       ".indexOn": [

@@ -155,6 +155,14 @@ function startAccountWatchers() {
     }, () => {
         renderSessionChrome();
     });
+    database.ref('config/servidores').on('value', (snapshot) => {
+        if (typeof applyServerCatalog === 'function' && applyServerCatalog(snapshot.val())) {
+            if (!serverDraftDirty) {
+                serverDraft = null;
+                renderServerEditor();
+            }
+        }
+    });
     if (!isAdminUser(firebase.auth().currentUser)) return;
     database.ref('audit').limitToLast(80).on('value', (snapshot) => {
         auditEntries = [];
@@ -174,6 +182,7 @@ function stopAccountWatchers() {
     if (!accountWatchersStarted) return;
     database.ref('users').off();
     database.ref('audit').off();
+    database.ref('config/servidores').off();
     accountWatchersStarted = false;
     profilesByUid = {};
     auditEntries = [];
@@ -318,6 +327,20 @@ function buildAccountModal() {
                         <button type="button" class="btn btn-submit" id="accountCreateBtn"></button>
                     </div>
                 </details>
+                <details class="account-servers" id="accountServersDetails">
+                    <summary id="accountServersTitle"></summary>
+                    <p class="account-servers-hint" id="accountServersHint"></p>
+                    <div id="accountServerList" class="account-server-list"></div>
+                    <div class="account-server-add">
+                        <input type="text" id="accountServerNumber" inputmode="numeric" maxlength="2" autocomplete="off">
+                        <label class="account-server-random">
+                            <input type="checkbox" id="accountServerRandom">
+                            <span id="accountServerRandomLabel"></span>
+                        </label>
+                        <button type="button" class="btn-account" id="accountServerAdd"></button>
+                    </div>
+                    <button type="button" class="btn btn-submit" id="accountServerSave"></button>
+                </details>
                 <div class="account-list-head">
                     <h3 id="accountListTitle"></h3>
                     <span id="accountListCount" class="account-list-count"></span>
@@ -381,6 +404,13 @@ function labelAccountModal() {
     setText('accountListTitle', 'account_list_title');
     setText('accountPasswordTitle', 'account_password_title');
     setText('accountCreateBtn', 'account_create_button');
+    setText('accountServersTitle', 'servers_title');
+    setText('accountServersHint', 'servers_hint');
+    setText('accountServerRandomLabel', 'servers_random');
+    setText('accountServerAdd', 'servers_add');
+    setText('accountServerSave', 'servers_save');
+    setPlaceholder('accountServerNumber', 'servers_number');
+    renderServerEditor();
     setText('accountPasswordBtn', 'btn_change_password');
     setPlaceholder('accountUsername', 'account_username');
     setPlaceholder('accountNome', 'account_name');
@@ -424,6 +454,7 @@ function showAccountMessage(message, ok) {
 function openAccountModal() {
     ensureAccountModals();
     wireAccountModal();
+    if (!serverDraftDirty) serverDraft = null;
     labelAccountModal();
     renderUserList();
     showAccountMessage('', true);
@@ -459,6 +490,8 @@ function closeAuditModal() {
 
 let accountModalWired = false;
 let accountListFilter = 'all';
+let serverDraft = null;
+let serverDraftDirty = false;
 
 function wireAccountModal() {
     if (accountModalWired) return;
@@ -478,6 +511,118 @@ function wireAccountModal() {
             labelAccountModal();
             renderUserList();
         });
+    }
+    const serverList = document.getElementById('accountServerList');
+    if (serverList) {
+        serverList.addEventListener('click', (event) => {
+            const button = event.target.closest('[data-remove-server]');
+            if (!button) return;
+            const id = button.getAttribute('data-remove-server');
+            serverDraft = (serverDraft || []).filter((entry) => entry.id !== id);
+            serverDraftDirty = true;
+            renderServerEditor();
+        });
+        serverList.addEventListener('change', (event) => {
+            const input = event.target.closest('[data-random-server]');
+            if (!input) return;
+            const entry = (serverDraft || []).find((item) => item.id === input.getAttribute('data-random-server'));
+            if (!entry) return;
+            entry.aleatorio = input.checked;
+            serverDraftDirty = true;
+        });
+    }
+    const addServer = document.getElementById('accountServerAdd');
+    if (addServer) addServer.addEventListener('click', addServerToDraft);
+    const saveServers = document.getElementById('accountServerSave');
+    if (saveServers) saveServers.addEventListener('click', saveServerDraft);
+}
+
+function currentServerDraft() {
+    if (serverDraft) return serverDraft;
+    const numeros = (typeof SERVIDORES !== 'undefined' ? SERVIDORES : []).map(String);
+    const aleatorios = typeof SERVIDORES_ALEATORIOS !== 'undefined' ? SERVIDORES_ALEATORIOS : [];
+    serverDraft = typeof serverCatalogFromLists === 'function'
+        ? serverCatalogFromLists(numeros, aleatorios)
+        : numeros.map((id) => ({ id: id, aleatorio: aleatorios.map(String).includes(id) }));
+    return serverDraft;
+}
+
+function renderServerEditor() {
+    const list = document.getElementById('accountServerList');
+    if (!list || typeof getTranslation !== 'function') return;
+    list.replaceChildren();
+    currentServerDraft().forEach((entry) => {
+        const row = document.createElement('div');
+        row.className = 'account-server-row';
+        const number = document.createElement('strong');
+        number.textContent = entry.id;
+        const label = document.createElement('label');
+        label.className = 'account-server-random';
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = entry.aleatorio === true;
+        checkbox.setAttribute('data-random-server', entry.id);
+        const caption = document.createElement('span');
+        caption.textContent = getTranslation('servers_random');
+        label.append(checkbox, caption);
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'btn-account is-blocked';
+        remove.textContent = getTranslation('servers_remove');
+        remove.setAttribute('data-remove-server', entry.id);
+        row.append(number, label, remove);
+        list.appendChild(row);
+    });
+}
+
+function addServerToDraft() {
+    if (!isAdminUser(firebase.auth().currentUser)) return;
+    const input = document.getElementById('accountServerNumber');
+    const random = document.getElementById('accountServerRandom');
+    const id = typeof normalizeServerId === 'function' ? normalizeServerId(input && input.value) : '';
+    if (!id) {
+        showAccountMessage(getTranslation('servers_invalid'), false);
+        return;
+    }
+    const draft = currentServerDraft();
+    if (draft.some((entry) => entry.id === id)) {
+        showAccountMessage(getTranslation('servers_exists'), false);
+        return;
+    }
+    if (draft.length >= 30) {
+        showAccountMessage(getTranslation('servers_limit'), false);
+        return;
+    }
+    draft.push({ id: id, aleatorio: !!(random && random.checked) });
+    draft.sort((a, b) => Number(a.id) - Number(b.id));
+    serverDraftDirty = true;
+    if (input) input.value = '';
+    if (random) random.checked = false;
+    renderServerEditor();
+    showAccountMessage('', true);
+}
+
+async function saveServerDraft() {
+    const button = document.getElementById('accountServerSave');
+    if (!isAdminUser(firebase.auth().currentUser)) return;
+    const draft = currentServerDraft();
+    if (!draft.length) {
+        showAccountMessage(getTranslation('servers_empty'), false);
+        return;
+    }
+    const payload = {};
+    draft.forEach((entry) => {
+        payload[entry.id] = entry.aleatorio === true;
+    });
+    if (button) button.disabled = true;
+    try {
+        await database.ref('config/servidores').set(payload);
+        serverDraftDirty = false;
+        showAccountMessage(getTranslation('servers_saved'), true);
+    } catch (error) {
+        showAccountMessage(getTranslation('error_save_tower'), false);
+    } finally {
+        if (button) button.disabled = false;
     }
 }
 

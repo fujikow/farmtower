@@ -1343,7 +1343,7 @@ tbody tr:hover {
 .modal-account .modal-body {
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow: auto;
     min-height: 0;
     padding: 18px 20px 20px;
 }
@@ -1351,8 +1351,15 @@ tbody tr:hover {
 #accountAdminSection {
     display: flex;
     flex-direction: column;
-    flex: 1 1 auto;
+    flex: 0 0 auto;
     min-height: 0;
+}
+
+#accountAdminSection > details,
+.account-list-head,
+.account-search,
+.account-filters {
+    flex: 0 0 auto;
 }
 
 .account-create summary {
@@ -1364,6 +1371,69 @@ tbody tr:hover {
 
 .account-create .account-form {
     margin-bottom: 8px;
+}
+
+.account-servers summary {
+    cursor: pointer;
+    font-weight: 700;
+    color: var(--gremio-azul-escuro);
+}
+
+.account-servers-hint {
+    margin: 8px 0;
+    color: #495057;
+    font-size: 0.9em;
+}
+
+.account-server-list {
+    display: flex;
+    flex-direction: column;
+    max-height: 180px;
+    overflow: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    margin-bottom: 8px;
+    background: #f8f9fa;
+}
+
+.account-server-row {
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr) auto;
+    gap: 8px;
+    align-items: center;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.account-server-row:last-child {
+    border-bottom: none;
+}
+
+.account-server-random {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+}
+
+.account-server-add {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.account-server-add input[type="text"] {
+    width: 88px;
+    padding: 8px 10px;
+    border: 2px solid var(--gremio-azul);
+    border-radius: 8px;
+    font-size: 1em;
+}
+
+.account-servers .btn-submit {
+    width: 100%;
 }
 
 .modal-account h3 {
@@ -1432,8 +1502,9 @@ tbody tr:hover {
 .account-list {
     display: flex;
     flex-direction: column;
-    flex: 1 1 auto;
-    min-height: 140px;
+    flex: 0 1 auto;
+    min-height: 96px;
+    max-height: min(32vh, 280px);
     overflow-y: auto;
     overscroll-behavior: contain;
     border: 1px solid var(--border-color);
