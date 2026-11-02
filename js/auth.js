@@ -70,7 +70,7 @@ function handleLogin() {
             console.error('❌ Falha no login:', error.code);
 
             let mensagemErro = getTranslation('error_login_generic');
-            if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+            if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential' || error.code === 'auth/invalid-login-credentials') {
                 mensagemErro = getTranslation('error_wrong_password');
             } else if (error.code === 'auth/user-not-found') {
                 mensagemErro = getTranslation('error_user_not_found');

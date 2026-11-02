@@ -3,6 +3,7 @@
 // a regra do banco recusa um nome de outra pessoa.
 
 const ADMIN_EMAIL = 'fujikow.kontarski@gmail.com';
+const SHARED_ADMIN_EMAIL = 'admin@anbu-farm-tower.firebaseapp.com';
 const USER_EMAIL_DOMAIN = 'anbu-farm-tower.firebaseapp.com';
 
 let profilesByUid = {};
@@ -53,7 +54,19 @@ function usernameToEmail(username) {
 }
 
 function isAdminUser(user) {
-    return !!(user && user.email === ADMIN_EMAIL);
+    return !!(user && (user.email === ADMIN_EMAIL || user.email === SHARED_ADMIN_EMAIL));
+}
+
+function adminProfileSeed(user) {
+    const shared = user.email === SHARED_ADMIN_EMAIL;
+    return {
+        username: 'admin',
+        nome: shared ? 'Admin da equipe' : 'Administrador',
+        email: user.email,
+        ativo: true,
+        situacao: 'ativo',
+        criadoEm: new Date().toISOString()
+    };
 }
 
 function loginEmailFromInput(value) {
@@ -88,14 +101,7 @@ async function ensureSessionProfile(user) {
         const snapshot = await ref.once('value');
         const profile = snapshot.val();
         if (isAdminUser(user) && !profile) {
-            const created = {
-                username: 'admin',
-                nome: 'Administrador',
-                email: user.email,
-                ativo: true,
-                situacao: 'ativo',
-                criadoEm: new Date().toISOString()
-            };
+            const created = adminProfileSeed(user);
             await ref.set(created);
             profilesByUid[user.uid] = created;
             return created;
@@ -111,13 +117,7 @@ async function ensureSessionProfile(user) {
         return profile;
     } catch (error) {
         if (isAdminUser(user)) {
-            const fallback = profilesByUid[user.uid] || {
-                username: 'admin',
-                nome: 'Administrador',
-                email: user.email,
-                ativo: true,
-                situacao: 'ativo'
-            };
+            const fallback = profilesByUid[user.uid] || adminProfileSeed(user);
             if (!fallback.situacao) fallback.situacao = 'ativo';
             profilesByUid[user.uid] = fallback;
             return fallback;
