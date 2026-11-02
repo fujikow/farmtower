@@ -1033,15 +1033,18 @@ tbody tr:hover {
     height: 100%;
     background: linear-gradient(135deg, var(--gremio-azul) 0%, var(--gremio-preto) 100%);
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
     z-index: 999999;
     padding: 20px;
+    overflow-y: auto;
 }
 
 .login-container {
     width: 100%;
     max-width: 450px;
+    margin-top: auto;
+    margin-bottom: auto;
     animation: fadeIn 0.5s ease;
 }
 
@@ -1151,6 +1154,36 @@ tbody tr:hover {
     border-color: var(--gremio-preto);
 }
 
+.btn-register {
+    width: 100%;
+    padding: 13px 20px;
+    background: var(--gremio-branco);
+    color: var(--gremio-azul-escuro);
+    border: 2px solid var(--gremio-azul);
+    border-radius: 10px;
+    font-size: 1.05em;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-register:hover {
+    background: var(--gremio-azul);
+    color: var(--gremio-branco);
+}
+
+.btn-register-back {
+    width: 100%;
+    padding: 8px 12px;
+    background: transparent;
+    color: var(--gremio-azul-escuro);
+    border: none;
+    font-size: 0.98em;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
 .btn-login span {
     font-size: 1.3em;
 }
@@ -1165,6 +1198,12 @@ tbody tr:hover {
     color: #dc3545;
     font-weight: 600;
     animation: slideDown 0.3s ease;
+}
+
+.error-message-login.is-success {
+    background: rgba(25, 135, 84, 0.12);
+    border-color: #198754;
+    color: #146c43;
 }
 
 .login-footer {
@@ -1238,6 +1277,48 @@ tbody tr:hover {
     color: var(--gremio-branco);
     background: rgba(220, 53, 69, 0.9);
     border-color: #dc3545;
+}
+
+.account-row .btn-account.is-approve {
+    color: var(--gremio-branco);
+    background: #198754;
+    border-color: #146c43;
+}
+
+.account-row .btn-account:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.account-row.is-pending {
+    background: rgba(255, 193, 7, 0.18);
+    border-radius: 8px;
+    padding-left: 8px;
+    padding-right: 8px;
+}
+
+.account-row-main {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.account-status {
+    font-size: 0.85em;
+    font-weight: 700;
+}
+
+.account-status.is-pendente {
+    color: #8a6100;
+}
+
+.account-status.is-ativo {
+    color: var(--gremio-azul-escuro);
+}
+
+.account-status.is-bloqueado {
+    color: #dc3545;
 }
 
 .modal-account {

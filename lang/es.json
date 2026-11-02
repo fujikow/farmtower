@@ -129,7 +129,7 @@
   "error_password_short": "La contraseña debe tener al menos 6 caracteres.",
   "error_user_exists": "Ese usuario ya existe.",
   "error_user_inactive": "Esta cuenta está bloqueada.",
-  "error_not_admin": "Solo el administrador crea cuentas.",
+  "error_not_admin": "Solo el administrador aprueba cuentas o crea cuentas ya activas.",
   "error_profile": "No fue posible identificar quién está editando. Entre de nuevo.",
   "error_recent_login": "Entre de nuevo y luego cambie la contraseña.",
   "current_user": "Conectado: {nome}",
@@ -157,5 +157,17 @@
   "audit_action_expiracao": "Expiró",
   "success_user_created": "Cuenta creada: {username}",
   "success_password_changed": "Contraseña cambiada. La contraseña antigua ya no entra.",
-  "success_user_updated": "Cuenta actualizada."
+  "success_user_updated": "Cuenta actualizada.",
+  "btn_register": "Crear cuenta",
+  "register_title": "Crear cuenta",
+  "register_subtitle": "La cuenta solo entra después de que el administrador la apruebe.",
+  "register_back": "Volver al inicio de sesión",
+  "register_password_confirm": "Repetir la contraseña",
+  "error_password_mismatch": "Las contraseñas no coinciden.",
+  "error_user_pending": "Cuenta creada, esperando la aprobación del administrador.",
+  "success_user_pending": "Cuenta enviada. El administrador debe aprobarla antes del primer acceso.",
+  "account_approve": "Aprobar",
+  "account_block": "Bloquear",
+  "account_reactivate": "Reactivar",
+  "account_pending": "Pendiente"
 }

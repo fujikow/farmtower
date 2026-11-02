@@ -197,32 +197,78 @@
             
             <div class="login-card">
                 <div class="lock-icon">🔒</div>
-                <h3 data-i18n-key="login_title">Acesso Protegido</h3>
-                <p data-i18n-key="login_subtitle">Digite a senha para acessar o sistema</p>
-                
-                <div class="login-form">
-                    <input
-                        type="text"
-                        id="usernameInput"
-                        placeholder="Usuário ou e-mail"
-                        data-i18n-key="login_placeholder_username"
-                        autocomplete="username"
-                    >
-                    <div class="password-field">
-                        <input 
-                            type="password" 
-                            id="passwordInput" 
-                            placeholder="Digite a senha" 
-                            data-i18n-key="login_placeholder_password"
-                            autocomplete="current-password"
+                <div id="loginPanel">
+                    <h3 data-i18n-key="login_title">Acesso Protegido</h3>
+                    <p data-i18n-key="login_subtitle">Entre com seu usuário e senha</p>
+
+                    <div class="login-form">
+                        <input
+                            type="text"
+                            id="usernameInput"
+                            placeholder="Usuário ou e-mail"
+                            data-i18n-key="login_placeholder_username"
+                            autocomplete="username"
                         >
-                        <button type="button" id="togglePasswordBtn" class="btn-toggle-password" onclick="togglePasswordVisibility()" data-i18n-key="login_show_password">Mostrar senha</button>
+                        <div class="password-field">
+                            <input
+                                type="password"
+                                id="passwordInput"
+                                placeholder="Digite a senha"
+                                data-i18n-key="login_placeholder_password"
+                                autocomplete="current-password"
+                            >
+                            <button type="button" id="togglePasswordBtn" class="btn-toggle-password" onclick="togglePasswordVisibility()" data-i18n-key="login_show_password">Mostrar senha</button>
+                        </div>
+                        <button type="button" id="loginSubmitBtn" onclick="handleLogin()" class="btn-login">
+                            <span>🔓</span> <span data-i18n-key="login_button">Entrar</span>
+                        </button>
+                        <button type="button" class="btn-register" onclick="showRegisterForm()" data-i18n-key="btn_register">Criar conta</button>
                     </div>
-                    <button onclick="handleLogin()" class="btn-login">
-                        <span>🔓</span> <span data-i18n-key="login_button">Entrar</span>
-                    </button>
                 </div>
-                
+
+                <div id="registerPanel" style="display: none;">
+                    <h3 data-i18n-key="register_title">Criar conta</h3>
+                    <p data-i18n-key="register_subtitle">A conta só entra depois que o administrador aprovar</p>
+                    <div class="login-form">
+                        <input
+                            type="text"
+                            id="registerUsername"
+                            placeholder="Usuário"
+                            data-i18n-key="account_username"
+                            maxlength="24"
+                            autocomplete="username"
+                        >
+                        <input
+                            type="text"
+                            id="registerNome"
+                            placeholder="Nome que aparece na planilha"
+                            data-i18n-key="account_name"
+                            maxlength="40"
+                            autocomplete="name"
+                        >
+                        <input
+                            type="password"
+                            id="registerPassword"
+                            placeholder="Digite a senha"
+                            data-i18n-key="login_placeholder_password"
+                            maxlength="64"
+                            autocomplete="new-password"
+                        >
+                        <input
+                            type="password"
+                            id="registerPasswordConfirm"
+                            placeholder="Repetir a senha"
+                            data-i18n-key="register_password_confirm"
+                            maxlength="64"
+                            autocomplete="new-password"
+                        >
+                        <button type="button" id="registerSubmitBtn" class="btn-login" onclick="handleRegister()">
+                            <span data-i18n-key="btn_register">Criar conta</span>
+                        </button>
+                        <button type="button" class="btn-register-back" onclick="showLoginForm()" data-i18n-key="register_back">Voltar ao login</button>
+                    </div>
+                </div>
+
                 <div id="loginErrorMessage" class="error-message-login"></div>
             </div>
             

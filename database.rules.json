@@ -5,8 +5,9 @@
     "users": {
       ".read": "auth != null && (auth.token.email == 'fujikow.kontarski@gmail.com' || root.child('users').child(auth.uid).child('ativo').val() == true)",
       "$uid": {
-        ".write": "auth != null && auth.token.email == 'fujikow.kontarski@gmail.com'",
-        ".validate": "newData.hasChildren(['username', 'nome', 'email', 'ativo']) && newData.child('username').isString() && newData.child('username').val().matches(/^[a-z0-9._-]{3,24}$/) && newData.child('nome').isString() && newData.child('nome').val().length > 0 && newData.child('nome').val().length <= 40 && newData.child('email').isString() && (newData.child('email').val() == newData.child('username').val() + '@anbu-farm-tower.firebaseapp.com' || newData.child('email').val() == 'fujikow.kontarski@gmail.com') && newData.child('ativo').isBoolean() && (!newData.hasChild('criadoEm') || newData.child('criadoEm').isString()) && (!newData.hasChild('criadoPor') || newData.child('criadoPor').isString())"
+        ".read": "auth != null && $uid == auth.uid",
+        ".write": "auth != null && (auth.token.email == 'fujikow.kontarski@gmail.com' || (!data.exists() && $uid == auth.uid && newData.child('ativo').val() == false && newData.child('situacao').val() == 'pendente' && newData.child('email').val() == auth.token.email))",
+        ".validate": "newData.hasChildren(['username', 'nome', 'email', 'ativo', 'situacao']) && newData.child('username').isString() && newData.child('username').val().matches(/^[a-z0-9._-]{3,24}$/) && newData.child('nome').isString() && newData.child('nome').val().length > 0 && newData.child('nome').val().length <= 40 && newData.child('email').isString() && (newData.child('email').val() == newData.child('username').val() + '@anbu-farm-tower.firebaseapp.com' || newData.child('email').val() == 'fujikow.kontarski@gmail.com') && newData.child('ativo').isBoolean() && newData.child('situacao').isString() && newData.child('situacao').val().matches(/^(pendente|ativo|bloqueado)$/) && newData.child('ativo').val() == (newData.child('situacao').val() == 'ativo') && (!newData.hasChild('criadoEm') || newData.child('criadoEm').isString()) && (!newData.hasChild('criadoPor') || newData.child('criadoPor').isString())"
       }
     },
     "audit": {

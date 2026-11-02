@@ -8,6 +8,33 @@ const USER_EMAIL_DOMAIN = 'anbu-farm-tower.firebaseapp.com';
 let profilesByUid = {};
 let auditEntries = [];
 let accountWatchersStarted = false;
+// createUserWithEmailAndPassword no auth principal dispara onAuthStateChanged
+// antes do perfil existir. auth.js ignora o evento enquanto o cadastro corre.
+let accountSignupInProgress = false;
+let sessionDenial = '';
+
+function isAccountSignupInProgress() {
+    return accountSignupInProgress;
+}
+
+function setAccountSignupInProgress(active) {
+    accountSignupInProgress = active === true;
+}
+
+function sessionDenialReason() {
+    return sessionDenial;
+}
+
+function accountSituacao(profile) {
+    if (profile && (profile.situacao === 'pendente' || profile.situacao === 'ativo' || profile.situacao === 'bloqueado')) {
+        return profile.situacao;
+    }
+    return profile && profile.ativo === false ? 'bloqueado' : 'ativo';
+}
+
+function pendingAccountCount() {
+    return Object.values(profilesByUid).filter((profile) => accountSituacao(profile) === 'pendente').length;
+}
 
 function normalizeUsername(value) {
     const username = String(value || '').trim().toLowerCase();
@@ -43,7 +70,7 @@ function editorIdentity() {
     if (!user) return null;
     const profile = profilesByUid[user.uid];
     if (!profile || !profile.nome || profile.ativo === false) return null;
-    if (!isAdminUser(user) && profile.ativo !== true) return null;
+    if (!isAdminUser(user) && (profile.ativo !== true || (profile.situacao && profile.situacao !== 'ativo'))) return null;
     return { uid: user.uid, nome: profile.nome };
 }
 
@@ -55,6 +82,7 @@ function provisioningAuth() {
 }
 
 async function ensureSessionProfile(user) {
+    sessionDenial = '';
     const ref = database.ref(`users/${user.uid}`);
     try {
         const snapshot = await ref.once('value');
@@ -65,13 +93,20 @@ async function ensureSessionProfile(user) {
                 nome: 'Administrador',
                 email: user.email,
                 ativo: true,
+                situacao: 'ativo',
                 criadoEm: new Date().toISOString()
             };
             await ref.set(created);
             profilesByUid[user.uid] = created;
             return created;
         }
-        if (!isAdminUser(user) && (!profile || profile.ativo !== true)) return null;
+        if (!isAdminUser(user)) {
+            const situacao = profile ? accountSituacao(profile) : 'bloqueado';
+            if (!profile || profile.ativo !== true || situacao !== 'ativo') {
+                sessionDenial = situacao === 'pendente' ? 'pending' : 'blocked';
+                return null;
+            }
+        }
         if (profile) profilesByUid[user.uid] = profile;
         return profile;
     } catch (error) {
@@ -80,12 +115,17 @@ async function ensureSessionProfile(user) {
                 username: 'admin',
                 nome: 'Administrador',
                 email: user.email,
-                ativo: true
+                ativo: true,
+                situacao: 'ativo'
             };
+            if (!fallback.situacao) fallback.situacao = 'ativo';
             profilesByUid[user.uid] = fallback;
             return fallback;
         }
-        if (error && (error.code === 'PERMISSION_DENIED' || error.code === 'permission-denied')) return null;
+        if (error && (error.code === 'PERMISSION_DENIED' || error.code === 'permission-denied')) {
+            sessionDenial = 'blocked';
+            return null;
+        }
         throw error;
     }
 }
@@ -207,7 +247,13 @@ function renderSessionChrome() {
     const accountButton = document.createElement('button');
     accountButton.type = 'button';
     accountButton.className = 'btn-account';
-    accountButton.textContent = getTranslation(isAdminUser(user) ? 'btn_users' : 'btn_change_password');
+    if (isAdminUser(user)) {
+        const pending = pendingAccountCount();
+        const label = getTranslation('btn_users');
+        accountButton.textContent = pending > 0 ? `${label} (${pending})` : label;
+    } else {
+        accountButton.textContent = getTranslation('btn_change_password');
+    }
     accountButton.addEventListener('click', openAccountModal);
 
     host.append(chip, auditButton, accountButton);
@@ -375,20 +421,33 @@ function renderUserList() {
     list.replaceChildren();
     const current = firebase.auth().currentUser;
     const rows = Object.entries(profilesByUid).sort((a, b) => {
+        const rank = { pendente: 0, ativo: 1, bloqueado: 2 };
+        const byStatus = rank[accountSituacao(a[1])] - rank[accountSituacao(b[1])];
+        if (byStatus) return byStatus;
         return String(a[1].username || '').localeCompare(String(b[1].username || ''));
     });
     rows.forEach(([uid, profile]) => {
+        const situacao = accountSituacao(profile);
         const row = document.createElement('div');
-        row.className = 'account-row';
+        row.className = situacao === 'pendente' ? 'account-row is-pending' : 'account-row';
+        const main = document.createElement('span');
+        main.className = 'account-row-main';
         const label = document.createElement('span');
         label.textContent = `${profile.nome || ''} (${profile.username || ''})`;
+        const status = document.createElement('span');
+        const statusKey = situacao === 'pendente' ? 'account_pending' : (situacao === 'bloqueado' ? 'account_inactive' : 'account_active');
+        status.className = `account-status is-${situacao}`;
+        status.textContent = getTranslation(statusKey);
+        main.append(label, status);
         const button = document.createElement('button');
         button.type = 'button';
-        button.className = profile.ativo === false ? 'btn-account is-blocked' : 'btn-account';
-        button.textContent = getTranslation(profile.ativo === false ? 'account_inactive' : 'account_active');
+        const actionKey = situacao === 'pendente' ? 'account_approve' : (situacao === 'bloqueado' ? 'account_reactivate' : 'account_block');
+        const nextSituacao = situacao === 'ativo' ? 'bloqueado' : 'ativo';
+        button.className = nextSituacao === 'bloqueado' ? 'btn-account is-blocked' : 'btn-account is-approve';
+        button.textContent = getTranslation(actionKey);
         button.disabled = !!(current && current.uid === uid);
-        button.addEventListener('click', () => toggleUserActive(uid, profile));
-        row.append(label, button);
+        button.addEventListener('click', () => setUserSituacao(uid, profile, nextSituacao));
+        row.append(main, button);
         list.appendChild(row);
     });
 }
@@ -459,6 +518,7 @@ async function submitNewAccount() {
                 nome: nome,
                 email: usernameToEmail(username),
                 ativo: true,
+                situacao: 'ativo',
                 criadoEm: new Date().toISOString(),
                 criadoPor: firebase.auth().currentUser.uid
             });
@@ -480,14 +540,16 @@ async function submitNewAccount() {
     }
 }
 
-async function toggleUserActive(uid, profile) {
+async function setUserSituacao(uid, profile, situacao) {
     const current = firebase.auth().currentUser;
     if (!isAdminUser(current) || !profile || current.uid === uid) return;
+    if (situacao !== 'ativo' && situacao !== 'bloqueado') return;
     const next = {
         username: profile.username,
         nome: profile.nome,
         email: profile.email,
-        ativo: profile.ativo === false,
+        ativo: situacao === 'ativo',
+        situacao: situacao,
         criadoEm: profile.criadoEm || new Date().toISOString(),
         criadoPor: profile.criadoPor || current.uid
     };

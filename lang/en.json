@@ -131,7 +131,7 @@
   "error_password_short": "The password must have at least 6 characters.",
   "error_user_exists": "That username already exists.",
   "error_user_inactive": "This account is blocked.",
-  "error_not_admin": "Only the administrator can create accounts.",
+  "error_not_admin": "Only the administrator can approve accounts or create accounts that are already active.",
   "error_profile": "Could not identify who is editing. Sign in again.",
   "error_recent_login": "Sign in again, then change the password.",
   "current_user": "Signed in: {nome}",
@@ -159,5 +159,17 @@
   "audit_action_expiracao": "Expired",
   "success_user_created": "Account created: {username}",
   "success_password_changed": "Password changed. The old password no longer works.",
-  "success_user_updated": "Account updated."
+  "success_user_updated": "Account updated.",
+  "btn_register": "Create account",
+  "register_title": "Create account",
+  "register_subtitle": "The account can sign in only after an administrator approves it.",
+  "register_back": "Back to login",
+  "register_password_confirm": "Repeat the password",
+  "error_password_mismatch": "The passwords do not match.",
+  "error_user_pending": "Account created, waiting for administrator approval.",
+  "success_user_pending": "Account submitted. An administrator must approve it before the first sign-in.",
+  "account_approve": "Approve",
+  "account_block": "Block",
+  "account_reactivate": "Reactivate",
+  "account_pending": "Pending"
 }
