@@ -218,6 +218,7 @@ function renderTable() {
 
     table.style.display = 'table';
     emptyState.style.display = 'none';
+    if (typeof syncEditorColumn === 'function') syncEditorColumn();
 
     filteredTowers.sort((a, b) => towerEndMs(a) - towerEndMs(b));
 
@@ -318,6 +319,7 @@ function paintRow(tr, torre) {
     cells[8].textContent = formatDateTime(vistoDate);
     cells[9].textContent = formatDateTime(finalizacaoDate);
     setStrongText(cells[10], calculateTempoRestante(finalizacaoDate, now));
+    cells[11].className = 'col-editor';
     cells[11].textContent = asText(torre.editadoPor) || '—';
     cells[12].textContent = asText(torre.id);
     cells[12].title = getTranslation('alert_copy_title');
@@ -433,7 +435,7 @@ function exportToExcel() {
         const exportData = filteredTowers.map(torre => {
             const vistoDate = parseUtcInstant(torre.vistoHorario);
             const finalizacaoDate = parseUtcInstant(torre.horarioFinalizacao);
-            return {
+            const row = {
                 'Mapa': asText(torre.mapa),
                 'Servidor': asText(torre.servidor),
                 'Aleatoriedade': asText(torre.aleatoriedade),
@@ -442,11 +444,14 @@ function exportToExcel() {
                 'Localização': asText(torre.localizacao),
                 'Visto Horário': formatDateTime(vistoDate),
                 'Horário Finalização': formatDateTime(finalizacaoDate),
-                'Tempo Restante': calculateTempoRestante(finalizacaoDate, now),
-                'Editado por': asText(torre.editadoPor) || '—',
-                'Status': getStatusInfo(finalizacaoDate, now).text,
-                'Duração': asText(torre.duracaoFormatada)
+                'Tempo Restante': calculateTempoRestante(finalizacaoDate, now)
             };
+            if (typeof isAdminUser === 'function' && isAdminUser(firebase.auth().currentUser)) {
+                row['Editado por'] = asText(torre.editadoPor) || '—';
+            }
+            row.Status = getStatusInfo(finalizacaoDate, now).text;
+            row['Duração'] = asText(torre.duracaoFormatada);
+            return row;
         });
 
         const wb = XLSX.utils.book_new();

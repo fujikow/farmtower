@@ -1241,6 +1241,10 @@ tbody tr:hover {
     }
 }
 /* ===== BOTÃO LOGOUT ===== */
+#towersTable.hide-editor .col-editor {
+    display: none;
+}
+
 .account-tools {
     display: flex;
     align-items: center;

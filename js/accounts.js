@@ -155,6 +155,7 @@ function startAccountWatchers() {
     }, () => {
         renderSessionChrome();
     });
+    if (!isAdminUser(firebase.auth().currentUser)) return;
     database.ref('audit').limitToLast(80).on('value', (snapshot) => {
         auditEntries = [];
         snapshot.forEach((child) => {
@@ -253,12 +254,6 @@ function renderSessionChrome() {
     chip.className = 'user-chip';
     chip.textContent = getTranslation('current_user', { nome: nome });
 
-    const auditButton = document.createElement('button');
-    auditButton.type = 'button';
-    auditButton.className = 'btn-account';
-    auditButton.textContent = getTranslation('btn_audit');
-    auditButton.addEventListener('click', openAuditModal);
-
     const accountButton = document.createElement('button');
     accountButton.type = 'button';
     accountButton.className = 'btn-account';
@@ -271,7 +266,23 @@ function renderSessionChrome() {
     }
     accountButton.addEventListener('click', openAccountModal);
 
-    host.append(chip, auditButton, accountButton);
+    host.append(chip);
+    if (isAdminUser(user)) {
+        const auditButton = document.createElement('button');
+        auditButton.type = 'button';
+        auditButton.className = 'btn-account';
+        auditButton.textContent = getTranslation('btn_audit');
+        auditButton.addEventListener('click', openAuditModal);
+        host.append(auditButton);
+    }
+    host.append(accountButton);
+    syncEditorColumn();
+}
+
+function syncEditorColumn() {
+    const table = document.getElementById('towersTable');
+    if (!table) return;
+    table.classList.toggle('hide-editor', !isAdminUser(firebase.auth().currentUser));
 }
 
 function ensureAccountModals() {
@@ -403,6 +414,7 @@ function closeAccountModal() {
 }
 
 function openAuditModal() {
+    if (!isAdminUser(firebase.auth().currentUser)) return;
     ensureAccountModals();
     wireAccountModal();
     labelAccountModal();
