@@ -37,6 +37,30 @@ function pendingAccountCount() {
     return Object.values(profilesByUid).filter((profile) => accountSituacao(profile) === 'pendente').length;
 }
 
+function rankingText(value) {
+    if (typeof value === 'string') return value.trim();
+    if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+    return '';
+}
+
+function rankingFromTowers(towers, profiles) {
+    const counts = new Map();
+    (towers || []).forEach((torre) => {
+        if (!torre || typeof torre !== 'object') return;
+        const uid = rankingText(torre.cadastradoPorUid);
+        const nome = rankingText(torre.cadastradoPor);
+        const key = uid || (nome ? `nome:${nome.toLowerCase()}` : '');
+        if (!key) return;
+        const profile = uid && profiles ? profiles[uid] : null;
+        const label = rankingText(profile && profile.nome) || nome || rankingText(profile && profile.username) || '—';
+        const current = counts.get(key) || { nome: label, count: 0 };
+        current.count += 1;
+        if (rankingText(profile && profile.nome)) current.nome = rankingText(profile.nome);
+        counts.set(key, current);
+    });
+    return [...counts.values()].sort((a, b) => b.count - a.count || a.nome.localeCompare(b.nome, undefined, { sensitivity: 'base' }));
+}
+
 function normalizeUsername(value) {
     const username = String(value || '').trim().toLowerCase();
     if (!/^[a-z0-9._-]{3,24}$/.test(username)) return '';
@@ -255,6 +279,11 @@ function renderSessionChrome() {
     if (!host || typeof getTranslation !== 'function') return;
     const user = firebase.auth().currentUser;
     host.replaceChildren();
+    if (!isAdminUser(user)) {
+        closeAuditModal();
+        closeRankingModal();
+        renderRegistrarRanking();
+    }
     if (!user) return;
 
     const profile = profilesByUid[user.uid];
@@ -283,6 +312,12 @@ function renderSessionChrome() {
         auditButton.textContent = getTranslation('btn_audit');
         auditButton.addEventListener('click', openAuditModal);
         host.append(auditButton);
+        const rankingButton = document.createElement('button');
+        rankingButton.type = 'button';
+        rankingButton.className = 'btn-account';
+        rankingButton.textContent = getTranslation('btn_ranking');
+        rankingButton.addEventListener('click', openRankingModal);
+        host.append(rankingButton);
     }
     host.append(accountButton);
     syncEditorColumn();
@@ -298,6 +333,7 @@ function ensureAccountModals() {
     if (!document.body || document.getElementById('accountModal')) return;
     document.body.appendChild(buildAccountModal());
     document.body.appendChild(buildAuditModal());
+    document.body.appendChild(buildRankingModal());
 }
 
 function buildAccountModal() {
@@ -354,6 +390,28 @@ function buildAccountModal() {
                 </div>
             </section>
             <p class="account-message" id="accountMessage"></p>
+        </div>`;
+    overlay.appendChild(content);
+    return overlay;
+}
+
+function buildRankingModal() {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.id = 'rankingModal';
+    overlay.addEventListener('click', (event) => {
+        if (event.target === overlay) closeRankingModal();
+    });
+    const content = document.createElement('div');
+    content.className = 'modal-content modal-account';
+    content.innerHTML = `
+        <div class="modal-header">
+            <h2 id="rankingModalTitle"></h2>
+            <button class="modal-close" type="button" id="rankingModalClose">✕</button>
+        </div>
+        <div class="modal-body">
+            <p class="ranking-hint" id="rankingHint"></p>
+            <div id="rankingList" class="ranking-list"></div>
         </div>`;
     overlay.appendChild(content);
     return overlay;
@@ -421,6 +479,9 @@ function labelAccountModal() {
     });
     const auditTitle = document.getElementById('auditModalTitle');
     if (auditTitle) auditTitle.textContent = getTranslation('audit_modal_title');
+    setText('rankingModalTitle', 'ranking_modal_title');
+    setText('rankingHint', 'ranking_hint');
+    renderRegistrarRanking();
 }
 
 function setText(id, key) {
@@ -477,6 +538,60 @@ function closeAuditModal() {
     modal.style.display = 'none';
 }
 
+function openRankingModal() {
+    if (!isAdminUser(firebase.auth().currentUser)) return;
+    ensureAccountModals();
+    wireAccountModal();
+    labelAccountModal();
+    const modal = document.getElementById('rankingModal');
+    modal.classList.add('active');
+    modal.style.display = 'flex';
+}
+
+function closeRankingModal() {
+    const modal = document.getElementById('rankingModal');
+    if (!modal) return;
+    modal.classList.remove('active');
+    modal.style.display = 'none';
+}
+
+function renderRegistrarRanking() {
+    const list = document.getElementById('rankingList');
+    if (!list || typeof getTranslation !== 'function') return;
+    list.replaceChildren();
+    if (!isAdminUser(firebase.auth().currentUser)) return;
+    const rows = rankingFromTowers(typeof allTowers !== 'undefined' ? allTowers : [], profilesByUid);
+    if (!rows.length) {
+        const empty = document.createElement('p');
+        empty.className = 'account-list-empty';
+        empty.textContent = getTranslation('ranking_empty');
+        list.appendChild(empty);
+        return;
+    }
+    const top = rows[0].count || 1;
+    rows.forEach((row, index) => {
+        const item = document.createElement('div');
+        item.className = 'ranking-row';
+        const place = document.createElement('span');
+        place.className = 'ranking-place';
+        place.textContent = String(index + 1);
+        const nome = document.createElement('span');
+        nome.className = 'ranking-name';
+        nome.textContent = row.nome;
+        const count = document.createElement('span');
+        count.className = 'ranking-count';
+        const countKey = row.count === 1 ? 'ranking_count_one' : 'ranking_count_many';
+        count.textContent = getTranslation(countKey, { count: row.count });
+        const track = document.createElement('div');
+        track.className = 'ranking-bar';
+        const fill = document.createElement('span');
+        fill.style.width = `${Math.max(8, Math.round((row.count / top) * 100))}%`;
+        track.appendChild(fill);
+        item.append(place, nome, count, track);
+        list.appendChild(item);
+    });
+}
+
 let accountModalWired = false;
 let accountListFilter = 'all';
 let serverDraft = null;
@@ -487,6 +602,7 @@ function wireAccountModal() {
     accountModalWired = true;
     document.getElementById('accountModalClose').addEventListener('click', closeAccountModal);
     document.getElementById('auditModalClose').addEventListener('click', closeAuditModal);
+    document.getElementById('rankingModalClose').addEventListener('click', closeRankingModal);
     document.getElementById('accountCreateBtn').addEventListener('click', submitNewAccount);
     document.getElementById('accountPasswordBtn').addEventListener('click', submitPasswordChange);
     const search = document.getElementById('accountSearch');

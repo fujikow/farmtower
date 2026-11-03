@@ -1463,7 +1463,8 @@ tbody tr:hover {
 }
 
 .account-form,
-.audit-list {
+.audit-list,
+.ranking-list {
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -1606,9 +1607,52 @@ tbody tr:hover {
     font-weight: 600;
 }
 
-.audit-list {
+.audit-list,
+.ranking-list {
     max-height: 60vh;
     overflow: auto;
+}
+
+.ranking-hint {
+    margin: 0 0 12px;
+    color: #495057;
+    font-weight: 600;
+}
+
+.ranking-row {
+    display: grid;
+    grid-template-columns: 32px minmax(0, 1fr) auto;
+    gap: 8px 12px;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.ranking-place,
+.ranking-count {
+    font-weight: 800;
+    color: var(--gremio-azul-escuro);
+}
+
+.ranking-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 700;
+}
+
+.ranking-bar {
+    grid-column: 1 / -1;
+    height: 6px;
+    background: #e9ecef;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.ranking-bar > span {
+    display: block;
+    height: 100%;
+    background: var(--gremio-azul);
 }
 
 .btn-logout {
