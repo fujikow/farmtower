@@ -1891,24 +1891,29 @@ tbody tr:hover {
 
 .ruud-results-table-container {
     flex-grow: 1; 
-    overflow-y: auto; 
+    overflow: auto; 
     border: 1px solid var(--border-color);
     border-radius: 8px;
 }
 
 .ruud-results table {
     width: 100%;
+    min-width: 680px;
+    table-layout: fixed;
     border-collapse: collapse;
 }
 
 .ruud-results th {
     background: var(--gremio-cinza-medio);
     color: var(--gremio-branco);
-    padding: 12px 10px;
+    padding: 10px 8px;
     text-align: left;
     position: sticky; 
     top: 0;
-    font-size: 0.9em;
+    font-size: 0.82em;
+    line-height: 1.25;
+    white-space: normal;
+    vertical-align: bottom;
 }
 
 .ruud-results td {
@@ -1918,7 +1923,8 @@ tbody tr:hover {
     font-family: 'Courier New', Courier, monospace;
 }
 
-.ruud-results td:first-child {
+.ruud-results td:first-child,
+.ruud-results td.ruud-accum {
     font-weight: 600;
     color: var(--gremio-preto);
 }

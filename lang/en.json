@@ -114,6 +114,7 @@
   "ruud_tier_good": "Good (e.g., 1500)",
   "ruud_results_title": "Hour-by-Hour Results",
   "ruud_col_hour": "Add. Hour",
+  "ruud_col_ruud_accum": "Accumulated Ruud",
   "ruud_col_cost_jewels": "Cost (Jewels) this Hour",
   "ruud_col_cost_mc": "Cost (MC) this Hour",
   "ruud_col_profit_mc": "Profit (MC) this Hour",

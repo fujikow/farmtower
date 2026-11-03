@@ -161,6 +161,8 @@ function calculateCostBenefit() {
     ruudJewelCostRows().forEach(row => {
         const hour = row.h;
         const accumulatedJewelCost = row.acc;
+        const horasTotais = hour + 2;
+        const ruudAcumulado = horasTotais * farmRate;
         
         // Coluna 2: Custo (Joias) da Hora
         const marginalJewelCost = accumulatedJewelCost - lastAccumulatedCost;
@@ -187,6 +189,7 @@ function calculateCostBenefit() {
 
         tr.innerHTML = `
             <td>${hour}h</td>
+            <td class="ruud-accum">${formatRuudAmount(ruudAcumulado)}</td>
             <td>${marginalJewelCost}</td>
             <td>${marginalMcCost.toFixed(2)} MC</td>
             <td>${hourlyProfit.toFixed(2)} MC</td>
@@ -201,4 +204,10 @@ function calculateCostBenefit() {
 
     if (bestRow) bestRow.classList.add('row-best');
     saveRuudSettings();
+}
+
+function formatRuudAmount(value) {
+    const rounded = Math.round((Number(value) + Number.EPSILON) * 100) / 100;
+    if (!Number.isFinite(rounded)) return '0';
+    return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(2);
 }
