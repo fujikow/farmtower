@@ -5,7 +5,7 @@
     <meta name="referrer" content="no-referrer">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://cdnjs.cloudflare.com https://*.firebaseio.com 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebaseapp.com; frame-src https://*.firebaseio.com https://*.firebaseapp.com; base-uri 'self'; form-action 'self'; object-src 'none'">
     <title>ANBU Farm Tower - Tabela</title>
-    <link rel="stylesheet" href="css/style.css?v=20261102-servidores-19">
+    <link rel="stylesheet" href="css/style.css?v=20261102-54h">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" integrity="sha384-vtjasyidUo0kW94K5MXDXntzOJpQgBKXmE7e2Ga4LG0skTTLeBi97eFAXsqewJjw" crossorigin="anonymous"></script>
 </head>
 <body>
@@ -127,7 +127,7 @@
                 <div class="joias-input-group">
                     <label for="horasAdicionais" data-i18n-key="jewel_modal_additional_hours">⏱️ Horas Adicionais:</label>
                     <div class="slider-container">
-                        <input type="range" id="horasAdicionais" min="0" max="44" value="0" class="slider">
+                        <input type="range" id="horasAdicionais" min="0" max="54" value="0" class="slider">
                         <span class="slider-value" id="horasAdicionaisValue">Total: 2h (Grátis)</span>
                     </div>
                 </div>
@@ -140,6 +140,7 @@
                 <div class="joias-result">
                     <label data-i18n-key="jewel_modal_jewels_needed">💎 Joias Necessárias:</label>
                     <div class="joias-number" id="joiasNecessarias">0</div>
+                    <p class="joias-estimate" id="joiasEstimativa" hidden></p>
                 </div>
             </div>
         </div>
@@ -432,15 +433,15 @@
     
     <script src="js/time.js"></script>
     <script src="js/firebase-config.js"></script>
-    <script src="js/game-data.js?v=20261102-servidores-19"></script>
+    <script src="js/game-data.js?v=20261102-54h"></script>
 
     <script src="js/i18n.js"></script>
-    <script src="js/accounts.js?v=20261102-servidores-19"></script>
+    <script src="js/accounts.js?v=20261102-54h"></script>
 
     <script src="js/auth.js"></script>
-    <script src="js/joias-calculator.js"></script>
+    <script src="js/joias-calculator.js?v=20261102-54h"></script>
     <script src="js/tabela.js?v=20261102-historico"></script> 
     <script src="js/missing-towers.js"></script>
-    <script src="js/custobeneficio.js"></script>
+    <script src="js/custobeneficio.js?v=20261102-54h"></script>
 </body>
 </html>

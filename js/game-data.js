@@ -61,5 +61,35 @@ function applyServerCatalog(value) {
 var FIELD_LIMITS = {
     dono: 40,
     localizacao: 80,
-    duracaoSegundos: 48 * 60 * 60
+    duracaoSegundos: 54 * 60 * 60
 };
+
+// Horas pagas. As 2h grátis da calculadora não entram nesta conta.
+var JOIAS_HORAS_MEDIDAS = 44;
+var JOIAS_HORAS_MAX = 54;
+
+// Joias acumuladas por hora paga, medidas no jogo até 44h.
+// A 3ª diferença da série fica perto de 0,5, então o crescimento é cúbico
+// (termo principal ≈ n³ / 14,635). Arredondar a cúbica de joiasParaHoras
+// reproduz, sem erro, cada valor de 24h a 44h. De 45h a 54h ela extrapola.
+var TABELA_JOIAS = {
+    0: 0, 1: 5, 2: 12, 3: 22, 4: 36, 5: 55,
+    6: 80, 7: 111, 8: 149, 9: 194, 10: 248,
+    11: 310, 12: 382, 13: 464, 14: 556, 15: 659,
+    16: 774, 17: 901, 18: 1041, 19: 1194, 20: 1360,
+    21: 1540, 22: 1735, 23: 1945, 24: 2171, 25: 2412,
+    26: 2670, 27: 2945, 28: 3237, 29: 3547, 30: 3875,
+    31: 4222, 32: 4588, 33: 4973, 34: 5378, 35: 5803,
+    36: 6249, 37: 6716, 38: 7204, 39: 7714, 40: 8247,
+    41: 8802, 42: 9380, 43: 9982, 44: 10608
+};
+
+function joiasParaHoras(horas) {
+    const n = Math.max(0, Math.round(Number(horas) || 0));
+    if (n <= JOIAS_HORAS_MEDIDAS) return TABELA_JOIAS[n] || 0;
+    const estimado = (0.0683301358358545 * n * n * n)
+        + (3.144415716498357 * n * n)
+        - (35.773614426942 * n)
+        + 273.5749981014242;
+    return Math.round(estimado);
+}

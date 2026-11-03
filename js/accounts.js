@@ -241,7 +241,7 @@ function commitTowerHide(torre) {
     if (typeof torre.horarioFinalizacaoMs !== 'number' && end) {
         const nowMs = (typeof getEstimatedServerTime === 'function' ? getEstimatedServerTime() : new Date()).getTime();
         const ms = end.getTime();
-        if (ms > nowMs - 600000 && ms <= nowMs + 172800000 + 300000) {
+        if (ms > nowMs - 600000 && ms <= nowMs + FIELD_LIMITS.duracaoSegundos * 1000 + 300000) {
             updates[`towers/${torre.id}/horarioFinalizacaoMs`] = ms;
         }
     }

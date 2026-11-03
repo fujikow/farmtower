@@ -337,8 +337,9 @@ function resetSubmitButton() {
 const horasInput = document.getElementById('horas');
 if (horasInput) {
     horasInput.addEventListener('input', function() {
-        if (this.value > 48) {
-            this.value = 48;
+        const maxHoras = FIELD_LIMITS.duracaoSegundos / 3600;
+        if (this.value > maxHoras) {
+            this.value = maxHoras;
             showError(getTranslation('error_duration_max'));
         }
         if (this.value < 0) this.value = 0;

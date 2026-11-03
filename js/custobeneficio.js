@@ -1,17 +1,11 @@
-// ===== DADOS FIXOS: CUSTO ACUMULADO DE JOIAS =====
-const RUUD_JEWEL_COST_TABLE = [
-    { h: 1, acc: 5 }, { h: 2, acc: 12 }, { h: 3, acc: 22 }, { h: 4, acc: 36 }, 
-    { h: 5, acc: 55 }, { h: 6, acc: 80 }, { h: 7, acc: 111 }, { h: 8, acc: 149 }, 
-    { h: 9, acc: 194 }, { h: 10, acc: 248 }, { h: 11, acc: 310 }, { h: 12, acc: 382 }, 
-    { h: 13, acc: 464 }, { h: 14, acc: 556 }, { h: 15, acc: 659 }, { h: 16, acc: 774 }, 
-    { h: 17, acc: 901 }, { h: 18, acc: 1041 }, { h: 19, acc: 1194 }, { h: 20, acc: 1360 }, 
-    { h: 21, acc: 1540 }, { h: 22, acc: 1735 }, { h: 23, acc: 1945 }, { h: 24, acc: 2171 }, 
-    { h: 25, acc: 2412 }, { h: 26, acc: 2670 }, { h: 27, acc: 2945 }, { h: 28, acc: 3237 }, 
-    { h: 29, acc: 3547 }, { h: 30, acc: 3875 }, { h: 31, acc: 4222 }, { h: 32, acc: 4588 }, 
-    { h: 33, acc: 4973 }, { h: 34, acc: 5378 }, { h: 35, acc: 5803 }, { h: 36, acc: 6249 }, 
-    { h: 37, acc: 6716 }, { h: 38, acc: 7204 }, { h: 39, acc: 7714 }, { h: 40, acc: 8247 }, 
-    { h: 41, acc: 8802 }, { h: 42, acc: 9380 }, { h: 43, acc: 9982 }, { h: 44, acc: 10608 }
-];
+function ruudJewelCostRows() {
+    const max = typeof JOIAS_HORAS_MAX === 'number' ? JOIAS_HORAS_MAX : 54;
+    const rows = [];
+    for (let hour = 1; hour <= max; hour++) {
+        rows.push({ h: hour, acc: joiasParaHoras(hour) });
+    }
+    return rows;
+}
 
 // Variável global para armazenar a joia selecionada
 let selectedJewelForCalc = 'bless'; // Padrão
@@ -164,7 +158,7 @@ function calculateCostBenefit() {
     let lastAccumulatedCost = 0;
     let bestRow = null;
 
-    RUUD_JEWEL_COST_TABLE.forEach(row => {
+    ruudJewelCostRows().forEach(row => {
         const hour = row.h;
         const accumulatedJewelCost = row.acc;
         

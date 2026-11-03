@@ -2,19 +2,6 @@
 
 let joiasUpdateInterval = null;
 
-// Tabela de joias (horas -> joias necessárias)
-const tabelaJoias = {
-    0: 0, 1: 5, 2: 12, 3: 22, 4: 36, 5: 55,
-    6: 80, 7: 111, 8: 149, 9: 194, 10: 248,
-    11: 310, 12: 382, 13: 464, 14: 556, 15: 659,
-    16: 774, 17: 901, 18: 1041, 19: 1194, 20: 1360,
-    21: 1540, 22: 1735, 23: 1945, 24: 2171, 25: 2412,
-    26: 2670, 27: 2945, 28: 3237, 29: 3547, 30: 3875,
-    31: 4222, 32: 4588, 33: 4973, 34: 5378, 35: 5803,
-    36: 6249, 37: 6716, 38: 7204, 39: 7714, 40: 8247,
-    41: 8802, 42: 9380, 43: 9982, 44: 10608
-};
-
 // ===== INICIALIZAR EVENTOS =====
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🔧 Inicializando calculadora de joias...');
@@ -22,6 +9,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Configurar slider
     const slider = document.getElementById('horasAdicionais');
     if (slider) {
+        if (typeof JOIAS_HORAS_MAX === 'number') slider.max = String(JOIAS_HORAS_MAX);
         slider.addEventListener('input', function() {
             updateJoiasCalculator();
         });
@@ -133,12 +121,24 @@ function updateJoiasCalculator() {
     }
     
     // Calcular joias necessárias (baseado apenas nas horas adicionais)
-    const joias = tabelaJoias[horasAdicionais] || 0;
+    const joias = typeof joiasParaHoras === 'function' ? joiasParaHoras(horasAdicionais) : 0;
     
     // Atualizar joias necessárias
     const joiasElement = document.getElementById('joiasNecessarias');
     if (joiasElement) {
         joiasElement.textContent = joias;
+    }
+
+    const estimativa = document.getElementById('joiasEstimativa');
+    if (estimativa) {
+        const medidaMax = typeof JOIAS_HORAS_MEDIDAS === 'number' ? JOIAS_HORAS_MEDIDAS : 44;
+        if (horasAdicionais > medidaMax) {
+            estimativa.hidden = false;
+            estimativa.textContent = getTranslation('jewel_modal_estimate');
+        } else {
+            estimativa.hidden = true;
+            estimativa.textContent = '';
+        }
     }
 }
 
