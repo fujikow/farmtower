@@ -109,7 +109,9 @@ function overwriteReport(auditEvents, activeTowers, profiles) {
             servidor: String(event.servidor || (torre && torre.servidor) || ''),
             torreId: id,
             ativa: !!torre,
-            autor: rankingPersonLabel((torre && torre.cadastradoPorUid) || (cadastro && cadastro.uid), (torre && torre.cadastradoPor) || (cadastro && cadastro.nome), profiles)
+            autor: rankingPersonLabel((torre && torre.cadastradoPorUid) || (cadastro && cadastro.uid), (torre && torre.cadastradoPor) || (cadastro && cadastro.nome), profiles),
+            horarioAnterior: auditScheduleIso(event.horarioAnterior),
+            horarioNovo: auditScheduleIso(event.horarioNovo)
         };
     }).sort((a, b) => b.em.localeCompare(a.em) || a.mapa.localeCompare(b.mapa) || a.servidor.localeCompare(b.servidor, undefined, { numeric: true }));
 }
@@ -269,8 +271,16 @@ function stopAccountWatchers() {
     auditEntries = [];
 }
 
-function auditPayload(acao, torre, torreId, identity, em) {
-    return {
+function auditScheduleIso(value) {
+    if (typeof parseUtcInstant !== 'function' || typeof toUtcIso !== 'function') return '';
+    const instant = parseUtcInstant(value);
+    if (!instant) return '';
+    const iso = toUtcIso(instant);
+    return /^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3}Z$/.test(iso) ? iso : '';
+}
+
+function auditPayload(acao, torre, torreId, identity, em, previous) {
+    const payload = {
         acao: acao,
         uid: identity.uid,
         nome: identity.nome,
@@ -279,9 +289,16 @@ function auditPayload(acao, torre, torreId, identity, em) {
         servidor: String(torre.servidor || '').slice(0, 2),
         torreId: String(torreId || '').slice(0, 40)
     };
+    if (acao === 'sobrescrita') {
+        const antigo = auditScheduleIso(previous && previous.horarioFinalizacao);
+        const novo = auditScheduleIso(torre && torre.horarioFinalizacao);
+        if (antigo) payload.horarioAnterior = antigo;
+        if (novo) payload.horarioNovo = novo;
+    }
+    return payload;
 }
 
-function commitTowerWrite(torre, existingId, acao) {
+function commitTowerWrite(torre, existingId, acao, previous) {
     const identity = editorIdentity();
     if (!identity) return Promise.reject(new Error('profile'));
     const end = parseUtcInstant(torre.horarioFinalizacao);
@@ -303,7 +320,7 @@ function commitTowerWrite(torre, existingId, acao) {
     const auditKey = database.ref('audit').push().key;
     const updates = {};
     updates[`towers/${id}`] = stamped;
-    updates[`audit/${auditKey}`] = auditPayload(acao, stamped, id, identity, em);
+    updates[`audit/${auditKey}`] = auditPayload(acao, stamped, id, identity, em, previous);
     return database.ref().update(updates);
 }
 
@@ -505,6 +522,7 @@ function buildOverwriteModal() {
         </div>
         <div class="modal-body">
             <p class="ranking-hint" id="overwriteSummary"></p>
+            <p class="ranking-hint" id="overwriteHint"></p>
             <div class="overwrite-toolbar">
                 <input type="search" id="overwriteSearch" autocomplete="off">
                 <button type="button" class="btn btn-view" id="overwriteDownload"></button>
@@ -583,6 +601,7 @@ function labelAccountModal() {
     setText('rankingColActive', 'ranking_col_active');
     setText('rankingColTotal', 'ranking_col_total');
     setText('overwriteModalTitle', 'overwrite_modal_title');
+    setText('overwriteHint', 'overwrite_hint');
     setText('overwriteDownload', 'overwrite_download');
     setPlaceholder('overwriteSearch', 'overwrite_search');
     renderRegistrarRanking();
@@ -747,7 +766,7 @@ function renderOverwriteReport() {
     }
     const head = document.createElement('div');
     head.className = 'overwrite-row is-head';
-    ['overwrite_col_when', 'overwrite_col_who', 'overwrite_col_map', 'overwrite_col_server', 'overwrite_col_status', 'overwrite_col_author'].forEach((key) => {
+    ['overwrite_col_when', 'overwrite_col_who', 'overwrite_col_map', 'overwrite_col_server', 'overwrite_col_old', 'overwrite_col_new', 'overwrite_col_status', 'overwrite_col_author'].forEach((key) => {
         const cell = document.createElement('span');
         cell.textContent = getTranslation(key);
         head.appendChild(cell);
@@ -772,11 +791,15 @@ function renderOverwriteReport() {
         mapa.textContent = row.mapa;
         const servidor = document.createElement('span');
         servidor.textContent = row.servidor;
+        const antigo = document.createElement('span');
+        antigo.textContent = overwriteClock(row.horarioAnterior);
+        const novo = document.createElement('span');
+        novo.textContent = overwriteClock(row.horarioNovo);
         const status = document.createElement('span');
         status.textContent = getTranslation(row.ativa ? 'overwrite_active' : 'overwrite_closed');
         const autor = document.createElement('span');
         autor.textContent = row.autor || '—';
-        item.append(when, who, mapa, servidor, status, autor);
+        item.append(when, who, mapa, servidor, antigo, novo, status, autor);
         list.appendChild(item);
     });
 }
@@ -784,7 +807,7 @@ function renderOverwriteReport() {
 function downloadOverwriteReport() {
     if (!isAdminUser(firebase.auth().currentUser)) return;
     const report = overwriteReport(auditEntries, typeof allTowers !== 'undefined' ? allTowers : [], profilesByUid);
-    const header = ['Quando', 'Quem sobrescreveu', 'Mapa', 'Servidor', 'Situação', 'Autor do cadastro', 'Torre'];
+    const header = ['Quando', 'Quem sobrescreveu', 'Mapa', 'Servidor', 'Horário antigo', 'Horário novo', 'Situação', 'Autor do cadastro', 'Torre'];
     const lines = [header.map(csvCell).join(';')];
     report.forEach((row) => {
         lines.push([
@@ -792,6 +815,8 @@ function downloadOverwriteReport() {
             row.nome,
             row.mapa,
             row.servidor,
+            row.horarioAnterior,
+            row.horarioNovo,
             row.ativa ? 'Ativa' : 'Encerrada',
             row.autor,
             row.torreId
@@ -806,6 +831,11 @@ function downloadOverwriteReport() {
     link.click();
     link.remove();
     URL.revokeObjectURL(url);
+}
+
+function overwriteClock(iso) {
+    if (!iso) return '—';
+    return typeof formatDateTime === 'function' ? formatDateTime(iso) : iso;
 }
 
 function csvCell(value) {

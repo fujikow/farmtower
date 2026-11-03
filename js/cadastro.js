@@ -190,14 +190,14 @@ if (towerForm) {
         rememberOwner(dono, alianca);
         console.log('📤 Enviando torre:', torre.mapa, torre.servidor);
 
-        saveTowerToFirebase(torre, duplicateTower ? duplicateTower.id : null);
+        saveTowerToFirebase(torre, duplicateTower ? duplicateTower.id : null, duplicateTower);
     });
 }
 
 // ===== SALVAR NO FIREBASE (MODIFICADO) =====
-function saveTowerToFirebase(torre, existingId) {
+function saveTowerToFirebase(torre, existingId, previous) {
     const acao = existingId ? 'sobrescrita' : 'cadastro';
-    const promise = commitTowerWrite(torre, existingId, acao);
+    const promise = commitTowerWrite(torre, existingId, acao, previous);
 
     promise
         .then(() => {
