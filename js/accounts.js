@@ -43,22 +43,75 @@ function rankingText(value) {
     return '';
 }
 
-function rankingFromTowers(towers, profiles) {
-    const counts = new Map();
-    (towers || []).forEach((torre) => {
-        if (!torre || typeof torre !== 'object') return;
-        const uid = rankingText(torre.cadastradoPorUid);
-        const nome = rankingText(torre.cadastradoPor);
-        const key = uid || (nome ? `nome:${nome.toLowerCase()}` : '');
+function rankingPersonKey(uid, nome) {
+    const id = rankingText(uid);
+    const name = rankingText(nome);
+    return id || (name ? `nome:${name.toLowerCase()}` : '');
+}
+
+function rankingPersonLabel(uid, nome, profiles) {
+    const profile = uid && profiles ? profiles[rankingText(uid)] : null;
+    return rankingText(profile && profile.nome) || rankingText(nome) || rankingText(profile && profile.username) || '—';
+}
+
+function rankingBoard(activeTowers, auditEvents, profiles) {
+    const rows = new Map();
+    const cadastroTowerIds = new Set();
+    function slot(key, nome) {
+        let row = rows.get(key);
+        if (!row) {
+            row = { nome: nome || '—', ativas: 0, acumulado: 0 };
+            rows.set(key, row);
+        }
+        if (nome && nome !== '—') row.nome = nome;
+        return row;
+    }
+    (auditEvents || []).forEach((event) => {
+        if (!event || event.acao !== 'cadastro') return;
+        const key = rankingPersonKey(event.uid, event.nome);
         if (!key) return;
-        const profile = uid && profiles ? profiles[uid] : null;
-        const label = rankingText(profile && profile.nome) || nome || rankingText(profile && profile.username) || '—';
-        const current = counts.get(key) || { nome: label, count: 0 };
-        current.count += 1;
-        if (rankingText(profile && profile.nome)) current.nome = rankingText(profile.nome);
-        counts.set(key, current);
+        slot(key, rankingPersonLabel(event.uid, event.nome, profiles)).acumulado += 1;
+        if (event.torreId) cadastroTowerIds.add(String(event.torreId));
     });
-    return [...counts.values()].sort((a, b) => b.count - a.count || a.nome.localeCompare(b.nome, undefined, { sensitivity: 'base' }));
+    (activeTowers || []).forEach((torre) => {
+        if (!torre || typeof torre !== 'object') return;
+        const key = rankingPersonKey(torre.cadastradoPorUid, torre.cadastradoPor);
+        if (!key) return;
+        const row = slot(key, rankingPersonLabel(torre.cadastradoPorUid, torre.cadastradoPor, profiles));
+        row.ativas += 1;
+        const id = rankingText(torre.id);
+        if (!id || !cadastroTowerIds.has(id)) row.acumulado += 1;
+    });
+    return [...rows.values()].sort((a, b) => b.acumulado - a.acumulado || b.ativas - a.ativas || a.nome.localeCompare(b.nome, undefined, { sensitivity: 'base' }));
+}
+
+function overwriteReport(auditEvents, activeTowers, profiles) {
+    const events = Array.isArray(auditEvents) ? auditEvents : [];
+    const active = new Map();
+    (activeTowers || []).forEach((torre) => {
+        if (torre && torre.id) active.set(String(torre.id), torre);
+    });
+    const authors = new Map();
+    events.forEach((event) => {
+        if (!event || event.acao !== 'cadastro' || !event.torreId) return;
+        const id = String(event.torreId);
+        const prev = authors.get(id);
+        if (!prev || String(event.em || '') < String(prev.em || '')) authors.set(id, event);
+    });
+    return events.filter((event) => event && event.acao === 'sobrescrita').map((event) => {
+        const id = String(event.torreId || '');
+        const torre = active.get(id);
+        const cadastro = authors.get(id);
+        return {
+            em: String(event.em || ''),
+            nome: String(event.nome || ''),
+            mapa: String(event.mapa || (torre && torre.mapa) || ''),
+            servidor: String(event.servidor || (torre && torre.servidor) || ''),
+            torreId: id,
+            ativa: !!torre,
+            autor: rankingPersonLabel((torre && torre.cadastradoPorUid) || (cadastro && cadastro.uid), (torre && torre.cadastradoPor) || (cadastro && cadastro.nome), profiles)
+        };
+    }).sort((a, b) => b.em.localeCompare(a.em) || a.mapa.localeCompare(b.mapa) || a.servidor.localeCompare(b.servidor, undefined, { numeric: true }));
 }
 
 function normalizeUsername(value) {
@@ -188,17 +241,21 @@ function startAccountWatchers() {
         }
     });
     if (!isAdminUser(firebase.auth().currentUser)) return;
-    database.ref('audit').limitToLast(80).on('value', (snapshot) => {
+    database.ref('audit').on('value', (snapshot) => {
         auditEntries = [];
         snapshot.forEach((child) => {
             const value = child.val();
             if (value && typeof value === 'object') auditEntries.push(value);
         });
-        auditEntries.reverse();
+        auditEntries.sort((a, b) => String(b.em || '').localeCompare(String(a.em || '')));
         renderAuditList();
+        renderRegistrarRanking();
+        renderOverwriteReport();
     }, () => {
         auditEntries = [];
         renderAuditList();
+        renderRegistrarRanking();
+        renderOverwriteReport();
     });
 }
 
@@ -282,7 +339,9 @@ function renderSessionChrome() {
     if (!isAdminUser(user)) {
         closeAuditModal();
         closeRankingModal();
+        closeOverwriteModal();
         renderRegistrarRanking();
+        renderOverwriteReport();
     }
     if (!user) return;
 
@@ -318,6 +377,12 @@ function renderSessionChrome() {
         rankingButton.textContent = getTranslation('btn_ranking');
         rankingButton.addEventListener('click', openRankingModal);
         host.append(rankingButton);
+        const overwriteButton = document.createElement('button');
+        overwriteButton.type = 'button';
+        overwriteButton.className = 'btn-account';
+        overwriteButton.textContent = getTranslation('btn_overwrites');
+        overwriteButton.addEventListener('click', openOverwriteModal);
+        host.append(overwriteButton);
     }
     host.append(accountButton);
     syncEditorColumn();
@@ -334,6 +399,7 @@ function ensureAccountModals() {
     document.body.appendChild(buildAccountModal());
     document.body.appendChild(buildAuditModal());
     document.body.appendChild(buildRankingModal());
+    document.body.appendChild(buildOverwriteModal());
 }
 
 function buildAccountModal() {
@@ -411,7 +477,39 @@ function buildRankingModal() {
         </div>
         <div class="modal-body">
             <p class="ranking-hint" id="rankingHint"></p>
+            <div class="ranking-head" id="rankingHead">
+                <span></span>
+                <span id="rankingColName"></span>
+                <span id="rankingColActive"></span>
+                <span id="rankingColTotal"></span>
+            </div>
             <div id="rankingList" class="ranking-list"></div>
+        </div>`;
+    overlay.appendChild(content);
+    return overlay;
+}
+
+function buildOverwriteModal() {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.id = 'overwriteModal';
+    overlay.addEventListener('click', (event) => {
+        if (event.target === overlay) closeOverwriteModal();
+    });
+    const content = document.createElement('div');
+    content.className = 'modal-content modal-account modal-overwrite';
+    content.innerHTML = `
+        <div class="modal-header">
+            <h2 id="overwriteModalTitle"></h2>
+            <button class="modal-close" type="button" id="overwriteModalClose">✕</button>
+        </div>
+        <div class="modal-body">
+            <p class="ranking-hint" id="overwriteSummary"></p>
+            <div class="overwrite-toolbar">
+                <input type="search" id="overwriteSearch" autocomplete="off">
+                <button type="button" class="btn btn-view" id="overwriteDownload"></button>
+            </div>
+            <div id="overwriteList" class="overwrite-list"></div>
         </div>`;
     overlay.appendChild(content);
     return overlay;
@@ -481,7 +579,14 @@ function labelAccountModal() {
     if (auditTitle) auditTitle.textContent = getTranslation('audit_modal_title');
     setText('rankingModalTitle', 'ranking_modal_title');
     setText('rankingHint', 'ranking_hint');
+    setText('rankingColName', 'ranking_col_name');
+    setText('rankingColActive', 'ranking_col_active');
+    setText('rankingColTotal', 'ranking_col_total');
+    setText('overwriteModalTitle', 'overwrite_modal_title');
+    setText('overwriteDownload', 'overwrite_download');
+    setPlaceholder('overwriteSearch', 'overwrite_search');
     renderRegistrarRanking();
+    renderOverwriteReport();
 }
 
 function setText(id, key) {
@@ -555,12 +660,34 @@ function closeRankingModal() {
     modal.style.display = 'none';
 }
 
+function openOverwriteModal() {
+    if (!isAdminUser(firebase.auth().currentUser)) return;
+    ensureAccountModals();
+    wireAccountModal();
+    labelAccountModal();
+    const modal = document.getElementById('overwriteModal');
+    modal.classList.add('active');
+    modal.style.display = 'flex';
+}
+
+function closeOverwriteModal() {
+    const modal = document.getElementById('overwriteModal');
+    if (!modal) return;
+    modal.classList.remove('active');
+    modal.style.display = 'none';
+}
+
 function renderRegistrarRanking() {
     const list = document.getElementById('rankingList');
+    const head = document.getElementById('rankingHead');
     if (!list || typeof getTranslation !== 'function') return;
     list.replaceChildren();
-    if (!isAdminUser(firebase.auth().currentUser)) return;
-    const rows = rankingFromTowers(typeof allTowers !== 'undefined' ? allTowers : [], profilesByUid);
+    if (!isAdminUser(firebase.auth().currentUser)) {
+        if (head) head.hidden = true;
+        return;
+    }
+    const rows = rankingBoard(typeof allTowers !== 'undefined' ? allTowers : [], auditEntries, profilesByUid);
+    if (head) head.hidden = !rows.length;
     if (!rows.length) {
         const empty = document.createElement('p');
         empty.className = 'account-list-empty';
@@ -568,7 +695,7 @@ function renderRegistrarRanking() {
         list.appendChild(empty);
         return;
     }
-    const top = rows[0].count || 1;
+    const top = rows[0].acumulado || 1;
     rows.forEach((row, index) => {
         const item = document.createElement('div');
         item.className = 'ranking-row';
@@ -578,18 +705,113 @@ function renderRegistrarRanking() {
         const nome = document.createElement('span');
         nome.className = 'ranking-name';
         nome.textContent = row.nome;
-        const count = document.createElement('span');
-        count.className = 'ranking-count';
-        const countKey = row.count === 1 ? 'ranking_count_one' : 'ranking_count_many';
-        count.textContent = getTranslation(countKey, { count: row.count });
+        nome.title = row.nome;
+        const ativas = document.createElement('span');
+        ativas.className = 'ranking-count';
+        ativas.textContent = String(row.ativas);
+        const acumulado = document.createElement('span');
+        acumulado.className = 'ranking-count';
+        acumulado.textContent = String(row.acumulado);
         const track = document.createElement('div');
         track.className = 'ranking-bar';
         const fill = document.createElement('span');
-        fill.style.width = `${Math.max(8, Math.round((row.count / top) * 100))}%`;
+        fill.style.width = `${Math.max(8, Math.round((row.acumulado / top) * 100))}%`;
         track.appendChild(fill);
-        item.append(place, nome, count, track);
+        item.append(place, nome, ativas, acumulado, track);
         list.appendChild(item);
     });
+}
+
+function visibleOverwriteRows() {
+    const towers = typeof allTowers !== 'undefined' ? allTowers : [];
+    const rows = overwriteReport(auditEntries, towers, profilesByUid);
+    const query = String((document.getElementById('overwriteSearch') || {}).value || '').trim().toLowerCase();
+    const visible = query ? rows.filter((row) => `${row.nome} ${row.mapa} ${row.servidor} ${row.autor}`.toLowerCase().includes(query)) : rows;
+    return { rows: rows, visible: visible };
+}
+
+function renderOverwriteReport() {
+    const list = document.getElementById('overwriteList');
+    if (!list || typeof getTranslation !== 'function') return;
+    list.replaceChildren();
+    const summary = document.getElementById('overwriteSummary');
+    if (!isAdminUser(firebase.auth().currentUser)) {
+        if (summary) summary.textContent = '';
+        return;
+    }
+    const report = visibleOverwriteRows();
+    const towers = new Set(report.rows.map((row) => row.torreId || `${row.mapa}|${row.servidor}|${row.em}`));
+    if (summary) {
+        const total = getTranslation('overwrite_summary', { towers: towers.size, events: report.rows.length });
+        summary.textContent = report.visible.length === report.rows.length ? total : `${total} · ${getTranslation('overwrite_shown', { shown: report.visible.length })}`;
+    }
+    const head = document.createElement('div');
+    head.className = 'overwrite-row is-head';
+    ['overwrite_col_when', 'overwrite_col_who', 'overwrite_col_map', 'overwrite_col_server', 'overwrite_col_status', 'overwrite_col_author'].forEach((key) => {
+        const cell = document.createElement('span');
+        cell.textContent = getTranslation(key);
+        head.appendChild(cell);
+    });
+    list.appendChild(head);
+    if (!report.visible.length) {
+        const empty = document.createElement('p');
+        empty.className = 'account-list-empty';
+        empty.textContent = getTranslation(report.rows.length ? 'overwrite_filter_empty' : 'overwrite_empty');
+        list.appendChild(empty);
+        return;
+    }
+    report.visible.forEach((row) => {
+        const item = document.createElement('div');
+        item.className = 'overwrite-row';
+        item.title = row.torreId;
+        const when = document.createElement('span');
+        when.textContent = typeof formatDateTime === 'function' ? formatDateTime(row.em) : row.em;
+        const who = document.createElement('span');
+        who.textContent = row.nome;
+        const mapa = document.createElement('span');
+        mapa.textContent = row.mapa;
+        const servidor = document.createElement('span');
+        servidor.textContent = row.servidor;
+        const status = document.createElement('span');
+        status.textContent = getTranslation(row.ativa ? 'overwrite_active' : 'overwrite_closed');
+        const autor = document.createElement('span');
+        autor.textContent = row.autor || '—';
+        item.append(when, who, mapa, servidor, status, autor);
+        list.appendChild(item);
+    });
+}
+
+function downloadOverwriteReport() {
+    if (!isAdminUser(firebase.auth().currentUser)) return;
+    const report = overwriteReport(auditEntries, typeof allTowers !== 'undefined' ? allTowers : [], profilesByUid);
+    const header = ['Quando', 'Quem sobrescreveu', 'Mapa', 'Servidor', 'Situação', 'Autor do cadastro', 'Torre'];
+    const lines = [header.map(csvCell).join(';')];
+    report.forEach((row) => {
+        lines.push([
+            row.em,
+            row.nome,
+            row.mapa,
+            row.servidor,
+            row.ativa ? 'Ativa' : 'Encerrada',
+            row.autor,
+            row.torreId
+        ].map(csvCell).join(';'));
+    });
+    const blob = new Blob([`\uFEFF${lines.join('\n')}`], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'relatorio-sobrescritas.csv';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+}
+
+function csvCell(value) {
+    const text = String(value == null ? '' : value);
+    if (/[;"\n]/.test(text)) return `"${text.replace(/"/g, '""')}"`;
+    return text;
 }
 
 let accountModalWired = false;
@@ -603,6 +825,10 @@ function wireAccountModal() {
     document.getElementById('accountModalClose').addEventListener('click', closeAccountModal);
     document.getElementById('auditModalClose').addEventListener('click', closeAuditModal);
     document.getElementById('rankingModalClose').addEventListener('click', closeRankingModal);
+    document.getElementById('overwriteModalClose').addEventListener('click', closeOverwriteModal);
+    document.getElementById('overwriteDownload').addEventListener('click', downloadOverwriteReport);
+    const overwriteSearch = document.getElementById('overwriteSearch');
+    if (overwriteSearch) overwriteSearch.addEventListener('input', renderOverwriteReport);
     document.getElementById('accountCreateBtn').addEventListener('click', submitNewAccount);
     document.getElementById('accountPasswordBtn').addEventListener('click', submitPasswordChange);
     const search = document.getElementById('accountSearch');
@@ -790,12 +1016,13 @@ function renderUserList() {
 function renderAuditList() {
     const list = document.getElementById('auditList');
     if (!list || typeof getTranslation !== 'function') return;
-    if (!auditEntries.length) {
+    const recent = auditEntries.slice(0, 80);
+    if (!recent.length) {
         list.textContent = getTranslation('audit_empty');
         return;
     }
     list.replaceChildren();
-    auditEntries.forEach((entry) => {
+    recent.forEach((entry) => {
         const row = document.createElement('div');
         row.className = 'audit-row';
         const when = typeof formatDateTime === 'function' ? formatDateTime(entry.em) : entry.em;

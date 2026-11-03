@@ -1619,13 +1619,27 @@ tbody tr:hover {
     font-weight: 600;
 }
 
+.ranking-head,
 .ranking-row {
     display: grid;
-    grid-template-columns: 32px minmax(0, 1fr) auto;
+    grid-template-columns: 32px minmax(0, 1fr) 72px 96px;
     gap: 8px 12px;
     align-items: center;
     padding: 10px 0;
     border-bottom: 1px solid var(--border-color);
+}
+
+.ranking-head {
+    font-size: 0.78em;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: #495057;
+}
+
+.ranking-head span:nth-child(n + 3),
+.ranking-count {
+    text-align: right;
 }
 
 .ranking-place,
@@ -1653,6 +1667,59 @@ tbody tr:hover {
     display: block;
     height: 100%;
     background: var(--gremio-azul);
+}
+
+.modal-overwrite {
+    max-width: 980px;
+    width: min(980px, calc(100vw - 24px));
+}
+
+.overwrite-toolbar {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+}
+
+.overwrite-toolbar input {
+    flex: 1 1 220px;
+    min-width: 0;
+    padding: 10px 12px;
+    border: 2px solid var(--gremio-azul);
+    border-radius: 10px;
+    font-size: 1em;
+}
+
+.overwrite-toolbar .btn {
+    flex: 0 0 auto;
+}
+
+.overwrite-list {
+    max-height: 60vh;
+    overflow: auto;
+}
+
+.overwrite-row {
+    display: grid;
+    grid-template-columns: 148px minmax(110px, 1.1fr) minmax(100px, 1fr) 64px 96px minmax(110px, 1fr);
+    gap: 8px;
+    align-items: center;
+    min-width: 760px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.92em;
+}
+
+.overwrite-row.is-head {
+    position: sticky;
+    top: 0;
+    background: #ffffff;
+    font-size: 0.75em;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: #495057;
+    z-index: 1;
 }
 
 .btn-logout {
