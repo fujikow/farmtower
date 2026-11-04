@@ -148,6 +148,31 @@ function isAdminUser(user) {
     return !!(profile && isAdminEmail(profile.email));
 }
 
+function isModeratorUser(user) {
+    if (!user || isAdminUser(user)) return false;
+    const profile = profilesByUid[user.uid];
+    return !!(profile && profile.moderador === true && profile.ativo === true && accountSituacao(profile) === 'ativo');
+}
+
+function canApproveMembers(user) {
+    return isAdminUser(user) || isModeratorUser(user);
+}
+
+function userRecord(profile, situacao, moderador) {
+    const record = {
+        username: profile.username,
+        nome: profile.nome,
+        email: profile.email,
+        ativo: situacao === 'ativo',
+        situacao: situacao
+    };
+    if (profile.criadoEm) record.criadoEm = profile.criadoEm;
+    if (profile.criadoPor) record.criadoPor = profile.criadoPor;
+    const flag = typeof moderador === 'boolean' ? moderador : profile.moderador;
+    if (flag === true || flag === false) record.moderador = flag;
+    return record;
+}
+
 function adminProfileSeed(user) {
     const shared = user.email === SHARED_ADMIN_EMAIL;
     return {
@@ -230,6 +255,8 @@ function startAccountWatchers() {
     database.ref('users').on('value', (snapshot) => {
         profilesByUid = snapshot.val() || {};
         renderSessionChrome();
+        const accountModal = document.getElementById('accountModal');
+        if (accountModal && accountModal.classList.contains('active') && typeof labelAccountModal === 'function') labelAccountModal();
         renderUserList();
     }, () => {
         renderSessionChrome();
@@ -371,7 +398,7 @@ function renderSessionChrome() {
     const accountButton = document.createElement('button');
     accountButton.type = 'button';
     accountButton.className = 'btn-account';
-    if (isAdminUser(user)) {
+    if (canApproveMembers(user)) {
         const pending = pendingAccountCount();
         const label = getTranslation('btn_users');
         accountButton.textContent = pending > 0 ? `${label} (${pending})` : label;
@@ -436,6 +463,7 @@ function buildAccountModal() {
         </div>
         <div class="modal-body">
             <p class="account-warning" id="accountSharedWarning"></p>
+            <p class="ranking-hint" id="accountModeratorHint" hidden></p>
             <section id="accountAdminSection">
                 <details class="account-create" id="accountCreateDetails">
                     <summary id="accountCreateTitle"></summary>
@@ -452,6 +480,8 @@ function buildAccountModal() {
                     <div id="accountServerList" class="account-server-list"></div>
                     <button type="button" class="btn btn-submit" id="accountServerSave"></button>
                 </details>
+            </section>
+            <section id="accountMembersSection">
                 <div class="account-list-head">
                     <h3 id="accountListTitle"></h3>
                     <span id="accountListCount" class="account-list-count"></span>
@@ -557,17 +587,25 @@ function buildAuditModal() {
 function labelAccountModal() {
     const user = firebase.auth().currentUser;
     const admin = isAdminUser(user);
+    const moderator = isModeratorUser(user);
     const title = document.getElementById('accountModalTitle');
     const warning = document.getElementById('accountSharedWarning');
     const adminSection = document.getElementById('accountAdminSection');
-    if (title) title.textContent = getTranslation(admin ? 'account_modal_title' : 'account_password_title');
+    const membersSection = document.getElementById('accountMembersSection');
+    const moderatorHint = document.getElementById('accountModeratorHint');
+    if (title) title.textContent = getTranslation(admin ? 'account_modal_title' : (moderator ? 'account_moderator_title' : 'account_password_title'));
     if (warning) {
         warning.textContent = admin ? getTranslation('account_shared_warning') : '';
         warning.style.display = admin ? 'block' : 'none';
     }
     if (adminSection) adminSection.style.display = admin ? 'flex' : 'none';
+    if (membersSection) membersSection.style.display = (admin || moderator) ? 'flex' : 'none';
+    if (moderatorHint) {
+        moderatorHint.hidden = !moderator;
+        moderatorHint.textContent = moderator ? getTranslation('account_moderator_hint') : '';
+    }
     setText('accountCreateTitle', 'account_create_title');
-    setText('accountListTitle', 'account_list_title');
+    setText('accountListTitle', moderator ? 'account_moderator_list' : 'account_list_title');
     setText('accountPasswordTitle', 'account_password_title');
     setText('accountCreateBtn', 'account_create_button');
     setText('accountServersTitle', 'servers_title');
@@ -981,6 +1019,7 @@ function renderUserList() {
     if (!list) return;
     list.replaceChildren();
     const current = firebase.auth().currentUser;
+    if (!canApproveMembers(current)) return;
     const rows = Object.entries(profilesByUid).sort((a, b) => {
         const rank = { pendente: 0, ativo: 1, bloqueado: 2 };
         const byStatus = rank[accountSituacao(a[1])] - rank[accountSituacao(b[1])];
@@ -1030,15 +1069,38 @@ function renderUserList() {
         status.className = `account-status is-${situacao}`;
         status.textContent = getTranslation(statusKey);
         main.append(name, status);
-        const button = document.createElement('button');
-        button.type = 'button';
-        const actionKey = situacao === 'pendente' ? 'account_approve' : (situacao === 'bloqueado' ? 'account_reactivate' : 'account_block');
-        const nextSituacao = situacao === 'ativo' ? 'bloqueado' : 'ativo';
-        button.className = nextSituacao === 'bloqueado' ? 'btn-account is-blocked' : 'btn-account is-approve';
-        button.textContent = getTranslation(actionKey);
-        button.disabled = !!(current && current.uid === uid);
-        button.addEventListener('click', () => setUserSituacao(uid, profile, nextSituacao));
-        row.append(main, button);
+        if (profile.moderador === true && !isAdminEmail(profile.email)) {
+            const badge = document.createElement('span');
+            badge.className = 'account-status is-moderador';
+            badge.textContent = getTranslation('account_moderator');
+            main.appendChild(badge);
+        }
+        const actions = document.createElement('span');
+        actions.className = 'account-row-actions';
+        const admin = isAdminUser(current);
+        const moderator = isModeratorUser(current);
+        const self = !!(current && current.uid === uid);
+        if (admin && !self && !isAdminEmail(profile.email) && (situacao === 'ativo' || profile.moderador === true)) {
+            const modButton = document.createElement('button');
+            modButton.type = 'button';
+            modButton.className = 'btn-account';
+            const enabling = profile.moderador !== true;
+            modButton.textContent = getTranslation(enabling ? 'account_make_moderator' : 'account_remove_moderator');
+            modButton.addEventListener('click', () => setUserModerator(uid, profile, enabling));
+            actions.appendChild(modButton);
+        }
+        if (admin || (moderator && situacao === 'pendente')) {
+            const button = document.createElement('button');
+            button.type = 'button';
+            const actionKey = situacao === 'pendente' ? 'account_approve' : (situacao === 'bloqueado' ? 'account_reactivate' : 'account_block');
+            const nextSituacao = situacao === 'ativo' ? 'bloqueado' : 'ativo';
+            button.className = nextSituacao === 'bloqueado' ? 'btn-account is-blocked' : 'btn-account is-approve';
+            button.textContent = getTranslation(actionKey);
+            button.disabled = self;
+            button.addEventListener('click', () => setUserSituacao(uid, profile, nextSituacao));
+            actions.appendChild(button);
+        }
+        row.append(main, actions);
         list.appendChild(row);
     });
 }
@@ -1134,20 +1196,28 @@ async function submitNewAccount() {
 
 async function setUserSituacao(uid, profile, situacao) {
     const current = firebase.auth().currentUser;
-    if (!isAdminUser(current) || !profile || current.uid === uid) return;
+    if (!profile || !current || current.uid === uid) return;
     if (situacao !== 'ativo' && situacao !== 'bloqueado') return;
-    const next = {
-        username: profile.username,
-        nome: profile.nome,
-        email: profile.email,
-        ativo: situacao === 'ativo',
-        situacao: situacao,
-        criadoEm: profile.criadoEm || new Date().toISOString(),
-        criadoPor: profile.criadoPor || current.uid
-    };
+    const approving = accountSituacao(profile) === 'pendente' && situacao === 'ativo';
+    if (!isAdminUser(current) && !(isModeratorUser(current) && approving)) return;
     try {
-        await database.ref(`users/${uid}`).set(next);
+        await database.ref(`users/${uid}`).set(userRecord(profile, situacao));
         showAccountMessage(getTranslation('success_user_updated'), true);
+    } catch (error) {
+        showAccountMessage(getTranslation('error_save_tower'), false);
+    }
+}
+
+async function setUserModerator(uid, profile, enabled) {
+    const current = firebase.auth().currentUser;
+    if (!isAdminUser(current) || !profile || !current || current.uid === uid) return;
+    if (isAdminEmail(profile.email)) return;
+    const situacao = accountSituacao(profile);
+    if (enabled === true && situacao !== 'ativo') return;
+    if (enabled !== true && profile.moderador !== true) return;
+    try {
+        await database.ref(`users/${uid}`).set(userRecord(profile, situacao, enabled === true));
+        showAccountMessage(getTranslation('success_moderator_updated'), true);
     } catch (error) {
         showAccountMessage(getTranslation('error_save_tower'), false);
     }

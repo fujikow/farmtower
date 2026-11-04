@@ -1334,6 +1334,17 @@ tbody tr:hover {
     color: #dc3545;
 }
 
+.account-status.is-moderador {
+    color: #0d6efd;
+}
+
+.account-row-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: flex-end;
+}
+
 .modal-account {
     max-width: 680px;
     width: min(680px, calc(100vw - 24px));
@@ -1356,7 +1367,8 @@ tbody tr:hover {
     padding: 18px 20px 20px;
 }
 
-#accountAdminSection {
+#accountAdminSection,
+#accountMembersSection {
     display: flex;
     flex-direction: column;
     flex: 0 0 auto;
@@ -1578,6 +1590,17 @@ tbody tr:hover {
 .account-row {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
+}
+
+@media (max-width: 640px) {
+    .account-row {
+        grid-template-columns: minmax(0, 1fr);
+        align-items: start;
+    }
+
+    .account-row-actions {
+        justify-content: flex-start;
+    }
 }
 
 .account-row-name {

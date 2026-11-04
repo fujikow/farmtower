@@ -13,7 +13,7 @@ async function setLanguage(lang) {
 // Função para carregar o arquivo JSON de tradução
 async function loadTranslations(lang) {
     try {
-        const response = await fetch(`lang/${lang}.json`);
+        const response = await fetch(`lang/${lang}.json?v=20261103-moderador`);
         if (!response.ok) {
             console.error(`Não foi possível carregar o arquivo de idioma: ${lang}.json`);
             return;
