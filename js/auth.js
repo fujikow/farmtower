@@ -21,8 +21,9 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             const profile = await ensureSessionProfile(user);
             if (!profile) {
-                const pending = typeof sessionDenialReason === 'function' && sessionDenialReason() === 'pending';
-                showLoginError(getTranslation(pending ? 'error_user_pending' : 'error_user_inactive'));
+                const reason = typeof sessionDenialReason === 'function' ? sessionDenialReason() : '';
+                const key = reason === 'pending' ? 'error_user_pending' : (reason === 'refused' ? 'error_user_refused' : 'error_user_inactive');
+                showLoginError(getTranslation(key));
                 await auth.signOut();
                 return;
             }

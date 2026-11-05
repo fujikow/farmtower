@@ -27,7 +27,7 @@ function sessionDenialReason() {
 }
 
 function accountSituacao(profile) {
-    if (profile && (profile.situacao === 'pendente' || profile.situacao === 'ativo' || profile.situacao === 'bloqueado')) {
+    if (profile && (profile.situacao === 'pendente' || profile.situacao === 'ativo' || profile.situacao === 'bloqueado' || profile.situacao === 'recusado')) {
         return profile.situacao;
     }
     return profile && profile.ativo === false ? 'bloqueado' : 'ativo';
@@ -228,7 +228,7 @@ async function ensureSessionProfile(user) {
         if (!isAdminUser(user)) {
             const situacao = profile ? accountSituacao(profile) : 'bloqueado';
             if (!profile || profile.ativo !== true || situacao !== 'ativo') {
-                sessionDenial = situacao === 'pendente' ? 'pending' : 'blocked';
+                sessionDenial = situacao === 'pendente' ? 'pending' : (situacao === 'recusado' ? 'refused' : 'blocked');
                 return null;
             }
         }
@@ -492,6 +492,7 @@ function buildAccountModal() {
                     <button type="button" data-account-filter="pendente"></button>
                     <button type="button" data-account-filter="ativo"></button>
                     <button type="button" data-account-filter="bloqueado"></button>
+                    <button type="button" data-account-filter="recusado"></button>
                 </div>
                 <div id="accountUserList" class="account-list"></div>
             </section>
@@ -622,7 +623,8 @@ function labelAccountModal() {
         all: 'account_filter_all',
         pendente: 'account_filter_pending',
         ativo: 'account_filter_active',
-        bloqueado: 'account_filter_blocked'
+        bloqueado: 'account_filter_blocked',
+        recusado: 'account_filter_refused'
     };
     document.querySelectorAll('[data-account-filter]').forEach((button) => {
         const filter = button.getAttribute('data-account-filter');
@@ -1021,7 +1023,7 @@ function renderUserList() {
     const current = firebase.auth().currentUser;
     if (!canApproveMembers(current)) return;
     const rows = Object.entries(profilesByUid).sort((a, b) => {
-        const rank = { pendente: 0, ativo: 1, bloqueado: 2 };
+        const rank = { pendente: 0, recusado: 1, ativo: 2, bloqueado: 3 };
         const byStatus = rank[accountSituacao(a[1])] - rank[accountSituacao(b[1])];
         if (byStatus) return byStatus;
         return String(a[1].username || '').localeCompare(String(b[1].username || ''));
@@ -1047,7 +1049,7 @@ function renderUserList() {
     visible.forEach(([uid, profile]) => {
         const situacao = accountSituacao(profile);
         const row = document.createElement('div');
-        row.className = situacao === 'pendente' ? 'account-row is-pending' : 'account-row';
+        row.className = situacao === 'pendente' ? 'account-row is-pending' : (situacao === 'recusado' ? 'account-row is-refused' : 'account-row');
         const main = document.createElement('span');
         main.className = 'account-row-main';
         const name = document.createElement('span');
@@ -1065,7 +1067,7 @@ function renderUserList() {
             name.appendChild(you);
         }
         const status = document.createElement('span');
-        const statusKey = situacao === 'pendente' ? 'account_pending' : (situacao === 'bloqueado' ? 'account_inactive' : 'account_active');
+        const statusKey = situacao === 'pendente' ? 'account_pending' : (situacao === 'recusado' ? 'account_refused' : (situacao === 'bloqueado' ? 'account_inactive' : 'account_active'));
         status.className = `account-status is-${situacao}`;
         status.textContent = getTranslation(statusKey);
         main.append(name, status);
@@ -1089,16 +1091,24 @@ function renderUserList() {
             modButton.addEventListener('click', () => setUserModerator(uid, profile, enabling));
             actions.appendChild(modButton);
         }
-        if (admin || (moderator && situacao === 'pendente')) {
+        const addStatusButton = (actionKey, nextSituacao) => {
             const button = document.createElement('button');
             button.type = 'button';
-            const actionKey = situacao === 'pendente' ? 'account_approve' : (situacao === 'bloqueado' ? 'account_reactivate' : 'account_block');
-            const nextSituacao = situacao === 'ativo' ? 'bloqueado' : 'ativo';
-            button.className = nextSituacao === 'bloqueado' ? 'btn-account is-blocked' : 'btn-account is-approve';
+            button.className = nextSituacao === 'ativo' ? 'btn-account is-approve' : 'btn-account is-blocked';
             button.textContent = getTranslation(actionKey);
             button.disabled = self;
             button.addEventListener('click', () => setUserSituacao(uid, profile, nextSituacao));
             actions.appendChild(button);
+        };
+        if (situacao === 'pendente' && (admin || moderator)) {
+            addStatusButton('account_approve', 'ativo');
+            addStatusButton('account_refuse', 'recusado');
+        } else if (admin && situacao === 'ativo') {
+            addStatusButton('account_block', 'bloqueado');
+        } else if (admin && situacao === 'bloqueado') {
+            addStatusButton('account_reactivate', 'ativo');
+        } else if (admin && situacao === 'recusado') {
+            addStatusButton('account_approve', 'ativo');
         }
         row.append(main, actions);
         list.appendChild(row);
@@ -1197,12 +1207,14 @@ async function submitNewAccount() {
 async function setUserSituacao(uid, profile, situacao) {
     const current = firebase.auth().currentUser;
     if (!profile || !current || current.uid === uid) return;
-    if (situacao !== 'ativo' && situacao !== 'bloqueado') return;
-    const approving = accountSituacao(profile) === 'pendente' && situacao === 'ativo';
-    if (!isAdminUser(current) && !(isModeratorUser(current) && approving)) return;
+    if (situacao !== 'ativo' && situacao !== 'bloqueado' && situacao !== 'recusado') return;
+    const currentSituacao = accountSituacao(profile);
+    const reviewing = currentSituacao === 'pendente' && (situacao === 'ativo' || situacao === 'recusado');
+    if (situacao === 'recusado' && currentSituacao !== 'pendente') return;
+    if (!isAdminUser(current) && !(isModeratorUser(current) && reviewing)) return;
     try {
         await database.ref(`users/${uid}`).set(userRecord(profile, situacao));
-        showAccountMessage(getTranslation('success_user_updated'), true);
+        showAccountMessage(getTranslation(situacao === 'recusado' ? 'success_user_refused' : 'success_user_updated'), true);
     } catch (error) {
         showAccountMessage(getTranslation('error_save_tower'), false);
     }
