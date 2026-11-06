@@ -225,6 +225,7 @@
   "account_reactivate": "Reactivate",
   "account_pending": "Pending",
   "account_refused": "Refused",
+  "account_blocked_note": "They stay at the end so they are not reactivated by mistake.",
   "success_user_refused": "Request refused.",
   "account_moderator_title": "Approve members",
   "account_moderator_list": "Members",

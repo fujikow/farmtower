@@ -1298,20 +1298,33 @@ tbody tr:hover {
     border-color: #146c43;
 }
 
+.account-row .btn-account.is-quiet {
+    color: #495057;
+    background: #ffffff;
+    border-color: #adb5bd;
+}
+
 .account-row .btn-account:disabled {
     opacity: 0.45;
     cursor: not-allowed;
 }
 
-.account-row.is-pending {
-    background: rgba(255, 193, 7, 0.18);
+.account-row.is-pendente {
+    background: rgba(255, 193, 7, 0.28);
     border-radius: 8px;
     padding-left: 8px;
     padding-right: 8px;
 }
 
-.account-row.is-refused {
+.account-row.is-recusado {
     background: rgba(220, 53, 69, 0.08);
+    border-radius: 8px;
+    padding-left: 8px;
+    padding-right: 8px;
+}
+
+.account-row.is-bloqueado {
+    background: #f1f3f5;
     border-radius: 8px;
     padding-left: 8px;
     padding-right: 8px;
@@ -1325,25 +1338,37 @@ tbody tr:hover {
 }
 
 .account-status {
-    font-size: 0.85em;
-    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    font-size: 0.75em;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #e9ecef;
 }
 
 .account-status.is-pendente {
     color: #8a6100;
+    background: #fff3cd;
 }
 
 .account-status.is-ativo {
     color: var(--gremio-azul-escuro);
+    background: #e7f1ff;
 }
 
 .account-status.is-bloqueado,
 .account-status.is-recusado {
-    color: #dc3545;
+    color: #842029;
+    background: #f8d7da;
 }
 
 .account-status.is-moderador {
     color: #0d6efd;
+    background: #e7f1ff;
 }
 
 .account-row-actions {
@@ -1545,12 +1570,12 @@ tbody tr:hover {
     flex-direction: column;
     flex: 0 1 auto;
     min-height: 96px;
-    max-height: min(32vh, 280px);
+    max-height: min(46vh, 440px);
     overflow-y: auto;
     overscroll-behavior: contain;
     border: 1px solid var(--border-color);
     border-radius: 12px;
-    padding: 0 12px;
+    padding: 0 12px 8px;
     background: #f8f9fa;
     scrollbar-gutter: stable;
 }
@@ -1623,6 +1648,53 @@ tbody tr:hover {
     text-overflow: ellipsis;
     white-space: nowrap;
     min-width: 0;
+    font-weight: 800;
+}
+
+.account-row-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.account-row-user {
+    color: #6c757d;
+    font-size: 0.85em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.account-group {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    margin: 0 -12px;
+    padding: 8px 12px 4px;
+    background: #f8f9fa;
+    font-size: 0.75em;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #495057;
+}
+
+.account-group.is-blocked {
+    margin-top: 10px;
+    border-top: 2px solid #dee2e6;
+    color: #842029;
+}
+
+.account-group-note {
+    margin: 0 0 6px;
+    color: #6c757d;
+    font-size: 0.82em;
 }
 
 .account-you {

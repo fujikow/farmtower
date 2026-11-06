@@ -220,6 +220,7 @@
   "account_reactivate": "Kích hoạt lại",
   "account_pending": "Đang chờ",
   "account_refused": "Đã từ chối",
+  "account_blocked_note": "Nằm cuối danh sách để khỏi kích hoạt lại nhầm.",
   "success_user_refused": "Đã từ chối yêu cầu.",
   "account_moderator_title": "Phê duyệt thành viên",
   "account_moderator_list": "Thành viên",

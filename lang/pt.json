@@ -220,6 +220,7 @@
   "account_reactivate": "Reativar",
   "account_pending": "Pendente",
   "account_refused": "Recusado",
+  "account_blocked_note": "Ficam no final para não serem reativados por engano.",
   "success_user_refused": "Solicitação recusada.",
   "account_moderator_title": "Aprovar membros",
   "account_moderator_list": "Membros",

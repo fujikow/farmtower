@@ -37,6 +37,17 @@ function pendingAccountCount() {
     return Object.values(profilesByUid).filter((profile) => accountSituacao(profile) === 'pendente').length;
 }
 
+const ACCOUNT_LIST_ORDER = ['pendente', 'ativo', 'recusado', 'bloqueado'];
+
+function accountListEntries(profiles) {
+    const rank = Object.fromEntries(ACCOUNT_LIST_ORDER.map((situacao, index) => [situacao, index]));
+    return Object.entries(profiles || {}).sort((a, b) => {
+        const byStatus = (rank[accountSituacao(a[1])] ?? 1) - (rank[accountSituacao(b[1])] ?? 1);
+        if (byStatus) return byStatus;
+        return String(a[1].username || '').localeCompare(String(b[1].username || ''), undefined, { sensitivity: 'base' });
+    });
+}
+
 function rankingText(value) {
     if (typeof value === 'string') return value.trim();
     if (typeof value === 'number' && Number.isFinite(value)) return String(value);
@@ -491,8 +502,8 @@ function buildAccountModal() {
                     <button type="button" data-account-filter="all"></button>
                     <button type="button" data-account-filter="pendente"></button>
                     <button type="button" data-account-filter="ativo"></button>
-                    <button type="button" data-account-filter="bloqueado"></button>
                     <button type="button" data-account-filter="recusado"></button>
+                    <button type="button" data-account-filter="bloqueado"></button>
                 </div>
                 <div id="accountUserList" class="account-list"></div>
             </section>
@@ -619,16 +630,8 @@ function labelAccountModal() {
     setPlaceholder('accountPassword', 'account_password');
     setPlaceholder('accountNewPassword', 'account_new_password');
     setPlaceholder('accountSearch', 'account_search');
-    const filterLabels = {
-        all: 'account_filter_all',
-        pendente: 'account_filter_pending',
-        ativo: 'account_filter_active',
-        bloqueado: 'account_filter_blocked',
-        recusado: 'account_filter_refused'
-    };
     document.querySelectorAll('[data-account-filter]').forEach((button) => {
         const filter = button.getAttribute('data-account-filter');
-        button.textContent = getTranslation(filterLabels[filter] || 'account_filter_all');
         const selected = filter === accountListFilter;
         button.classList.toggle('is-selected', selected);
         button.setAttribute('aria-pressed', selected ? 'true' : 'false');
@@ -646,6 +649,7 @@ function labelAccountModal() {
     setPlaceholder('overwriteSearch', 'overwrite_search');
     renderRegistrarRanking();
     renderOverwriteReport();
+    renderUserList();
 }
 
 function setText(id, key) {
@@ -1022,18 +1026,30 @@ function renderUserList() {
     list.replaceChildren();
     const current = firebase.auth().currentUser;
     if (!canApproveMembers(current)) return;
-    const rows = Object.entries(profilesByUid).sort((a, b) => {
-        const rank = { pendente: 0, recusado: 1, ativo: 2, bloqueado: 3 };
-        const byStatus = rank[accountSituacao(a[1])] - rank[accountSituacao(b[1])];
-        if (byStatus) return byStatus;
-        return String(a[1].username || '').localeCompare(String(b[1].username || ''));
-    });
+    const rows = accountListEntries(profilesByUid);
     const query = String((document.getElementById('accountSearch') || {}).value || '').trim().toLowerCase();
     const visible = rows.filter(([, profile]) => {
         const situacao = accountSituacao(profile);
         if (accountListFilter !== 'all' && situacao !== accountListFilter) return false;
         if (!query) return true;
         return `${profile.nome || ''} ${profile.username || ''}`.toLowerCase().includes(query);
+    });
+    const counts = { pendente: 0, ativo: 0, recusado: 0, bloqueado: 0 };
+    rows.forEach(([, profile]) => {
+        const situacao = accountSituacao(profile);
+        if (counts[situacao] != null) counts[situacao] += 1;
+    });
+    const filterLabels = {
+        all: 'account_filter_all',
+        pendente: 'account_filter_pending',
+        ativo: 'account_filter_active',
+        bloqueado: 'account_filter_blocked',
+        recusado: 'account_filter_refused'
+    };
+    document.querySelectorAll('[data-account-filter]').forEach((button) => {
+        const filter = button.getAttribute('data-account-filter');
+        const label = getTranslation(filterLabels[filter] || 'account_filter_all');
+        button.textContent = filter === 'all' || counts[filter] == null ? label : `${label} (${counts[filter]})`;
     });
     const count = document.getElementById('accountListCount');
     if (count) {
@@ -1046,19 +1062,36 @@ function renderUserList() {
         list.appendChild(empty);
         return;
     }
+    let lastGroup = '';
     visible.forEach(([uid, profile]) => {
         const situacao = accountSituacao(profile);
+        if (situacao !== lastGroup) {
+            lastGroup = situacao;
+            const heading = document.createElement('div');
+            heading.className = situacao === 'bloqueado' ? 'account-group is-blocked' : 'account-group';
+            const title = document.createElement('span');
+            title.textContent = getTranslation(filterLabels[situacao] || 'account_filter_all');
+            const total = document.createElement('span');
+            total.textContent = String(visible.filter(([, item]) => accountSituacao(item) === situacao).length);
+            heading.append(title, total);
+            list.appendChild(heading);
+            if (situacao === 'bloqueado') {
+                const note = document.createElement('p');
+                note.className = 'account-group-note';
+                note.textContent = getTranslation('account_blocked_note');
+                list.appendChild(note);
+            }
+        }
         const row = document.createElement('div');
-        row.className = situacao === 'pendente' ? 'account-row is-pending' : (situacao === 'recusado' ? 'account-row is-refused' : 'account-row');
+        row.className = `account-row is-${situacao}`;
         const main = document.createElement('span');
         main.className = 'account-row-main';
         const name = document.createElement('span');
         name.className = 'account-row-name';
         const label = document.createElement('span');
         label.className = 'account-row-label';
-        const fullName = `${profile.nome || ''} (${profile.username || ''})`;
-        label.textContent = fullName;
-        label.title = fullName;
+        label.textContent = profile.nome || profile.username || '';
+        label.title = `${profile.nome || ''} (${profile.username || ''})`;
         name.appendChild(label);
         if (current && current.uid === uid) {
             const you = document.createElement('span');
@@ -1066,17 +1099,23 @@ function renderUserList() {
             you.textContent = getTranslation('account_you');
             name.appendChild(you);
         }
+        const meta = document.createElement('span');
+        meta.className = 'account-row-meta';
+        const username = document.createElement('span');
+        username.className = 'account-row-user';
+        username.textContent = profile.username || '';
         const status = document.createElement('span');
         const statusKey = situacao === 'pendente' ? 'account_pending' : (situacao === 'recusado' ? 'account_refused' : (situacao === 'bloqueado' ? 'account_inactive' : 'account_active'));
         status.className = `account-status is-${situacao}`;
         status.textContent = getTranslation(statusKey);
-        main.append(name, status);
+        meta.append(username, status);
         if (profile.moderador === true && !isAdminEmail(profile.email)) {
             const badge = document.createElement('span');
             badge.className = 'account-status is-moderador';
             badge.textContent = getTranslation('account_moderator');
-            main.appendChild(badge);
+            meta.appendChild(badge);
         }
+        main.append(name, meta);
         const actions = document.createElement('span');
         actions.className = 'account-row-actions';
         const admin = isAdminUser(current);
@@ -1091,24 +1130,24 @@ function renderUserList() {
             modButton.addEventListener('click', () => setUserModerator(uid, profile, enabling));
             actions.appendChild(modButton);
         }
-        const addStatusButton = (actionKey, nextSituacao) => {
+        const addStatusButton = (actionKey, nextSituacao, tone) => {
             const button = document.createElement('button');
             button.type = 'button';
-            button.className = nextSituacao === 'ativo' ? 'btn-account is-approve' : 'btn-account is-blocked';
+            button.className = `btn-account ${tone}`;
             button.textContent = getTranslation(actionKey);
             button.disabled = self;
             button.addEventListener('click', () => setUserSituacao(uid, profile, nextSituacao));
             actions.appendChild(button);
         };
         if (situacao === 'pendente' && (admin || moderator)) {
-            addStatusButton('account_approve', 'ativo');
-            addStatusButton('account_refuse', 'recusado');
+            addStatusButton('account_approve', 'ativo', 'is-approve');
+            addStatusButton('account_refuse', 'recusado', 'is-blocked');
         } else if (admin && situacao === 'ativo') {
-            addStatusButton('account_block', 'bloqueado');
+            addStatusButton('account_block', 'bloqueado', 'is-blocked');
         } else if (admin && situacao === 'bloqueado') {
-            addStatusButton('account_reactivate', 'ativo');
+            addStatusButton('account_reactivate', 'ativo', 'is-quiet');
         } else if (admin && situacao === 'recusado') {
-            addStatusButton('account_approve', 'ativo');
+            addStatusButton('account_approve', 'ativo', 'is-quiet');
         }
         row.append(main, actions);
         list.appendChild(row);
