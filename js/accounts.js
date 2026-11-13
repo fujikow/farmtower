@@ -135,6 +135,25 @@ function allianceOwner(value) {
     return String(value || '').replace(/[\u0000-\u001F\u007F]/g, '').trim().slice(0, 40);
 }
 
+function allianceDayKey(value) {
+    const instant = typeof parseUtcInstant === 'function' ? parseUtcInstant(value) : null;
+    const date = instant || (value ? new Date(value) : null);
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
+    const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Sao_Paulo',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    }).format(date);
+    return /^\d{4}-\d{2}-\d{2}$/.test(parts) ? parts : '';
+}
+
+function allianceInEvent(value) {
+    const day = allianceDayKey(value);
+    if (!day) return !value;
+    return day >= '2026-01-01' && day < '2027-01-01';
+}
+
 function allianceReport(activeTowers, auditEvents) {
     const rows = new Map();
     function slot(dono, side) {
@@ -151,37 +170,86 @@ function allianceReport(activeTowers, auditEvents) {
         }
         return row;
     }
-    const events = (Array.isArray(auditEvents) ? auditEvents : []).filter((event) => event && (event.acao === 'cadastro' || event.acao === 'sobrescrita'));
-    const firstSidedAt = new Map();
-    events.forEach((event) => {
-        const id = String(event.torreId || '');
-        if (!id || !allianceSide(event.alianca) || !allianceOwner(event.dono)) return;
-        const em = String(event.em || '');
-        const prev = firstSidedAt.get(id);
-        if (!prev || em < prev) firstSidedAt.set(id, em);
+    const towersById = new Map();
+    (activeTowers || []).forEach((torre) => {
+        if (torre && torre.id) towersById.set(String(torre.id), torre);
     });
-    const covered = new Set();
+    const events = (Array.isArray(auditEvents) ? auditEvents : []).filter((event) => event && (event.acao === 'cadastro' || event.acao === 'sobrescrita') && allianceInEvent(event.em));
+    const byTower = new Map();
     events.forEach((event) => {
         const id = String(event.torreId || '');
-        const row = slot(event.dono, event.alianca);
-        if (row) {
-            row.cadastros += 1;
-            if (id) covered.add(id);
+        if (!byTower.has(id)) byTower.set(id, []);
+        byTower.get(id).push(event);
+    });
+    const captures = [];
+    byTower.forEach((list, id) => {
+        list.sort((a, b) => String(a.em || '').localeCompare(String(b.em || '')));
+        const live = towersById.get(id);
+        const firstSided = list.find((event) => allianceSide(event.alianca) && allianceOwner(event.dono));
+        const firstSidedEm = firstSided ? String(firstSided.em || '') : '';
+        list.forEach((event, index) => {
+            const day = allianceDayKey(event.em);
+            const explicitOwner = allianceOwner(event.dono);
+            const explicitSide = allianceSide(event.alianca);
+            const capture = { day: day, unknown: true };
+            if (explicitOwner && explicitSide) {
+                capture.unknown = false;
+                capture.dono = explicitOwner;
+                capture.alianca = explicitSide;
+            } else if (index === list.length - 1 && live && allianceOwner(live.dono) && allianceSide(live.alianca)) {
+                capture.unknown = false;
+                capture.dono = allianceOwner(live.dono);
+                capture.alianca = allianceSide(live.alianca);
+            }
+            captures.push(capture);
+            if (event.acao !== 'sobrescrita') return;
+            const previousOwner = allianceOwner(event.donoAnterior);
+            const previousSide = allianceSide(event.aliancaAnterior);
+            const em = String(event.em || '');
+            if (!previousOwner || !previousSide || (firstSidedEm && firstSidedEm < em)) return;
+            if (index > 0 && captures[captures.length - 2] && captures[captures.length - 2].unknown) {
+                const previous = captures[captures.length - 2];
+                previous.unknown = false;
+                previous.dono = previousOwner;
+                previous.alianca = previousSide;
+                return;
+            }
+            if (index === 0) captures.push({ day: day, unknown: false, dono: previousOwner, alianca: previousSide });
+        });
+    });
+    (activeTowers || []).forEach((torre) => {
+        if (!torre || typeof torre !== 'object') return;
+        const id = String(torre.id || '');
+        if (id && byTower.has(id)) return;
+        const when = torre.cadastradoEm || torre.vistoHorario || '';
+        if (when && !allianceInEvent(when)) return;
+        const dono = allianceOwner(torre.dono);
+        const alianca = allianceSide(torre.alianca);
+        if (!dono || !alianca) return;
+        captures.push({ day: allianceDayKey(when), unknown: false, dono: dono, alianca: alianca });
+    });
+    const dayRows = new Map();
+    let unknown = 0;
+    captures.forEach((capture) => {
+        if (capture.day) {
+            if (!dayRows.has(capture.day)) dayRows.set(capture.day, { day: capture.day, aliado: 0, inimigo: 0, unknown: 0, total: 0 });
+            const bucket = dayRows.get(capture.day);
+            bucket.total += 1;
+            if (capture.unknown) bucket.unknown += 1;
+            else if (capture.alianca === 'Aliado') bucket.aliado += 1;
+            else bucket.inimigo += 1;
         }
-        if (event.acao !== 'sobrescrita' || !id) return;
-        const earlier = firstSidedAt.get(id);
-        const em = String(event.em || '');
-        if (earlier && earlier < em) return;
-        const previous = slot(event.donoAnterior, event.aliancaAnterior);
-        if (previous) previous.cadastros += 1;
+        if (capture.unknown) {
+            unknown += 1;
+            return;
+        }
+        const row = slot(capture.dono, capture.alianca);
+        if (row) row.cadastros += 1;
     });
     (activeTowers || []).forEach((torre) => {
         if (!torre || typeof torre !== 'object') return;
         const row = slot(torre.dono, torre.alianca);
-        if (!row) return;
-        row.ativas += 1;
-        const id = String(torre.id || '');
-        if (!id || !covered.has(id)) row.cadastros += 1;
+        if (row) row.ativas += 1;
     });
     const list = [...rows.values()].sort((a, b) => b.cadastros - a.cadastros || b.ativas - a.ativas || a.dono.localeCompare(b.dono, undefined, { sensitivity: 'base' }) || a.alianca.localeCompare(b.alianca));
     const totals = {
@@ -192,7 +260,16 @@ function allianceReport(activeTowers, auditEvents) {
         totals[row.alianca].cadastros += row.cadastros;
         totals[row.alianca].ativas += row.ativas;
     });
-    return { rows: list, totals: totals };
+    const days = [...dayRows.values()].sort((a, b) => a.day.localeCompare(b.day));
+    return {
+        rows: list,
+        totals: totals,
+        unknown: unknown,
+        captures: captures.length,
+        start: days.length ? days[0].day : '',
+        end: days.length ? days[days.length - 1].day : '',
+        days: days
+    };
 }
 
 function normalizeUsername(value) {
@@ -682,8 +759,12 @@ function buildAllianceModal() {
         </div>
         <div class="modal-body">
             <p class="ranking-hint" id="allianceHint"></p>
+            <p class="alliance-period" id="alliancePeriod"></p>
             <div class="alliance-score" id="allianceScore"></div>
             <p class="alliance-lead" id="allianceLead"></p>
+            <h3 id="allianceByDay"></h3>
+            <div id="allianceDays" class="alliance-days"></div>
+            <h3 id="allianceByOwner"></h3>
             <div class="overwrite-toolbar">
                 <input type="search" id="allianceSearch" autocomplete="off">
                 <button type="button" class="btn btn-view" id="allianceDownload"></button>
@@ -780,6 +861,8 @@ function labelAccountModal() {
     setPlaceholder('overwriteSearch', 'overwrite_search');
     setText('allianceModalTitle', 'alliance_modal_title');
     setText('allianceHint', 'alliance_hint');
+    setText('allianceByDay', 'alliance_by_day');
+    setText('allianceByOwner', 'alliance_by_owner');
     setText('allianceColOwner', 'alliance_col_owner');
     setText('allianceColSide', 'alliance_col_side');
     setText('allianceColActive', 'alliance_col_active');
@@ -1061,12 +1144,30 @@ function visibleAllianceRows(report) {
     });
 }
 
-function allianceLeadText(totals) {
-    const ally = totals.Aliado.cadastros;
-    const enemy = totals.Inimigo.cadastros;
-    if (ally === enemy) return getTranslation('alliance_tie');
-    if (ally > enemy) return getTranslation('alliance_lead_ally', { diff: ally - enemy });
-    return getTranslation('alliance_lead_enemy', { diff: enemy - ally });
+function allianceDayLabel(day, withYear) {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day || '');
+    if (!match) return '';
+    return withYear ? `${match[3]}/${match[2]}/${match[1]}` : `${match[3]}/${match[2]}`;
+}
+
+function allianceLeadText(report) {
+    const ally = report.totals.Aliado.cadastros;
+    const enemy = report.totals.Inimigo.cadastros;
+    const known = ally + enemy;
+    if (!known && report.unknown) return getTranslation('alliance_lead_unknown', { unknown: report.unknown });
+    if (ally === enemy) return getTranslation(report.unknown ? 'alliance_tie_known' : 'alliance_tie');
+    const key = ally > enemy
+        ? (report.unknown ? 'alliance_lead_known_ally' : 'alliance_lead_ally')
+        : (report.unknown ? 'alliance_lead_known_enemy' : 'alliance_lead_enemy');
+    return getTranslation(key, { diff: Math.abs(ally - enemy) });
+}
+
+function alliancePeriodText(report) {
+    if (!report.captures) return getTranslation('alliance_period_empty');
+    if (!report.start) return getTranslation(report.unknown ? 'alliance_period_open_unknown' : 'alliance_period_open', { total: report.captures, unknown: report.unknown });
+    const start = allianceDayLabel(report.start, true);
+    if (report.unknown) return getTranslation('alliance_period_unknown', { start: start, total: report.captures, unknown: report.unknown });
+    return getTranslation('alliance_period', { start: start, total: report.captures });
 }
 
 function renderAllianceReport() {
@@ -1074,16 +1175,43 @@ function renderAllianceReport() {
     const score = document.getElementById('allianceScore');
     const lead = document.getElementById('allianceLead');
     const head = document.getElementById('allianceHead');
+    const period = document.getElementById('alliancePeriod');
+    const days = document.getElementById('allianceDays');
     if (!list || typeof getTranslation !== 'function') return;
     list.replaceChildren();
     if (score) score.replaceChildren();
+    if (days) days.replaceChildren();
     if (!isAdminUser(firebase.auth().currentUser)) {
         if (lead) lead.textContent = '';
+        if (period) period.textContent = '';
         if (head) head.hidden = true;
         return;
     }
     const report = currentAllianceReport();
     const visible = visibleAllianceRows(report);
+    if (period) period.textContent = alliancePeriodText(report);
+    const byDay = document.getElementById('allianceByDay');
+    if (byDay) byDay.hidden = !report.days.length;
+    if (days && report.days.length) {
+        const headRow = document.createElement('div');
+        headRow.className = 'alliance-day-head';
+        ['alliance_day', 'alliance_day_total', 'alliance_allies', 'alliance_enemies', 'alliance_unknown'].forEach((key) => {
+            const cell = document.createElement('span');
+            cell.textContent = getTranslation(key);
+            headRow.appendChild(cell);
+        });
+        days.appendChild(headRow);
+        report.days.forEach((bucket) => {
+            const row = document.createElement('div');
+            row.className = 'alliance-day';
+            [allianceDayLabel(bucket.day), bucket.total, bucket.aliado, bucket.inimigo, bucket.unknown].forEach((value) => {
+                const cell = document.createElement('span');
+                cell.textContent = String(value);
+                row.appendChild(cell);
+            });
+            days.appendChild(row);
+        });
+    }
     [['Aliado', 'alliance_allies', 'is-ally'], ['Inimigo', 'alliance_enemies', 'is-enemy']].forEach(([side, labelKey, tone]) => {
         if (!score) return;
         const card = document.createElement('article');
@@ -1098,7 +1226,19 @@ function renderAllianceReport() {
         card.append(label, total, active);
         score.appendChild(card);
     });
-    if (lead) lead.textContent = report.rows.length ? allianceLeadText(report.totals) : '';
+    if (score && report.unknown) {
+        const card = document.createElement('article');
+        card.className = 'alliance-card is-unknown';
+        const label = document.createElement('span');
+        label.textContent = getTranslation('alliance_unknown');
+        const total = document.createElement('strong');
+        total.textContent = String(report.unknown);
+        const note = document.createElement('small');
+        note.textContent = getTranslation('alliance_unknown_note');
+        card.append(label, total, note);
+        score.appendChild(card);
+    }
+    if (lead) lead.textContent = report.captures ? allianceLeadText(report) : '';
     document.querySelectorAll('[data-alliance-filter]').forEach((button) => {
         const filter = button.getAttribute('data-alliance-filter');
         const count = filter === 'Aliado' ? report.totals.Aliado.cadastros : (filter === 'Inimigo' ? report.totals.Inimigo.cadastros : null);
@@ -1149,8 +1289,13 @@ function renderAllianceReport() {
 function downloadAllianceReport() {
     if (!isAdminUser(firebase.auth().currentUser)) return;
     const report = currentAllianceReport();
-    const header = ['Dono', 'Lado', 'Ativas', 'Cadastros'];
-    const lines = [header.map(csvCell).join(';')];
+    const lines = [['Dia', 'Pegadas', 'Aliados', 'Inimigos', 'Sem lado'].map(csvCell).join(';')];
+    report.days.forEach((bucket) => {
+        lines.push([bucket.day, bucket.total, bucket.aliado, bucket.inimigo, bucket.unknown].map(csvCell).join(';'));
+    });
+    lines.push(['', report.captures, report.totals.Aliado.cadastros, report.totals.Inimigo.cadastros, report.unknown].map(csvCell).join(';'));
+    lines.push('');
+    lines.push(['Dono', 'Lado', 'Ativas', 'Cadastros'].map(csvCell).join(';'));
     report.rows.forEach((row) => {
         lines.push([row.dono, row.alianca, row.ativas, row.cadastros].map(csvCell).join(';'));
     });
@@ -1162,7 +1307,7 @@ function downloadAllianceReport() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = 'relatorio-aliados-inimigos.csv';
+    link.download = 'relatorio-evento-2026.csv';
     document.body.appendChild(link);
     link.click();
     link.remove();
