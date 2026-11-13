@@ -154,8 +154,50 @@ function allianceInEvent(value) {
     return day >= '2026-01-01' && day < '2027-01-01';
 }
 
+function allianceRoster(kept, events) {
+    const counts = new Map();
+    function observe(dono, side) {
+        const name = allianceOwner(dono);
+        const alianca = allianceSide(side);
+        if (!name || !alianca) return;
+        const key = name.toLowerCase();
+        let row = counts.get(key);
+        if (!row) {
+            row = { nome: name, Aliado: 0, Inimigo: 0 };
+            counts.set(key, row);
+        } else if (name.length > row.nome.length) {
+            row.nome = name;
+        }
+        row[alianca] += 1;
+    }
+    (kept || []).forEach((torre) => observe(torre && torre.dono, torre && torre.alianca));
+    (events || []).forEach((event) => {
+        if (!event) return;
+        observe(event.dono, event.alianca);
+        observe(event.donoAnterior, event.aliancaAnterior);
+    });
+    const people = new Map();
+    let ally = 0;
+    let enemy = 0;
+    counts.forEach((row, key) => {
+        if (row.Aliado === row.Inimigo) return;
+        const alianca = row.Aliado > row.Inimigo ? 'Aliado' : 'Inimigo';
+        people.set(key, { dono: row.nome, alianca: alianca });
+        if (alianca === 'Aliado') ally += 1;
+        else enemy += 1;
+    });
+    return { people: people, Aliado: ally, Inimigo: enemy };
+}
+
+function allianceFromRoster(roster, dono) {
+    const name = allianceOwner(dono);
+    if (!name || !roster) return null;
+    return roster.people.get(name.toLowerCase()) || null;
+}
+
 function allianceReport(activeTowers, auditEvents, keptTowers) {
     const kept = Array.isArray(keptTowers) ? keptTowers : (activeTowers || []);
+    const roster = allianceRoster(kept, auditEvents);
     const rows = new Map();
     function slot(dono, side) {
         const name = allianceOwner(dono);
@@ -192,15 +234,28 @@ function allianceReport(activeTowers, auditEvents, keptTowers) {
             const day = allianceDayKey(event.em);
             const explicitOwner = allianceOwner(event.dono);
             const explicitSide = allianceSide(event.alianca);
+            const liveOwner = index === list.length - 1 && live ? allianceOwner(live.dono) : '';
+            const liveSide = index === list.length - 1 && live ? allianceSide(live.alianca) : '';
+            const owner = explicitOwner || liveOwner;
             const capture = { day: day, unknown: true };
-            if (explicitOwner && explicitSide) {
+            if (owner && explicitSide) {
                 capture.unknown = false;
-                capture.dono = explicitOwner;
+                capture.dono = owner;
                 capture.alianca = explicitSide;
-            } else if (index === list.length - 1 && live && allianceOwner(live.dono) && allianceSide(live.alianca)) {
+            } else if (liveOwner && liveSide) {
                 capture.unknown = false;
-                capture.dono = allianceOwner(live.dono);
-                capture.alianca = allianceSide(live.alianca);
+                capture.dono = liveOwner;
+                capture.alianca = liveSide;
+            } else if (owner) {
+                const known = allianceFromRoster(roster, owner);
+                if (known) {
+                    capture.unknown = false;
+                    capture.dono = known.dono;
+                    capture.alianca = known.alianca;
+                    capture.filled = true;
+                } else if (explicitOwner) {
+                    capture.dono = explicitOwner;
+                }
             }
             captures.push(capture);
             if (event.acao !== 'sobrescrita') return;
@@ -208,11 +263,17 @@ function allianceReport(activeTowers, auditEvents, keptTowers) {
             const previousSide = allianceSide(event.aliancaAnterior);
             const em = String(event.em || '');
             if (!previousOwner || !previousSide || (firstSidedEm && firstSidedEm < em)) return;
-            if (index > 0 && captures[captures.length - 2] && captures[captures.length - 2].unknown) {
+            if (index > 0 && captures[captures.length - 2]) {
                 const previous = captures[captures.length - 2];
-                previous.unknown = false;
-                previous.dono = previousOwner;
-                previous.alianca = previousSide;
+                if (previous.unknown) {
+                    previous.unknown = false;
+                    previous.dono = previousOwner;
+                    previous.alianca = previousSide;
+                    return;
+                }
+                if (previous.filled && previous.dono.toLowerCase() !== previousOwner.toLowerCase()) {
+                    captures.push({ day: previous.day, unknown: false, dono: previousOwner, alianca: previousSide });
+                }
                 return;
             }
             if (index === 0) captures.push({ day: day, unknown: false, dono: previousOwner, alianca: previousSide });
@@ -224,14 +285,24 @@ function allianceReport(activeTowers, auditEvents, keptTowers) {
         if (id && byTower.has(id)) return;
         const when = torre.cadastradoEm || torre.vistoHorario || '';
         if (when && !allianceInEvent(when)) return;
-        const dono = allianceOwner(torre.dono);
-        const alianca = allianceSide(torre.alianca);
+        let dono = allianceOwner(torre.dono);
+        let alianca = allianceSide(torre.alianca);
+        let filled = false;
+        if (dono && !alianca) {
+            const known = allianceFromRoster(roster, dono);
+            if (!known) return;
+            dono = known.dono;
+            alianca = known.alianca;
+            filled = true;
+        }
         if (!dono || !alianca) return;
-        captures.push({ day: allianceDayKey(when), unknown: false, dono: dono, alianca: alianca });
+        captures.push({ day: allianceDayKey(when), unknown: false, dono: dono, alianca: alianca, filled: filled });
     });
     const dayRows = new Map();
     let unknown = 0;
+    let filled = 0;
     captures.forEach((capture) => {
+        if (capture.filled) filled += 1;
         if (capture.day) {
             if (!dayRows.has(capture.day)) dayRows.set(capture.day, { day: capture.day, aliado: 0, inimigo: 0, unknown: 0, total: 0 });
             const bucket = dayRows.get(capture.day);
@@ -249,7 +320,16 @@ function allianceReport(activeTowers, auditEvents, keptTowers) {
     });
     (activeTowers || []).forEach((torre) => {
         if (!torre || typeof torre !== 'object') return;
-        const row = slot(torre.dono, torre.alianca);
+        let dono = allianceOwner(torre.dono);
+        let alianca = allianceSide(torre.alianca);
+        if (dono && !alianca) {
+            const known = allianceFromRoster(roster, dono);
+            if (known) {
+                dono = known.dono;
+                alianca = known.alianca;
+            }
+        }
+        const row = slot(dono, alianca);
         if (row) row.ativas += 1;
     });
     const list = [...rows.values()].sort((a, b) => b.cadastros - a.cadastros || b.ativas - a.ativas || a.dono.localeCompare(b.dono, undefined, { sensitivity: 'base' }) || a.alianca.localeCompare(b.alianca));
@@ -269,7 +349,9 @@ function allianceReport(activeTowers, auditEvents, keptTowers) {
         captures: captures.length,
         start: days.length ? days[0].day : '',
         end: days.length ? days[days.length - 1].day : '',
-        days: days
+        days: days,
+        filled: filled,
+        roster: { people: roster.people.size, Aliado: roster.Aliado, Inimigo: roster.Inimigo }
     };
 }
 
@@ -761,6 +843,7 @@ function buildAllianceModal() {
         <div class="modal-body">
             <p class="ranking-hint" id="allianceHint"></p>
             <p class="alliance-period" id="alliancePeriod"></p>
+            <p class="alliance-period" id="allianceMatch"></p>
             <div class="alliance-score" id="allianceScore"></div>
             <p class="alliance-lead" id="allianceLead"></p>
             <h3 id="allianceByDay"></h3>
@@ -1172,12 +1255,25 @@ function alliancePeriodText(report) {
     return getTranslation('alliance_period', { start: start, total: report.captures });
 }
 
+function allianceMatchText(report) {
+    const roster = report.roster || { people: 0, Aliado: 0, Inimigo: 0 };
+    if (!roster.people) return '';
+    const key = report.filled ? 'alliance_match_filled' : 'alliance_match';
+    return getTranslation(key, {
+        people: roster.people,
+        ally: roster.Aliado,
+        enemy: roster.Inimigo,
+        filled: report.filled
+    });
+}
+
 function renderAllianceReport() {
     const list = document.getElementById('allianceList');
     const score = document.getElementById('allianceScore');
     const lead = document.getElementById('allianceLead');
     const head = document.getElementById('allianceHead');
     const period = document.getElementById('alliancePeriod');
+    const match = document.getElementById('allianceMatch');
     const days = document.getElementById('allianceDays');
     if (!list || typeof getTranslation !== 'function') return;
     list.replaceChildren();
@@ -1186,12 +1282,14 @@ function renderAllianceReport() {
     if (!isAdminUser(firebase.auth().currentUser)) {
         if (lead) lead.textContent = '';
         if (period) period.textContent = '';
+        if (match) match.textContent = '';
         if (head) head.hidden = true;
         return;
     }
     const report = currentAllianceReport();
     const visible = visibleAllianceRows(report);
     if (period) period.textContent = alliancePeriodText(report);
+    if (match) match.textContent = allianceMatchText(report);
     const byDay = document.getElementById('allianceByDay');
     if (byDay) byDay.hidden = !report.days.length;
     if (days && report.days.length) {
