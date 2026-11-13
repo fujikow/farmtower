@@ -154,7 +154,8 @@ function allianceInEvent(value) {
     return day >= '2026-01-01' && day < '2027-01-01';
 }
 
-function allianceReport(activeTowers, auditEvents) {
+function allianceReport(activeTowers, auditEvents, keptTowers) {
+    const kept = Array.isArray(keptTowers) ? keptTowers : (activeTowers || []);
     const rows = new Map();
     function slot(dono, side) {
         const name = allianceOwner(dono);
@@ -171,7 +172,7 @@ function allianceReport(activeTowers, auditEvents) {
         return row;
     }
     const towersById = new Map();
-    (activeTowers || []).forEach((torre) => {
+    kept.forEach((torre) => {
         if (torre && torre.id) towersById.set(String(torre.id), torre);
     });
     const events = (Array.isArray(auditEvents) ? auditEvents : []).filter((event) => event && (event.acao === 'cadastro' || event.acao === 'sobrescrita') && allianceInEvent(event.em));
@@ -217,7 +218,7 @@ function allianceReport(activeTowers, auditEvents) {
             if (index === 0) captures.push({ day: day, unknown: false, dono: previousOwner, alianca: previousSide });
         });
     });
-    (activeTowers || []).forEach((torre) => {
+    kept.forEach((torre) => {
         if (!torre || typeof torre !== 'object') return;
         const id = String(torre.id || '');
         if (id && byTower.has(id)) return;
@@ -1131,8 +1132,9 @@ function csvCell(value) {
 let allianceListFilter = 'all';
 
 function currentAllianceReport() {
-    const towers = typeof allTowers !== 'undefined' ? allTowers : [];
-    return allianceReport(towers, auditEntries);
+    const live = typeof allTowers !== 'undefined' ? allTowers : [];
+    const kept = typeof storedTowers !== 'undefined' ? storedTowers : live;
+    return allianceReport(live, auditEntries, kept);
 }
 
 function visibleAllianceRows(report) {
@@ -1289,7 +1291,7 @@ function renderAllianceReport() {
 function downloadAllianceReport() {
     if (!isAdminUser(firebase.auth().currentUser)) return;
     const report = currentAllianceReport();
-    const lines = [['Dia', 'Pegadas', 'Aliados', 'Inimigos', 'Sem lado'].map(csvCell).join(';')];
+    const lines = [['Dia', 'Pegadas', 'Aliados', 'Inimigos', 'Apagadas'].map(csvCell).join(';')];
     report.days.forEach((bucket) => {
         lines.push([bucket.day, bucket.total, bucket.aliado, bucket.inimigo, bucket.unknown].map(csvCell).join(';'));
     });

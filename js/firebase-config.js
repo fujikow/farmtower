@@ -96,39 +96,42 @@ connectedRef.on('value', (snapshot) => {
 });
 
 
-// Remove torres que expiraram há mais de 1 hora.
-// A consulta usa o índice horarioFinalizacao (veja database.rules.json).
+// Tira da tabela as torres que expiraram há mais de 1 hora.
+// O registro fica, com dono e lado, para o consolidado do evento.
 function cleanExpiredTowers() {
     const cutoffMs = getEstimatedServerTime().getTime() - (60 * 60 * 1000);
     const cutoff = new Date(cutoffMs).toISOString();
 
     towersRef.orderByChild('horarioFinalizacao').endAt(cutoff).once('value', (snapshot) => {
         const updates = {};
-        let removed = 0;
+        let kept = 0;
         const nowMs = getEstimatedServerTime().getTime();
         const admin = typeof isAdminUser === 'function' && isAdminUser(firebase.auth().currentUser);
+        const identity = typeof editorIdentity === 'function' ? editorIdentity() : null;
+        const em = new Date(nowMs).toISOString();
         snapshot.forEach((child) => {
             const value = child.val() || {};
+            if (value.removida === true) return;
             const finalizacao = parseUtcInstant(value.horarioFinalizacao);
             if (!finalizacao || finalizacao.getTime() > cutoffMs) return;
             const expiredMs = typeof value.horarioFinalizacaoMs === 'number' && value.horarioFinalizacaoMs + 3600000 < nowMs;
-            if (!admin && value.removida !== true && !expiredMs) return;
-            updates[`towers/${child.key}`] = null;
-            removed += 1;
-            if (typeof editorIdentity === 'function' && typeof auditPayload === 'function') {
-                const identity = editorIdentity();
-                if (identity) {
-                    const auditKey = database.ref('audit').push().key;
-                    const em = new Date(nowMs).toISOString();
-                    updates[`audit/${auditKey}`] = auditPayload('expiracao', value, child.key, identity, em);
-                }
+            if (!admin && !expiredMs) return;
+            if (!identity) return;
+            updates[`towers/${child.key}/removida`] = true;
+            updates[`towers/${child.key}/editadoPor`] = identity.nome;
+            updates[`towers/${child.key}/editadoPorUid`] = identity.uid;
+            updates[`towers/${child.key}/editadoEm`] = em;
+            kept += 1;
+            if (typeof auditPayload === 'function') {
+                const auditKey = database.ref('audit').push().key;
+                updates[`audit/${auditKey}`] = auditPayload('expiracao', value, child.key, identity, em);
             }
         });
-        if (removed > 0) {
+        if (kept > 0) {
             database.ref().update(updates).then(() => {
-                console.log(`[Limpeza] ${removed} torres expiradas há mais de 1h removidas.`);
+                console.log(`[Limpeza] ${kept} torres saíram da tabela. O lado ficou guardado.`);
             }).catch((error) => {
-                console.error('[Limpeza] Não foi possível apagar torres expiradas:', error.code || error.message);
+                console.error('[Limpeza] Não foi possível arquivar torres expiradas:', error.code || error.message);
             });
         }
     });

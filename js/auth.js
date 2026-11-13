@@ -153,7 +153,7 @@ function showContent() {
         loadTowersFromFirebase();
     }
 
-    // Uma vez por aba: apaga histórico que já passou de 1 hora.
+    // Uma vez por aba: tira da tabela o que já passou de 1 hora, sem apagar o lado.
     if (typeof cleanExpiredTowers === 'function' && !sessionStorage.getItem('anbu_cleaned')) {
         sessionStorage.setItem('anbu_cleaned', '1');
         cleanExpiredTowers();

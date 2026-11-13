@@ -1,5 +1,6 @@
 // ===== VARIÁVEIS GLOBAIS =====
 let allTowers = [];
+let storedTowers = [];
 let updateInterval;
 let filtersHydrated = false;
 let knownCriticalIds = null;
@@ -79,13 +80,16 @@ function loadTowersFromFirebase() {
     towersRef.on('value', (snapshot) => {
         const towers = snapshot.val();
         allTowers = [];
+        storedTowers = [];
 
         if (towers) {
             const cutoffTime = getEstimatedServerTime().getTime() - (5 * 60 * 1000);
 
             Object.keys(towers).forEach(key => {
                 const torre = towers[key];
-                if (!torre || typeof torre !== 'object' || torre.removida === true) return;
+                if (!torre || typeof torre !== 'object') return;
+                storedTowers.push({ id: key, ...torre });
+                if (torre.removida === true) return;
                 const finalizacao = parseUtcInstant(torre.horarioFinalizacao);
                 if (!finalizacao) return;
                 if (finalizacao.getTime() > cutoffTime) {
