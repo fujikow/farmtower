@@ -1777,6 +1777,116 @@ tbody tr:hover {
     width: min(1240px, calc(100vw - 24px));
 }
 
+.alliance-score {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin: 0 0 12px;
+}
+
+.alliance-card {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 12px 14px;
+    border: 2px solid #dee2e6;
+    border-radius: 12px;
+    background: #f8f9fa;
+}
+
+.alliance-card.is-ally {
+    background: #e7f1ff;
+    border-color: #b6d4fe;
+    color: #0a58ca;
+}
+
+.alliance-card.is-enemy {
+    background: #f8d7da;
+    border-color: #f1aeb5;
+    color: #842029;
+}
+
+.alliance-card.is-ahead {
+    box-shadow: 0 0 0 2px currentColor;
+}
+
+.alliance-card span,
+.alliance-card small {
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-size: 0.78em;
+}
+
+.alliance-card small {
+    font-weight: 700;
+    letter-spacing: 0;
+    text-transform: none;
+    color: #495057;
+}
+
+.alliance-card strong {
+    font-size: 2rem;
+    line-height: 1.1;
+}
+
+.alliance-lead {
+    margin: 0 0 12px;
+    font-weight: 800;
+}
+
+.alliance-head,
+.alliance-row {
+    display: grid;
+    grid-template-columns: 32px minmax(0, 1.4fr) 96px 72px 96px;
+    gap: 8px 12px;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.alliance-head {
+    font-size: 0.78em;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: #495057;
+}
+
+.alliance-head span:nth-child(n + 4),
+.alliance-row .ranking-count {
+    text-align: right;
+}
+
+.alliance-side {
+    font-weight: 800;
+    font-size: 0.85em;
+}
+
+.alliance-side.is-ally {
+    color: #0a58ca;
+}
+
+.alliance-side.is-enemy {
+    color: #842029;
+}
+
+.alliance-row.is-enemy .ranking-bar > span {
+    background: #dc3545;
+}
+
+@media (max-width: 640px) {
+    .alliance-score {
+        grid-template-columns: 1fr;
+    }
+
+    .alliance-head,
+    .alliance-row {
+        grid-template-columns: 24px minmax(0, 1fr) 72px 48px 64px;
+        gap: 6px;
+    }
+}
+
 .overwrite-toolbar {
     display: flex;
     gap: 8px;

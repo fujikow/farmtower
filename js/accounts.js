@@ -127,6 +127,74 @@ function overwriteReport(auditEvents, activeTowers, profiles) {
     }).sort((a, b) => b.em.localeCompare(a.em) || a.mapa.localeCompare(b.mapa) || a.servidor.localeCompare(b.servidor, undefined, { numeric: true }));
 }
 
+function allianceSide(value) {
+    return value === 'Aliado' || value === 'Inimigo' ? value : '';
+}
+
+function allianceOwner(value) {
+    return String(value || '').replace(/[\u0000-\u001F\u007F]/g, '').trim().slice(0, 40);
+}
+
+function allianceReport(activeTowers, auditEvents) {
+    const rows = new Map();
+    function slot(dono, side) {
+        const name = allianceOwner(dono);
+        const alianca = allianceSide(side);
+        if (!name || !alianca) return null;
+        const key = `${alianca}|${name.toLowerCase()}`;
+        let row = rows.get(key);
+        if (!row) {
+            row = { dono: name, alianca: alianca, ativas: 0, cadastros: 0 };
+            rows.set(key, row);
+        } else if (name.length > row.dono.length) {
+            row.dono = name;
+        }
+        return row;
+    }
+    const events = (Array.isArray(auditEvents) ? auditEvents : []).filter((event) => event && (event.acao === 'cadastro' || event.acao === 'sobrescrita'));
+    const firstSidedAt = new Map();
+    events.forEach((event) => {
+        const id = String(event.torreId || '');
+        if (!id || !allianceSide(event.alianca) || !allianceOwner(event.dono)) return;
+        const em = String(event.em || '');
+        const prev = firstSidedAt.get(id);
+        if (!prev || em < prev) firstSidedAt.set(id, em);
+    });
+    const covered = new Set();
+    events.forEach((event) => {
+        const id = String(event.torreId || '');
+        const row = slot(event.dono, event.alianca);
+        if (row) {
+            row.cadastros += 1;
+            if (id) covered.add(id);
+        }
+        if (event.acao !== 'sobrescrita' || !id) return;
+        const earlier = firstSidedAt.get(id);
+        const em = String(event.em || '');
+        if (earlier && earlier < em) return;
+        const previous = slot(event.donoAnterior, event.aliancaAnterior);
+        if (previous) previous.cadastros += 1;
+    });
+    (activeTowers || []).forEach((torre) => {
+        if (!torre || typeof torre !== 'object') return;
+        const row = slot(torre.dono, torre.alianca);
+        if (!row) return;
+        row.ativas += 1;
+        const id = String(torre.id || '');
+        if (!id || !covered.has(id)) row.cadastros += 1;
+    });
+    const list = [...rows.values()].sort((a, b) => b.cadastros - a.cadastros || b.ativas - a.ativas || a.dono.localeCompare(b.dono, undefined, { sensitivity: 'base' }) || a.alianca.localeCompare(b.alianca));
+    const totals = {
+        Aliado: { cadastros: 0, ativas: 0 },
+        Inimigo: { cadastros: 0, ativas: 0 }
+    };
+    list.forEach((row) => {
+        totals[row.alianca].cadastros += row.cadastros;
+        totals[row.alianca].ativas += row.ativas;
+    });
+    return { rows: list, totals: totals };
+}
+
 function normalizeUsername(value) {
     const username = String(value || '').trim().toLowerCase();
     if (!/^[a-z0-9._-]{3,24}$/.test(username)) return '';
@@ -291,11 +359,13 @@ function startAccountWatchers() {
         renderAuditList();
         renderRegistrarRanking();
         renderOverwriteReport();
+        renderAllianceReport();
     }, () => {
         auditEntries = [];
         renderAuditList();
         renderRegistrarRanking();
         renderOverwriteReport();
+        renderAllianceReport();
     });
 }
 
@@ -332,6 +402,18 @@ function auditPayload(acao, torre, torreId, identity, em, previous) {
         const novo = auditScheduleIso(torre && torre.horarioFinalizacao);
         if (antigo) payload.horarioAnterior = antigo;
         if (novo) payload.horarioNovo = novo;
+        const donoAnterior = allianceOwner(previous && previous.dono);
+        const aliancaAnterior = allianceSide(previous && previous.alianca);
+        if (donoAnterior && aliancaAnterior) {
+            payload.donoAnterior = donoAnterior;
+            payload.aliancaAnterior = aliancaAnterior;
+        }
+    }
+    const dono = allianceOwner(torre && torre.dono);
+    const alianca = allianceSide(torre && torre.alianca);
+    if (dono && alianca) {
+        payload.dono = dono;
+        payload.alianca = alianca;
     }
     return payload;
 }
@@ -395,8 +477,10 @@ function renderSessionChrome() {
         closeAuditModal();
         closeRankingModal();
         closeOverwriteModal();
+        closeAllianceModal();
         renderRegistrarRanking();
         renderOverwriteReport();
+        renderAllianceReport();
     }
     if (!user) return;
 
@@ -438,6 +522,12 @@ function renderSessionChrome() {
         overwriteButton.textContent = getTranslation('btn_overwrites');
         overwriteButton.addEventListener('click', openOverwriteModal);
         host.append(overwriteButton);
+        const allianceButton = document.createElement('button');
+        allianceButton.type = 'button';
+        allianceButton.className = 'btn-account';
+        allianceButton.textContent = getTranslation('btn_alliance');
+        allianceButton.addEventListener('click', openAllianceModal);
+        host.append(allianceButton);
     }
     host.append(accountButton);
     syncEditorColumn();
@@ -455,6 +545,7 @@ function ensureAccountModals() {
     document.body.appendChild(buildAuditModal());
     document.body.appendChild(buildRankingModal());
     document.body.appendChild(buildOverwriteModal());
+    document.body.appendChild(buildAllianceModal());
 }
 
 function buildAccountModal() {
@@ -575,6 +666,46 @@ function buildOverwriteModal() {
     return overlay;
 }
 
+function buildAllianceModal() {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.id = 'allianceModal';
+    overlay.addEventListener('click', (event) => {
+        if (event.target === overlay) closeAllianceModal();
+    });
+    const content = document.createElement('div');
+    content.className = 'modal-content modal-account modal-alliance';
+    content.innerHTML = `
+        <div class="modal-header">
+            <h2 id="allianceModalTitle"></h2>
+            <button class="modal-close" type="button" id="allianceModalClose">✕</button>
+        </div>
+        <div class="modal-body">
+            <p class="ranking-hint" id="allianceHint"></p>
+            <div class="alliance-score" id="allianceScore"></div>
+            <p class="alliance-lead" id="allianceLead"></p>
+            <div class="overwrite-toolbar">
+                <input type="search" id="allianceSearch" autocomplete="off">
+                <button type="button" class="btn btn-view" id="allianceDownload"></button>
+            </div>
+            <div class="account-filters" id="allianceFilters">
+                <button type="button" data-alliance-filter="all"></button>
+                <button type="button" data-alliance-filter="Aliado"></button>
+                <button type="button" data-alliance-filter="Inimigo"></button>
+            </div>
+            <div class="alliance-head" id="allianceHead">
+                <span></span>
+                <span id="allianceColOwner"></span>
+                <span id="allianceColSide"></span>
+                <span id="allianceColActive"></span>
+                <span id="allianceColTotal"></span>
+            </div>
+            <div id="allianceList" class="ranking-list"></div>
+        </div>`;
+    overlay.appendChild(content);
+    return overlay;
+}
+
 function buildAuditModal() {
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay';
@@ -647,8 +778,17 @@ function labelAccountModal() {
     setText('overwriteHint', 'overwrite_hint');
     setText('overwriteDownload', 'overwrite_download');
     setPlaceholder('overwriteSearch', 'overwrite_search');
+    setText('allianceModalTitle', 'alliance_modal_title');
+    setText('allianceHint', 'alliance_hint');
+    setText('allianceColOwner', 'alliance_col_owner');
+    setText('allianceColSide', 'alliance_col_side');
+    setText('allianceColActive', 'alliance_col_active');
+    setText('allianceColTotal', 'alliance_col_total');
+    setText('allianceDownload', 'alliance_download');
+    setPlaceholder('allianceSearch', 'alliance_search');
     renderRegistrarRanking();
     renderOverwriteReport();
+    renderAllianceReport();
     renderUserList();
 }
 
@@ -735,6 +875,23 @@ function openOverwriteModal() {
 
 function closeOverwriteModal() {
     const modal = document.getElementById('overwriteModal');
+    if (!modal) return;
+    modal.classList.remove('active');
+    modal.style.display = 'none';
+}
+
+function openAllianceModal() {
+    if (!isAdminUser(firebase.auth().currentUser)) return;
+    ensureAccountModals();
+    wireAccountModal();
+    labelAccountModal();
+    const modal = document.getElementById('allianceModal');
+    modal.classList.add('active');
+    modal.style.display = 'flex';
+}
+
+function closeAllianceModal() {
+    const modal = document.getElementById('allianceModal');
     if (!modal) return;
     modal.classList.remove('active');
     modal.style.display = 'none';
@@ -888,6 +1045,130 @@ function csvCell(value) {
     return text;
 }
 
+let allianceListFilter = 'all';
+
+function currentAllianceReport() {
+    const towers = typeof allTowers !== 'undefined' ? allTowers : [];
+    return allianceReport(towers, auditEntries);
+}
+
+function visibleAllianceRows(report) {
+    const query = String((document.getElementById('allianceSearch') || {}).value || '').trim().toLowerCase();
+    return report.rows.filter((row) => {
+        if (allianceListFilter !== 'all' && row.alianca !== allianceListFilter) return false;
+        if (!query) return true;
+        return `${row.dono} ${row.alianca}`.toLowerCase().includes(query);
+    });
+}
+
+function allianceLeadText(totals) {
+    const ally = totals.Aliado.cadastros;
+    const enemy = totals.Inimigo.cadastros;
+    if (ally === enemy) return getTranslation('alliance_tie');
+    if (ally > enemy) return getTranslation('alliance_lead_ally', { diff: ally - enemy });
+    return getTranslation('alliance_lead_enemy', { diff: enemy - ally });
+}
+
+function renderAllianceReport() {
+    const list = document.getElementById('allianceList');
+    const score = document.getElementById('allianceScore');
+    const lead = document.getElementById('allianceLead');
+    const head = document.getElementById('allianceHead');
+    if (!list || typeof getTranslation !== 'function') return;
+    list.replaceChildren();
+    if (score) score.replaceChildren();
+    if (!isAdminUser(firebase.auth().currentUser)) {
+        if (lead) lead.textContent = '';
+        if (head) head.hidden = true;
+        return;
+    }
+    const report = currentAllianceReport();
+    const visible = visibleAllianceRows(report);
+    [['Aliado', 'alliance_allies', 'is-ally'], ['Inimigo', 'alliance_enemies', 'is-enemy']].forEach(([side, labelKey, tone]) => {
+        if (!score) return;
+        const card = document.createElement('article');
+        const ahead = report.totals[side].cadastros > report.totals[side === 'Aliado' ? 'Inimigo' : 'Aliado'].cadastros;
+        card.className = `alliance-card ${tone}${ahead ? ' is-ahead' : ''}`;
+        const label = document.createElement('span');
+        label.textContent = getTranslation(labelKey);
+        const total = document.createElement('strong');
+        total.textContent = String(report.totals[side].cadastros);
+        const active = document.createElement('small');
+        active.textContent = getTranslation('alliance_active_count', { count: report.totals[side].ativas });
+        card.append(label, total, active);
+        score.appendChild(card);
+    });
+    if (lead) lead.textContent = report.rows.length ? allianceLeadText(report.totals) : '';
+    document.querySelectorAll('[data-alliance-filter]').forEach((button) => {
+        const filter = button.getAttribute('data-alliance-filter');
+        const count = filter === 'Aliado' ? report.totals.Aliado.cadastros : (filter === 'Inimigo' ? report.totals.Inimigo.cadastros : null);
+        const label = getTranslation(filter === 'Aliado' ? 'alliance_allies' : (filter === 'Inimigo' ? 'alliance_enemies' : 'alliance_filter_all'));
+        button.textContent = count == null ? label : `${label} (${count})`;
+        const selected = filter === allianceListFilter;
+        button.classList.toggle('is-selected', selected);
+        button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+    });
+    if (head) head.hidden = !visible.length;
+    if (!visible.length) {
+        const empty = document.createElement('p');
+        empty.className = 'account-list-empty';
+        empty.textContent = getTranslation(report.rows.length ? 'alliance_filter_empty' : 'alliance_empty');
+        list.appendChild(empty);
+        return;
+    }
+    const top = visible[0].cadastros || 1;
+    visible.forEach((row, index) => {
+        const item = document.createElement('div');
+        item.className = `alliance-row${row.alianca === 'Inimigo' ? ' is-enemy' : ''}`;
+        const place = document.createElement('span');
+        place.className = 'ranking-place';
+        place.textContent = String(index + 1);
+        const nome = document.createElement('span');
+        nome.className = 'ranking-name';
+        nome.textContent = row.dono;
+        nome.title = row.dono;
+        const side = document.createElement('span');
+        side.className = row.alianca === 'Inimigo' ? 'alliance-side is-enemy' : 'alliance-side is-ally';
+        side.textContent = getTranslation(row.alianca === 'Inimigo' ? 'form_alliance_enemy' : 'form_alliance_ally');
+        const ativas = document.createElement('span');
+        ativas.className = 'ranking-count';
+        ativas.textContent = String(row.ativas);
+        const cadastros = document.createElement('span');
+        cadastros.className = 'ranking-count';
+        cadastros.textContent = String(row.cadastros);
+        const track = document.createElement('div');
+        track.className = 'ranking-bar';
+        const fill = document.createElement('span');
+        fill.style.width = `${Math.max(8, Math.round((row.cadastros / top) * 100))}%`;
+        track.appendChild(fill);
+        item.append(place, nome, side, ativas, cadastros, track);
+        list.appendChild(item);
+    });
+}
+
+function downloadAllianceReport() {
+    if (!isAdminUser(firebase.auth().currentUser)) return;
+    const report = currentAllianceReport();
+    const header = ['Dono', 'Lado', 'Ativas', 'Cadastros'];
+    const lines = [header.map(csvCell).join(';')];
+    report.rows.forEach((row) => {
+        lines.push([row.dono, row.alianca, row.ativas, row.cadastros].map(csvCell).join(';'));
+    });
+    const ally = report.totals.Aliado;
+    const enemy = report.totals.Inimigo;
+    lines.push(['', 'Aliado', ally.ativas, ally.cadastros].map(csvCell).join(';'));
+    lines.push(['', 'Inimigo', enemy.ativas, enemy.cadastros].map(csvCell).join(';'));
+    const blob = new Blob([`\uFEFF${lines.join('\n')}`], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'relatorio-aliados-inimigos.csv';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+}
+
 let accountModalWired = false;
 let accountListFilter = 'all';
 let serverDraft = null;
@@ -900,9 +1181,22 @@ function wireAccountModal() {
     document.getElementById('auditModalClose').addEventListener('click', closeAuditModal);
     document.getElementById('rankingModalClose').addEventListener('click', closeRankingModal);
     document.getElementById('overwriteModalClose').addEventListener('click', closeOverwriteModal);
+    document.getElementById('allianceModalClose').addEventListener('click', closeAllianceModal);
     document.getElementById('overwriteDownload').addEventListener('click', downloadOverwriteReport);
+    document.getElementById('allianceDownload').addEventListener('click', downloadAllianceReport);
     const overwriteSearch = document.getElementById('overwriteSearch');
     if (overwriteSearch) overwriteSearch.addEventListener('input', renderOverwriteReport);
+    const allianceSearch = document.getElementById('allianceSearch');
+    if (allianceSearch) allianceSearch.addEventListener('input', renderAllianceReport);
+    const allianceFilters = document.getElementById('allianceFilters');
+    if (allianceFilters) {
+        allianceFilters.addEventListener('click', (event) => {
+            const button = event.target.closest('[data-alliance-filter]');
+            if (!button) return;
+            allianceListFilter = button.getAttribute('data-alliance-filter') || 'all';
+            renderAllianceReport();
+        });
+    }
     document.getElementById('accountCreateBtn').addEventListener('click', submitNewAccount);
     document.getElementById('accountPasswordBtn').addEventListener('click', submitPasswordChange);
     const search = document.getElementById('accountSearch');
