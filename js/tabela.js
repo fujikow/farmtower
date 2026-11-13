@@ -106,6 +106,7 @@ function loadTowersFromFirebase() {
         renderTable();
         if (typeof renderRegistrarRanking === 'function') renderRegistrarRanking();
         if (typeof renderAllianceReport === 'function') renderAllianceReport();
+        if (typeof renderAnalysis === 'function') renderAnalysis();
     }, (error) => {
         console.error('❌ Erro ao carregar torres do Firebase:', error.code || error.message);
     });

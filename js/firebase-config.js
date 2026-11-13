@@ -123,8 +123,11 @@ function cleanExpiredTowers() {
             updates[`towers/${child.key}/editadoEm`] = em;
             kept += 1;
             if (typeof auditPayload === 'function') {
-                const auditKey = database.ref('audit').push().key;
-                updates[`audit/${auditKey}`] = auditPayload('expiracao', value, child.key, identity, em);
+                const payload = auditPayload('expiracao', value, child.key, identity, em);
+                if (payload) {
+                    const auditKey = database.ref('audit').push().key;
+                    updates[`audit/${auditKey}`] = payload;
+                }
             }
         });
         if (kept > 0) {

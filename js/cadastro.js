@@ -211,7 +211,7 @@ function saveTowerToFirebase(torre, existingId, previous) {
         })
         .catch((error) => {
             console.error('❌ Erro ao salvar torre:', error);
-            const key = error && error.message === 'profile' ? 'error_profile' : 'error_save_tower';
+            const key = error && error.message === 'profile' ? 'error_profile' : (error && error.message === 'snapshot' ? 'error_snapshot' : 'error_save_tower');
             showError(getTranslation(key));
             resetSubmitButton();
         });

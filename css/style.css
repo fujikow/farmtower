@@ -1819,8 +1819,114 @@ tbody tr:hover {
 
 .modal-alliance h3,
 .alliance-days,
-#allianceList {
+#allianceList,
+.analysis-scroll,
+.analysis-hours,
+.analysis-note {
     flex: 0 0 auto;
+}
+
+.analysis-score {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.analysis-note {
+    margin: -4px 0 8px;
+    color: #495057;
+    font-weight: 700;
+}
+
+.analysis-hours {
+    display: grid;
+    grid-template-columns: repeat(24, minmax(18px, 1fr));
+    gap: 3px;
+    align-items: end;
+    height: 132px;
+    margin: 0 0 16px;
+    overflow-x: auto;
+}
+
+.analysis-hour {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    height: 100%;
+    min-width: 0;
+    gap: 4px;
+}
+
+.analysis-hour span {
+    display: block;
+    width: 100%;
+    background: var(--gremio-azul);
+    border-radius: 4px 4px 0 0;
+}
+
+.analysis-hour small {
+    font-size: 0.65em;
+    font-weight: 800;
+    color: #495057;
+}
+
+.analysis-scroll {
+    max-height: 240px;
+    overflow: auto;
+    margin: 0 0 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: #fff;
+}
+
+.analysis-head,
+.analysis-row {
+    display: grid;
+    gap: 8px;
+    align-items: center;
+    padding: 8px 12px;
+}
+
+.analysis-head {
+    position: sticky;
+    top: 0;
+    background: #f8f9fa;
+    font-size: 0.75em;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: #495057;
+}
+
+.analysis-row {
+    border-top: 1px solid var(--border-color);
+    font-weight: 700;
+}
+
+.analysis-scroll.is-wide .analysis-head,
+.analysis-scroll.is-wide .analysis-row {
+    grid-template-columns: minmax(120px, 1.5fr) repeat(6, minmax(72px, 1fr));
+    min-width: 760px;
+}
+
+.analysis-scroll.is-band .analysis-head,
+.analysis-scroll.is-band .analysis-row {
+    grid-template-columns: minmax(0, 1.4fr) 96px;
+}
+
+.analysis-scroll.is-place .analysis-head,
+.analysis-scroll.is-place .analysis-row {
+    grid-template-columns: minmax(140px, 1.6fr) minmax(100px, 1fr) 88px;
+    min-width: 420px;
+}
+
+.analysis-head span:nth-child(n + 2),
+.analysis-row span:nth-child(n + 2) {
+    text-align: right;
+}
+
+.modal-analysis {
+    max-width: 1100px;
+    width: min(1100px, calc(100vw - 24px));
 }
 
 .alliance-days {
@@ -1932,7 +2038,8 @@ tbody tr:hover {
 }
 
 @media (max-width: 640px) {
-    .alliance-score {
+    .alliance-score,
+    .analysis-score {
         grid-template-columns: 1fr;
     }
 

@@ -148,6 +148,31 @@ function allianceDayKey(value) {
     return /^\d{4}-\d{2}-\d{2}$/.test(parts) ? parts : '';
 }
 
+function allianceHourKey(value) {
+    const instant = typeof parseUtcInstant === 'function' ? parseUtcInstant(value) : null;
+    const date = instant || (value ? new Date(value) : null);
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) return -1;
+    const hour = new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'America/Sao_Paulo',
+        hour: '2-digit',
+        hourCycle: 'h23'
+    }).format(date);
+    const number = Number(hour);
+    return number >= 0 && number <= 23 ? number : -1;
+}
+
+function analysisText(value, max) {
+    const text = String(value || '').replace(/[\u0000-\u001F\u007F]/g, '').trim();
+    if (!text || text.length > max) return '';
+    return text;
+}
+
+function analysisDuration(value) {
+    const number = Number(value);
+    if (!Number.isFinite(number) || number <= 0 || number > 194400) return 0;
+    return number;
+}
+
 function allianceInEvent(value) {
     const day = allianceDayKey(value);
     if (!day) return !value;
@@ -355,6 +380,140 @@ function allianceReport(activeTowers, auditEvents, keptTowers) {
     };
 }
 
+function towerAnalysis(activeTowers, auditEvents, keptTowers) {
+    const kept = Array.isArray(keptTowers) ? keptTowers : (activeTowers || []);
+    const roster = allianceRoster(kept, auditEvents);
+    const towersById = new Map();
+    kept.forEach((torre) => {
+        if (torre && torre.id) towersById.set(String(torre.id), torre);
+    });
+    const events = (Array.isArray(auditEvents) ? auditEvents : []).filter((event) => event && (event.acao === 'cadastro' || event.acao === 'sobrescrita') && allianceInEvent(event.em));
+    const byTower = new Map();
+    events.forEach((event) => {
+        const id = String(event.torreId || '');
+        if (!byTower.has(id)) byTower.set(id, []);
+        byTower.get(id).push(event);
+    });
+    const maps = new Map();
+    const servers = new Map();
+    const places = new Map();
+    const hours = Array.from({ length: 24 }, (_, hour) => ({ hour: hour, total: 0 }));
+    const durations = [
+        { key: '6', max: 21600, count: 0 },
+        { key: '12', max: 43200, count: 0 },
+        { key: '24', max: 86400, count: 0 },
+        { key: '48', max: 172800, count: 0 },
+        { key: '54', max: 194400, count: 0 }
+    ];
+    function blankRow(key) {
+        return { key: key, total: 0, aliado: 0, inimigo: 0, unknown: 0, ativas: 0, durationSum: 0, durationCount: 0 };
+    }
+    function rowFor(table, key) {
+        if (!table.has(key)) table.set(key, blankRow(key));
+        return table.get(key);
+    }
+    let captures = 0;
+    let overwrites = 0;
+    let durationSum = 0;
+    let durationCount = 0;
+    function record(mapa, servidor, side, duration, local, hour) {
+        captures += 1;
+        const mapRow = rowFor(maps, mapa || '—');
+        const serverRow = rowFor(servers, servidor || '—');
+        mapRow.total += 1;
+        serverRow.total += 1;
+        if (side === 'Aliado' || side === 'Inimigo') {
+            const field = side === 'Aliado' ? 'aliado' : 'inimigo';
+            mapRow[field] += 1;
+            serverRow[field] += 1;
+        } else {
+            mapRow.unknown += 1;
+            serverRow.unknown += 1;
+        }
+        if (duration) {
+            durationSum += duration;
+            durationCount += 1;
+            mapRow.durationSum += duration;
+            mapRow.durationCount += 1;
+            serverRow.durationSum += duration;
+            serverRow.durationCount += 1;
+            const bucket = durations.find((item) => duration <= item.max);
+            if (bucket) bucket.count += 1;
+        }
+        if (hour >= 0 && hour <= 23) hours[hour].total += 1;
+        if (local && mapa) {
+            const placeKey = `${mapa}|${local.toLowerCase()}`;
+            if (!places.has(placeKey)) places.set(placeKey, { mapa: mapa, localizacao: local, total: 0 });
+            places.get(placeKey).total += 1;
+        }
+    }
+    byTower.forEach((list) => {
+        list.sort((a, b) => String(a.em || '').localeCompare(String(b.em || '')));
+        list.forEach((event, index) => {
+            if (event.acao === 'sobrescrita') overwrites += 1;
+            const live = index === list.length - 1 ? towersById.get(String(event.torreId || '')) : null;
+            const mapa = analysisText(event.mapa, 40) || analysisText(live && live.mapa, 40);
+            const servidor = String(event.servidor || (live && live.servidor) || '').trim();
+            let side = allianceSide(event.alianca);
+            let dono = allianceOwner(event.dono);
+            if (!side && live) side = allianceSide(live.alianca);
+            if (!dono && live) dono = allianceOwner(live.dono);
+            if (dono && !side) {
+                const known = allianceFromRoster(roster, dono);
+                if (known) side = known.alianca;
+            }
+            let duration = analysisDuration(event.duracaoSegundos);
+            if (!duration && live) duration = analysisDuration(live.duracaoSegundos);
+            let local = analysisText(event.localizacao, 80);
+            if (!local && live) local = analysisText(live.localizacao, 80);
+            record(mapa, servidor, side, duration, local, allianceHourKey(event.em));
+        });
+    });
+    kept.forEach((torre) => {
+        if (!torre || typeof torre !== 'object') return;
+        const id = String(torre.id || '');
+        if (id && byTower.has(id)) return;
+        const when = torre.cadastradoEm || torre.vistoHorario || '';
+        if (when && !allianceInEvent(when)) return;
+        const dono = allianceOwner(torre.dono);
+        let side = allianceSide(torre.alianca);
+        if (dono && !side) {
+            const known = allianceFromRoster(roster, dono);
+            if (known) side = known.alianca;
+        }
+        record(
+            analysisText(torre.mapa, 40),
+            String(torre.servidor || '').trim(),
+            side,
+            analysisDuration(torre.duracaoSegundos),
+            analysisText(torre.localizacao, 80),
+            allianceHourKey(when)
+        );
+    });
+    (activeTowers || []).forEach((torre) => {
+        if (!torre || typeof torre !== 'object') return;
+        const mapa = analysisText(torre.mapa, 40);
+        const servidor = String(torre.servidor || '').trim();
+        if (mapa) rowFor(maps, mapa).ativas += 1;
+        if (servidor) rowFor(servers, servidor).ativas += 1;
+    });
+    const mapRows = [...maps.values()].sort((a, b) => b.total - a.total || b.ativas - a.ativas || a.key.localeCompare(b.key));
+    const serverRows = [...servers.values()].sort((a, b) => b.total - a.total || Number(a.key) - Number(b.key) || a.key.localeCompare(b.key));
+    const peak = hours.reduce((best, item) => (item.total > best.total ? item : best), hours[0]);
+    return {
+        captures: captures,
+        overwrites: overwrites,
+        durationSum: durationSum,
+        durationCount: durationCount,
+        maps: mapRows,
+        servers: serverRows,
+        hours: hours,
+        durations: durations,
+        places: [...places.values()].sort((a, b) => b.total - a.total || a.mapa.localeCompare(b.mapa) || a.localizacao.localeCompare(b.localizacao)).slice(0, 12),
+        peak: peak
+    };
+}
+
 function normalizeUsername(value) {
     const username = String(value || '').trim().toLowerCase();
     if (!/^[a-z0-9._-]{3,24}$/.test(username)) return '';
@@ -520,12 +679,14 @@ function startAccountWatchers() {
         renderRegistrarRanking();
         renderOverwriteReport();
         renderAllianceReport();
+        renderAnalysis();
     }, () => {
         auditEntries = [];
         renderAuditList();
         renderRegistrarRanking();
         renderOverwriteReport();
         renderAllianceReport();
+        renderAnalysis();
     });
 }
 
@@ -547,33 +708,57 @@ function auditScheduleIso(value) {
     return /^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3}Z$/.test(iso) ? iso : '';
 }
 
+function auditSnapshot(torre) {
+    const dono = allianceOwner(torre && torre.dono);
+    const alianca = allianceSide(torre && torre.alianca);
+    const localizacao = analysisText(torre && torre.localizacao, 80);
+    const mapa = analysisText(torre && torre.mapa, 40);
+    const servidor = String(torre && torre.servidor || '').trim();
+    const vistoHorario = auditScheduleIso(torre && torre.vistoHorario);
+    const horarioFinalizacao = auditScheduleIso(torre && torre.horarioFinalizacao);
+    const duracaoSegundos = Math.round(analysisDuration(torre && torre.duracaoSegundos));
+    if (!dono || !alianca || !localizacao || !mapa || !/^[0-9]{1,2}$/.test(servidor) || !vistoHorario || !horarioFinalizacao || horarioFinalizacao <= vistoHorario || duracaoSegundos <= 0) return null;
+    return {
+        mapa: mapa,
+        servidor: servidor,
+        dono: dono,
+        alianca: alianca,
+        localizacao: localizacao,
+        vistoHorario: vistoHorario,
+        horarioFinalizacao: horarioFinalizacao,
+        duracaoSegundos: duracaoSegundos
+    };
+}
+
 function auditPayload(acao, torre, torreId, identity, em, previous) {
+    const snap = auditSnapshot(torre);
+    const id = String(torreId || '').slice(0, 40);
+    if (!snap || !id || !identity || !identity.uid || !identity.nome || !em) return null;
     const payload = {
         acao: acao,
         uid: identity.uid,
         nome: identity.nome,
         em: em,
-        mapa: String(torre.mapa || '').slice(0, 40),
-        servidor: String(torre.servidor || '').slice(0, 2),
-        torreId: String(torreId || '').slice(0, 40)
+        mapa: snap.mapa,
+        servidor: snap.servidor,
+        torreId: id,
+        dono: snap.dono,
+        alianca: snap.alianca,
+        localizacao: snap.localizacao,
+        vistoHorario: snap.vistoHorario,
+        horarioFinalizacao: snap.horarioFinalizacao,
+        duracaoSegundos: snap.duracaoSegundos
     };
     if (acao === 'sobrescrita') {
         const antigo = auditScheduleIso(previous && previous.horarioFinalizacao);
-        const novo = auditScheduleIso(torre && torre.horarioFinalizacao);
         if (antigo) payload.horarioAnterior = antigo;
-        if (novo) payload.horarioNovo = novo;
+        payload.horarioNovo = snap.horarioFinalizacao;
         const donoAnterior = allianceOwner(previous && previous.dono);
         const aliancaAnterior = allianceSide(previous && previous.alianca);
         if (donoAnterior && aliancaAnterior) {
             payload.donoAnterior = donoAnterior;
             payload.aliancaAnterior = aliancaAnterior;
         }
-    }
-    const dono = allianceOwner(torre && torre.dono);
-    const alianca = allianceSide(torre && torre.alianca);
-    if (dono && alianca) {
-        payload.dono = dono;
-        payload.alianca = alianca;
     }
     return payload;
 }
@@ -597,10 +782,12 @@ function commitTowerWrite(torre, existingId, acao, previous) {
     }
 
     const id = existingId || towersRef.push().key;
+    const payload = auditPayload(acao, stamped, id, identity, em, previous);
+    if (!payload) return Promise.reject(new Error('snapshot'));
     const auditKey = database.ref('audit').push().key;
     const updates = {};
     updates[`towers/${id}`] = stamped;
-    updates[`audit/${auditKey}`] = auditPayload(acao, stamped, id, identity, em, previous);
+    updates[`audit/${auditKey}`] = payload;
     return database.ref().update(updates);
 }
 
@@ -623,8 +810,11 @@ function commitTowerHide(torre) {
             updates[`towers/${torre.id}/horarioFinalizacaoMs`] = ms;
         }
     }
-    const auditKey = database.ref('audit').push().key;
-    updates[`audit/${auditKey}`] = auditPayload('exclusao', torre, torre.id, identity, em);
+    const payload = auditPayload('exclusao', torre, torre.id, identity, em);
+    if (payload) {
+        const auditKey = database.ref('audit').push().key;
+        updates[`audit/${auditKey}`] = payload;
+    }
     return database.ref().update(updates);
 }
 
@@ -638,9 +828,11 @@ function renderSessionChrome() {
         closeRankingModal();
         closeOverwriteModal();
         closeAllianceModal();
+        closeAnalysisModal();
         renderRegistrarRanking();
         renderOverwriteReport();
         renderAllianceReport();
+        renderAnalysis();
     }
     if (!user) return;
 
@@ -688,6 +880,12 @@ function renderSessionChrome() {
         allianceButton.textContent = getTranslation('btn_alliance');
         allianceButton.addEventListener('click', openAllianceModal);
         host.append(allianceButton);
+        const analysisButton = document.createElement('button');
+        analysisButton.type = 'button';
+        analysisButton.className = 'btn-account';
+        analysisButton.textContent = getTranslation('btn_analysis');
+        analysisButton.addEventListener('click', openAnalysisModal);
+        host.append(analysisButton);
     }
     host.append(accountButton);
     syncEditorColumn();
@@ -706,6 +904,7 @@ function ensureAccountModals() {
     document.body.appendChild(buildRankingModal());
     document.body.appendChild(buildOverwriteModal());
     document.body.appendChild(buildAllianceModal());
+    document.body.appendChild(buildAnalysisModal());
 }
 
 function buildAccountModal() {
@@ -871,6 +1070,43 @@ function buildAllianceModal() {
     return overlay;
 }
 
+function buildAnalysisModal() {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.id = 'analysisModal';
+    overlay.addEventListener('click', (event) => {
+        if (event.target === overlay) closeAnalysisModal();
+    });
+    const content = document.createElement('div');
+    content.className = 'modal-content modal-account modal-alliance modal-analysis';
+    content.innerHTML = `
+        <div class="modal-header">
+            <h2 id="analysisModalTitle"></h2>
+            <button class="modal-close" type="button" id="analysisModalClose">✕</button>
+        </div>
+        <div class="modal-body">
+            <p class="ranking-hint" id="analysisHint"></p>
+            <p class="alliance-lead" id="analysisLead"></p>
+            <div class="alliance-score analysis-score" id="analysisScore"></div>
+            <div class="overwrite-toolbar">
+                <button type="button" class="btn btn-view" id="analysisDownload"></button>
+            </div>
+            <h3 id="analysisByHour"></h3>
+            <p class="analysis-note" id="analysisHourNote"></p>
+            <div id="analysisHours" class="analysis-hours"></div>
+            <h3 id="analysisByMap"></h3>
+            <div id="analysisMaps" class="analysis-scroll is-wide"></div>
+            <h3 id="analysisByServer"></h3>
+            <div id="analysisServers" class="analysis-scroll is-wide"></div>
+            <h3 id="analysisByDuration"></h3>
+            <div id="analysisDurations" class="analysis-scroll is-band"></div>
+            <h3 id="analysisByPlace"></h3>
+            <div id="analysisPlaces" class="analysis-scroll is-place"></div>
+        </div>`;
+    overlay.appendChild(content);
+    return overlay;
+}
+
 function buildAuditModal() {
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay';
@@ -953,9 +1189,19 @@ function labelAccountModal() {
     setText('allianceColTotal', 'alliance_col_total');
     setText('allianceDownload', 'alliance_download');
     setPlaceholder('allianceSearch', 'alliance_search');
+    setText('analysisModalTitle', 'analysis_modal_title');
+    setText('analysisHint', 'analysis_hint');
+    setText('analysisByHour', 'analysis_by_hour');
+    setText('analysisHourNote', 'analysis_hour_note');
+    setText('analysisByMap', 'analysis_by_map');
+    setText('analysisByServer', 'analysis_by_server');
+    setText('analysisByDuration', 'analysis_by_duration');
+    setText('analysisByPlace', 'analysis_by_place');
+    setText('analysisDownload', 'analysis_download');
     renderRegistrarRanking();
     renderOverwriteReport();
     renderAllianceReport();
+    renderAnalysis();
     renderUserList();
 }
 
@@ -1059,6 +1305,23 @@ function openAllianceModal() {
 
 function closeAllianceModal() {
     const modal = document.getElementById('allianceModal');
+    if (!modal) return;
+    modal.classList.remove('active');
+    modal.style.display = 'none';
+}
+
+function openAnalysisModal() {
+    if (!isAdminUser(firebase.auth().currentUser)) return;
+    ensureAccountModals();
+    wireAccountModal();
+    labelAccountModal();
+    const modal = document.getElementById('analysisModal');
+    modal.classList.add('active');
+    modal.style.display = 'flex';
+}
+
+function closeAnalysisModal() {
+    const modal = document.getElementById('analysisModal');
     if (!modal) return;
     modal.classList.remove('active');
     modal.style.display = 'none';
@@ -1427,8 +1690,10 @@ function wireAccountModal() {
     document.getElementById('rankingModalClose').addEventListener('click', closeRankingModal);
     document.getElementById('overwriteModalClose').addEventListener('click', closeOverwriteModal);
     document.getElementById('allianceModalClose').addEventListener('click', closeAllianceModal);
+    document.getElementById('analysisModalClose').addEventListener('click', closeAnalysisModal);
     document.getElementById('overwriteDownload').addEventListener('click', downloadOverwriteReport);
     document.getElementById('allianceDownload').addEventListener('click', downloadAllianceReport);
+    document.getElementById('analysisDownload').addEventListener('click', downloadAnalysis);
     const overwriteSearch = document.getElementById('overwriteSearch');
     if (overwriteSearch) overwriteSearch.addEventListener('input', renderOverwriteReport);
     const allianceSearch = document.getElementById('allianceSearch');
@@ -1693,6 +1958,172 @@ function renderUserList() {
     });
 }
 
+function analysisHoursLabel(seconds) {
+    if (!seconds) return '—';
+    const text = (seconds / 3600).toFixed(1);
+    const lang = typeof localStorage !== 'undefined' ? localStorage.getItem('lang') : '';
+    return `${lang === 'en' ? text : text.replace('.', ',')} h`;
+}
+
+function currentTowerAnalysis() {
+    const live = typeof allTowers !== 'undefined' ? allTowers : [];
+    const kept = typeof storedTowers !== 'undefined' ? storedTowers : live;
+    return towerAnalysis(live, auditEntries, kept);
+}
+
+function analysisTable(host, columns, rows, emptyKey) {
+    if (!host) return;
+    host.replaceChildren();
+    if (!rows.length) {
+        host.textContent = getTranslation(emptyKey || 'analysis_empty');
+        return;
+    }
+    const head = document.createElement('div');
+    head.className = 'analysis-head';
+    columns.forEach((column) => {
+        const cell = document.createElement('span');
+        cell.textContent = column;
+        head.appendChild(cell);
+    });
+    host.appendChild(head);
+    rows.forEach((values) => {
+        const row = document.createElement('div');
+        row.className = 'analysis-row';
+        values.forEach((value) => {
+            const cell = document.createElement('span');
+            cell.textContent = String(value);
+            row.appendChild(cell);
+        });
+        host.appendChild(row);
+    });
+}
+
+function renderAnalysis() {
+    const score = document.getElementById('analysisScore');
+    const lead = document.getElementById('analysisLead');
+    const hours = document.getElementById('analysisHours');
+    const maps = document.getElementById('analysisMaps');
+    const servers = document.getElementById('analysisServers');
+    const durations = document.getElementById('analysisDurations');
+    const places = document.getElementById('analysisPlaces');
+    if (!score || typeof getTranslation !== 'function') return;
+    score.replaceChildren();
+    if (hours) hours.replaceChildren();
+    if (maps) maps.replaceChildren();
+    if (servers) servers.replaceChildren();
+    if (durations) durations.replaceChildren();
+    if (places) places.replaceChildren();
+    if (!isAdminUser(firebase.auth().currentUser)) {
+        if (lead) lead.textContent = '';
+        return;
+    }
+    const report = currentTowerAnalysis();
+    const headers = [
+        getTranslation('analysis_col_total'),
+        getTranslation('alliance_allies'),
+        getTranslation('alliance_enemies'),
+        getTranslation('analysis_col_unknown'),
+        getTranslation('alliance_col_active'),
+        getTranslation('analysis_col_avg')
+    ];
+    const busiestMap = report.maps.find((row) => row.total);
+    const busiestServer = report.servers.slice().sort((a, b) => b.total - a.total)[0];
+    if (lead) {
+        lead.textContent = busiestMap ? getTranslation('analysis_lead', {
+            map: busiestMap.key,
+            mapCount: busiestMap.total,
+            server: busiestServer ? busiestServer.key : '—',
+            serverCount: busiestServer ? busiestServer.total : 0
+        }) : getTranslation('analysis_empty');
+    }
+    const average = report.durationCount ? analysisHoursLabel(report.durationSum / report.durationCount) : '—';
+    const peakHour = report.peak && report.peak.total ? `${String(report.peak.hour).padStart(2, '0')}h` : '—';
+    [
+        [getTranslation('alliance_day_total'), String(report.captures), getTranslation('analysis_overwrites', { count: report.overwrites })],
+        [getTranslation('analysis_avg'), average, getTranslation('analysis_duration_note', { count: report.durationCount })],
+        [getTranslation('analysis_peak_label'), peakHour, report.peak && report.peak.total ? getTranslation('analysis_peak_count', { count: report.peak.total }) : getTranslation('analysis_peak_empty')],
+        [getTranslation('analysis_maps_label'), String(report.maps.filter((row) => row.key !== '—').length), getTranslation('analysis_servers_note', { count: report.servers.filter((row) => row.key !== '—').length })]
+    ].forEach(([label, strong, small]) => {
+        const card = document.createElement('article');
+        card.className = 'alliance-card';
+        const span = document.createElement('span');
+        span.textContent = label;
+        const value = document.createElement('strong');
+        value.textContent = strong;
+        const note = document.createElement('small');
+        note.textContent = small;
+        card.append(span, value, note);
+        score.appendChild(card);
+    });
+    if (hours && report.captures) {
+        const max = Math.max(...report.hours.map((item) => item.total), 1);
+        report.hours.forEach((item) => {
+            const column = document.createElement('div');
+            column.className = 'analysis-hour';
+            column.title = `${String(item.hour).padStart(2, '0')}h · ${item.total}`;
+            const bar = document.createElement('span');
+            bar.style.height = `${Math.max(item.total ? 8 : 0, Math.round((item.total / max) * 100))}%`;
+            const label = document.createElement('small');
+            label.textContent = String(item.hour);
+            column.append(bar, label);
+            hours.appendChild(column);
+        });
+    }
+    const detail = (row) => [
+        row.key,
+        row.total,
+        row.aliado,
+        row.inimigo,
+        row.unknown,
+        row.ativas,
+        row.durationCount ? analysisHoursLabel(row.durationSum / row.durationCount) : '—'
+    ];
+    analysisTable(maps, [getTranslation('analysis_col_map'), ...headers], report.maps.map(detail));
+    analysisTable(servers, [getTranslation('analysis_col_server'), ...headers], report.servers.map(detail));
+    if (durations) {
+        if (!report.durationCount) durations.textContent = getTranslation('analysis_duration_missing');
+        else analysisTable(durations, [getTranslation('analysis_col_band'), getTranslation('analysis_col_towers')], report.durations.map((bucket) => [getTranslation(`analysis_dur_${bucket.key}`), bucket.count]));
+    }
+    if (places) {
+        if (!report.places.length) places.textContent = getTranslation('analysis_place_empty');
+        else analysisTable(places, [getTranslation('analysis_col_place'), getTranslation('analysis_col_map'), getTranslation('alliance_day_total')], report.places.map((place) => [place.localizacao, place.mapa, place.total]));
+    }
+}
+
+function downloadAnalysis() {
+    if (!isAdminUser(firebase.auth().currentUser)) return;
+    const report = currentTowerAnalysis();
+    const lines = [];
+    const groupHead = ['Chave', 'Pegadas', 'Aliados', 'Inimigos', 'Sem lado', 'Ativas', 'Duracao media h'];
+    lines.push(groupHead.join(';'));
+    report.maps.forEach((row) => {
+        lines.push([row.key, row.total, row.aliado, row.inimigo, row.unknown, row.ativas, row.durationCount ? (row.durationSum / row.durationCount / 3600).toFixed(1) : ''].map(csvCell).join(';'));
+    });
+    lines.push('');
+    lines.push(groupHead.join(';'));
+    report.servers.forEach((row) => {
+        lines.push([row.key, row.total, row.aliado, row.inimigo, row.unknown, row.ativas, row.durationCount ? (row.durationSum / row.durationCount / 3600).toFixed(1) : ''].map(csvCell).join(';'));
+    });
+    lines.push('');
+    lines.push(['Hora', 'Pegadas'].join(';'));
+    report.hours.forEach((item) => lines.push([String(item.hour).padStart(2, '0'), item.total].join(';')));
+    lines.push('');
+    lines.push(['Faixa', 'Torres'].join(';'));
+    report.durations.forEach((bucket) => lines.push([bucket.key, bucket.count].join(';')));
+    lines.push('');
+    lines.push(['Local', 'Mapa', 'Pegadas'].join(';'));
+    report.places.forEach((place) => lines.push([place.localizacao, place.mapa, place.total].map(csvCell).join(';')));
+    const blob = new Blob([`\uFEFF${lines.join('\n')}`], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'analise-evento-2026.csv';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+}
+
 function renderAuditList() {
     const list = document.getElementById('auditList');
     if (!list || typeof getTranslation !== 'function') return;
@@ -1707,7 +2138,11 @@ function renderAuditList() {
         row.className = 'audit-row';
         const when = typeof formatDateTime === 'function' ? formatDateTime(entry.em) : entry.em;
         const action = getTranslation(`audit_action_${entry.acao}`);
-        row.textContent = `${when} — ${entry.nome || ''} — ${action} — ${entry.mapa || ''} / ${entry.servidor || ''}`;
+        const bits = [when, entry.nome || '', action, `${entry.mapa || ''} / ${entry.servidor || ''}`];
+        if (entry.dono) bits.push(entry.alianca ? `${entry.dono} · ${entry.alianca}` : entry.dono);
+        if (entry.localizacao) bits.push(entry.localizacao);
+        if (entry.duracaoSegundos) bits.push(analysisHoursLabel(entry.duracaoSegundos));
+        row.textContent = bits.filter(Boolean).join(' — ');
         list.appendChild(row);
     });
 }
